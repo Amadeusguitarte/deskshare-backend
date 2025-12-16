@@ -4,223 +4,365 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Acceso Remoto - DeskShare">
-    <title>Sesión Remota Activa - DeskShare</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap"
-        rel="stylesheet">
+    <title>Sesión Remota - DeskShare</title>
     <link rel="stylesheet" href="styles.css">
-</head>
-
-<body style="background: var(--bg-primary);">
-    <!-- Remote Access Header -->
-    <div
-        style="background: var(--bg-secondary); border-bottom: 1px solid var(--glass-border); padding: 1rem 0; position: fixed; top: 0; left: 0; right: 0; z-index: 1000;">
-        <div class="container">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 2rem;">
-                    <a href="index.html" class="logo">DeskShare</a>
-                    <div style="display: flex; align-items: center; gap: 1.5rem;">
-                        <div>
-                            <span style="color: var(--text-secondary); font-size: 0.85rem;">Conectado a:</span>
-                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 0.5rem;">Workstation
-                                Profesional</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div
-                                style="width: 8px; height: 8px; background: #00ff00; border-radius: 50%; animation: pulse 2s ease-in-out infinite;">
-                            </div>
-                            <span style="color: #00ff00; font-size: 0.9rem; font-weight: 600;">Conectado</span>
-                        </div>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 1.5rem;">
-                    <div
-                        style="background: rgba(138, 43, 226, 0.2); padding: 0.75rem 1.5rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.4);">
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Tiempo transcurrido:</span>
-                        <span id="sessionTimer"
-                            style="color: var(--primary-purple); font-weight: 700; margin-left: 0.5rem; font-size: 1.1rem;">00:43:27</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="minimizeRemote()">Minimizar</button>
-                    <button class="btn" style="background: #ff4444; color: white;"
-                        onclick="disconnectRemote()">Desconectar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Remote Desktop Area -->
-    <div style="padding-top: 80px; height: 100vh; display: flex; flex-direction: column;">
-        <div class="container" style="flex: 1; padding-top: 1rem; padding-bottom: 1rem;">
-            <!-- Connection Info Bar -->
-            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                <div class="glass-card"
-                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="font-size: 1.5rem;">📊</div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Latencia</div>
-                        <div style="font-weight: 600; color: var(--text-primary);">18ms</div>
-                    </div>
-                </div>
-                <div class="glass-card"
-                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="font-size: 1.5rem;">🖥️</div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Resolución</div>
-                        <div style="font-weight: 600; color: var(--text-primary);">1920x1080</div>
-                    </div>
-                </div>
-                <div class="glass-card"
-                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="font-size: 1.5rem;">⚡</div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Velocidad</div>
-                        <div style="font-weight: 600; color: var(--text-primary);">250 Mbps</div>
-                    </div>
-                </div>
-                <div class="glass-card"
-                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="font-size: 1.5rem;">💰</div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Costo Actual</div>
-                        <div style="font-weight: 600; color: var(--accent-purple);">$5.79</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Remote Desktop Viewer -->
-            <div class="glass-card"
-                style="padding: 0; height: calc(100vh - 240px); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #1a1a2e;">
-                <!-- Simulated Remote Desktop -->
-                <div
-                    style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); display: flex; align-items: center; justify-content: center;">
-                    <!-- Windows-like Desktop Simulation -->
-                    <div
-                        style="width: 90%; height: 90%; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-lg); padding: 1.5rem; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);">
-                        <div style="text-align: center; padding: 3rem;">
-                            <div style="font-size: 4rem; margin-bottom: 1.5rem;">🖥️</div>
-                            <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Sesión Remota Activa</h2>
-                            <p
-                                style="color: var(--text-secondary); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-                                Estás conectado de forma segura a <strong>Workstation Profesional</strong>.
-                                Todos los datos están encriptados de extremo a extremo.
-                            </p>
-
-                            <!-- Simulated Desktop Icons -->
-                            <div
-                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 2rem; max-width: 800px; margin: 3rem auto;">
-                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
-                                    onmouseover="this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.transform='scale(1)'">
-                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Documentos</div>
-                                </div>
-                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
-                                    onmouseover="this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.transform='scale(1)'">
-                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎨</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Adobe CC</div>
-                                </div>
-                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
-                                    onmouseover="this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.transform='scale(1)'">
-                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">💻</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">VS Code</div>
-                                </div>
-                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
-                                    onmouseover="this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.transform='scale(1)'">
-                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎬</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">DaVinci</div>
-                                </div>
-                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
-                                    onmouseover="this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.transform='scale(1)'">
-                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🔷</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Blender</div>
-                                </div>
-                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
-                                    onmouseover="this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.transform='scale(1)'">
-                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🌐</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Chrome</div>
-                                </div>
-                            </div>
-
-                            <div class="glass-card" style="max-width: 500px; margin: 3rem auto; padding: 1.5rem;">
-                                <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Controles de Sesión</h4>
-                                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                                    <button class="btn btn-secondary">📋 Portapapeles</button>
-                                    <button class="btn btn-secondary">📁 Transferir Archivos</button>
-                                    <button class="btn btn-secondary">🖨️ Imprimir</button>
-                                    <button class="btn btn-secondary">⚙️ Configuración</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Connection Quality Indicator -->
-                    <div
-                        style="position: absolute; top: 1rem; right: 1rem; background: rgba(0, 255, 0, 0.2); padding: 0.5rem 1rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 255, 0, 0.4); backdrop-filter: blur(10px);">
-                        <span style="color: #00ff00; font-size: 0.85rem; font-weight: 600;">● Excelente Conexión</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <style>
+        .remote-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .remote-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .session-info {
+            color: white;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .session-timer {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .session-cost {
+            font-size: 1.2rem;
+        }
+
+        .remote-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-end {
+            background: #ff4444;
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-end:hover {
+            background: #cc0000;
+            transform: scale(1.05);
+        }
+
+        .parsec-display {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0a;
+            position: relative;
+        }
+
+        #parsecVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 15px;
+        }
+
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .status-text {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .connection-instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            color: white;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        .parsec-code {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            margin: 20px 0;
+            border: 2px dashed #667eea;
+        }
+
+        .step-list {
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .step-list li {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+
         @keyframes pulse {
 
             0%,
             100% {
                 opacity: 1;
-                transform: scale(1);
             }
 
             50% {
-                opacity: 0.6;
-                transform: scale(1.2);
+                opacity: 0.5;
             }
+        }
+
+        .connecting {
+            animation: pulse 2s infinite;
         }
     </style>
+</head>
 
-    <script>
-        // Session Timer
-        let sessionSeconds = 2607; // Starting at 43:27
+<body>
+    <div class="remote-container">
+        <!-- Header with session info -->
+        <div class="remote-header">
+            <div class="session-info">
+                <div>
+                    <div style="font-size: 0.9rem; opacity: 0.8;">Sesión Activa</div>
+                    <div id="computerName" style="font-size: 1.2rem; font-weight: 700;">Loading...</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.9rem; opacity: 0.8;">Tiempo Transcurrido</div>
+                    <div class="session-timer" id="sessionTimer">00:00:00</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.9rem; opacity: 0.8;">Costo Actual</div>
+                    <div class="session-cost" id="sessionCost">$0.00</div>
+                </div>
+            </div>
+            <div class="remote-controls">
+                <button class="btn-end" onclick="endSession()">Finalizar Sesión</button>
+            </div>
+        </div>
 
-        function updateTimer() {
-            sessionSeconds++;
-            const hours = Math.floor(sessionSeconds / 3600);
-            const minutes = Math.floor((sessionSeconds % 3600) / 60);
-            const seconds = sessionSeconds % 60;
+        <!-- Parsec Display Area -->
+        <div class="parsec-display">
+            <!-- This will be replaced with actual Parsec Web SDK when available -->
+            <video id="parsecVideo" style="display: none;"></video>
+            <audio id="parsecAudio" style="display: none;"></audio>
 
-            const timerDisplay =
-                String(hours).padStart(2, '0') + ':' +
-                String(minutes).padStart(2, '0') + ':' +
-                String(seconds).padStart(2, '0');
+            <!-- Connection Instructions (shown until Parsec connects) -->
+            <div id="connectionInstructions" class="connection-instructions">
+                <div class="status-icon">🖥️</div>
+                <h2>Conectar via Parsec</h2>
 
-            document.getElementById('sessionTimer').textContent = timerDisplay;
-        }
+                <div class="status-text" id="statusText">Iniciando sesión...</div>
 
-        setInterval(updateTimer, 1000);
+                <div id="parsecInfo" style="display: none;">
+                    <p><strong>Código de Acceso Parsec:</strong></p>
+                    <div class="parsec-code" id="parsecCode">------</div>
 
-        function minimizeRemote() {
-            alert('La sesión continuará en segundo plano. Puedes volver en cualquier momento.');
-            window.location.href = 'index.html';
-        }
+                    <ol class="step-list">
+                        <li>Descarga e instala <a href="https://parsec.app/downloads" target="_blank"
+                                style="color: #667eea;">Parsec App</a> si no la tienes</li>
+                        <li>Abre Parsec en tu computadora</li>
+                        <li>Ve a "Connect" → "Connect to Peer"</li>
+                        <li>Ingresa el código de acceso de arriba</li>
+                        <li>¡Disfruta tu sesión!</li>
+                    </ol>
 
-        function disconnectRemote() {
-            if (confirm('¿Estás seguro de que deseas finalizar la sesión remota?')) {
-                alert('Sesión finalizada. Duración total: 43 minutos. Costo: $5.79');
-                window.location.href = 'computer-detail.html';
-            }
-        }
-    </script>
+                    <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.7;">
+                        <strong>Nota:</strong> Por ahora, Parsec requiere su aplicación nativa para la mejor
+                        experiencia.
+                        La integración web directa está en desarrollo.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
+    <script>
+        let booking = null;
+        let startTime = null;
+        let timerInterval = null;
+        let pricePerHour = 0;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            redirectIfNotLoggedIn();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const bookingId = urlParams.get('bookingId');
+
+            if (!bookingId) {
+                alert('ID de booking inválido');
+                window.location.href = 'marketplace.html';
+                return;
+            }
+
+            await initializeSession(bookingId);
+        });
+
+        async function initializeSession(bookingId) {
+            try {
+                // Get booking details
+                const bookingResponse = await apiRequest(`/bookings/${bookingId}`);
+                booking = bookingResponse.booking || bookingResponse;
+
+                // Update UI
+                document.getElementById('computerName').textContent = booking.computer?.name || 'Computadora';
+                pricePerHour = booking.priceAgreed;
+
+                // Start the session on backend
+                await apiRequest(`/bookings/${bookingId}/start`, {
+                    method: 'POST'
+                });
+
+                startTime = new Date();
+                startTimer();
+
+                // Get Parsec session info
+                await setupParsecConnection(bookingId);
+
+            } catch (error) {
+                console.error('Error initializing session:', error);
+                alert('Error al iniciar la sesión: ' + error.message);
+                window.location.href = 'profile.html';
+            }
+        }
+
+        async function setupParsecConnection(bookingId) {
+            try {
+                document.getElementById('statusText').textContent = 'Obteniendo credenciales de Parsec...';
+
+                // In production, this would call the Parsec Teams API
+                // For now, we'll show instructions for manual connection
+                const parsecSession = {
+                    peerID: `peer-${booking.computerId}`,
+                    accessCode: generateDemoAccessCode()
+                };
+
+                // Show Parsec instructions
+                document.getElementById('parsecCode').textContent = parsecSession.accessCode;
+                document.getElementById('parsecInfo').style.display = 'block';
+                document.getElementById('statusText').textContent = 'Listo para conectar';
+
+                // TODO: Integrate actual Parsec Web SDK when available
+                // This would involve:
+                // 1. Loading Parsec SDK
+                // 2. Creating client with video/audio elements
+                // 3. Calling client.connect(sessionId, peerId)
+
+            } catch (error) {
+                console.error('Error setting up Parsec:', error);
+                document.getElementById('statusText').textContent = 'Error al conectar con Parsec';
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const now = new Date();
+                const elapsed = now - startTime;
+
+                // Format time
+                const hours = Math.floor(elapsed / 3600000);
+                const minutes = Math.floor((elapsed % 3600000) / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+
+                document.getElementById('sessionTimer').textContent =
+                    `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+                // Calculate cost
+                const hoursElapsed = elapsed / 3600000;
+                const cost = hoursElapsed * pricePerHour;
+                document.getElementById('sessionCost').textContent = `$${cost.toFixed(2)}`;
+
+            }, 1000);
+        }
+
+        async function endSession() {
+            if (!confirm('¿Estás seguro de que quieres finalizar la sesión?')) {
+                return;
+            }
+
+            try {
+                clearInterval(timerInterval);
+
+                // End session on backend
+                const response = await apiRequest(`/bookings/${booking.id}/end`, {
+                    method: 'POST'
+                });
+
+                const finalCost = response.booking.totalPrice || 0;
+                const duration = response.duration || 0;
+
+                alert(
+                    `Sesión finalizada\n\n` +
+                    `Duración: ${duration.toFixed(2)} horas\n` +
+                    `Costo total: $${finalCost.toFixed(2)}\n\n` +
+                    `Serás redirigido a tu perfil.`
+                );
+
+                window.location.href = 'profile.html';
+
+            } catch (error) {
+                alert('Error al finalizar sesión: ' + error.message);
+            }
+        }
+
+        function pad(num) {
+            return num.toString().padStart(2, '0');
+        }
+
+        function generateDemoAccessCode() {
+            // Generate random 6-digit code for demo
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        // Prevent accidental page close
+        window.addEventListener('beforeunload', (e) => {
+            if (timerInterval) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
 </body>
 
 </html>
