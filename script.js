@@ -93,6 +93,57 @@ async function login(email, password) {
     }
 }
 
+// Google OAuth login
+async function loginWithGoogle() {
+    try {
+        // Load Google Identity Services
+        if (!window.google) {
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+
+            await new Promise((resolve) => {
+                script.onload = resolve;
+            });
+        }
+
+        // Initialize Google Sign-In
+        window.google.accounts.id.initialize({
+            client_id: '645815093848-q77jpkpk32fqo0v22fdlncc6f1mjc45f.apps.googleusercontent.com',
+            callback: handleGoogleResponse
+        });
+
+        // Trigger the sign-in popup
+        window.google.accounts.id.prompt();
+    } catch (error) {
+        console.error('Google login error:', error);
+        alert('Error al iniciar sesión con Google');
+    }
+}
+
+// Handle Google OAuth response
+async function handleGoogleResponse(response) {
+    try {
+        const data = await apiRequest('/auth/google', {
+            method: 'POST',
+            body: JSON.stringify({ idToken: response.credential })
+        });
+
+        authToken = data.token;
+        currentUser = data.user;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        initializeSocket();
+        window.location.href = 'profile.html';
+    } catch (error) {
+        console.error('Google auth failed:', error);
+        alert('Error al autenticar con Google: ' + error.message);
+    }
+}
+
 async function register(userData) {
     try {
         const data = await apiRequest('/auth/register', {
