@@ -51,17 +51,24 @@ function updateComputerInfo(computer) {
         mainImage.src = imageUrl;
 
         // Populate thumbnails
-        const thumbnailContainer = document.querySelector('.thumbnail-image').parentNode;
+        // Populate thumbnails
+        // Try to find container directly first, or via child
+        let thumbnailContainer = document.querySelector('.thumbnail-grid') || (document.querySelector('.thumbnail-image') ? document.querySelector('.thumbnail-image').parentNode : null);
+
         if (thumbnailContainer) {
             thumbnailContainer.innerHTML = '';
-            computer.images.forEach(img => {
-                const thumbUrl = img.imageUrl || img.url;
-                const imgEl = document.createElement('img');
-                imgEl.src = thumbUrl;
-                imgEl.className = 'thumbnail-image';
-                imgEl.onclick = () => changeMainImage(thumbUrl);
-                thumbnailContainer.appendChild(imgEl);
-            });
+            // If images array exists, populate it
+            if (computer.images && computer.images.length > 0) {
+                computer.images.forEach(img => {
+                    const thumbUrl = img.imageUrl || img.url;
+                    const imgEl = document.createElement('img');
+                    imgEl.src = thumbUrl;
+                    imgEl.className = 'thumbnail-image';
+                    imgEl.style.cursor = 'pointer'; // Ensure it looks clickable
+                    imgEl.onclick = () => changeMainImage(thumbUrl);
+                    thumbnailContainer.appendChild(imgEl);
+                });
+            }
         }
     }
 
