@@ -540,6 +540,33 @@ function toggleMobileMenu() {
     navLinks?.classList.toggle('active');
 }
 
+// ========================================
+// Auth Helper Functions
+// ========================================
+
+function checkAuth() {
+    return !!authToken && !!currentUser;
+}
+
+function redirectIfNotLoggedIn() {
+    if (!checkAuth()) {
+        window.location.href = 'login.html';
+        return true;
+    }
+    return false;
+}
+
+function logout() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    authToken = null;
+    currentUser = null;
+    if (socket) {
+        socket.disconnect();
+    }
+    window.location.href = 'index.html';
+}
+
 // Update UI based on auth state
 function updateUIForAuthState() {
     const loginButtons = document.querySelectorAll('.btn-login');
