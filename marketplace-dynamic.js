@@ -69,8 +69,7 @@ function renderComputers(computers) {
         const ratingStar = '★';
 
         return `
-        return `
-            < div class="computer-card glass-card" style = "display: flex; flex-direction: column; height: 100%;" >
+            <div class="computer-card glass-card" style="display: flex; flex-direction: column; height: 100%;">
                 <div style="position: relative;">
                     <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
                         style="width: 100%; height: 220px; object-fit: cover; border-bottom: 1px solid var(--glass-border);">
