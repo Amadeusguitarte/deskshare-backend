@@ -24,23 +24,42 @@ function loadAddComputerModal() {
 
 // Open add computer modal
 function openAddComputerModal() {
+    console.log('openAddComputerModal called!');
+
     // Check if user is logged in
     const token = localStorage.getItem('authToken');
+    console.log('Auth token:', token ? 'EXISTS' : 'MISSING');
+
     if (!token) {
         // Redirect to register with return URL
+        console.log('No token, redirecting to register...');
         window.location.href = 'register.html?redirect=publish';
         return;
     }
 
+    console.log('Checking if modal exists...');
+    const existingModal = document.getElementById('addComputerModal');
+    console.log('Existing modal:', existingModal);
+
     // Load modal if not loaded
-    if (!document.getElementById('addComputerModal')) {
+    if (!existingModal) {
+        console.log('Modal not found, loading...');
         loadAddComputerModal();
         // Wait a bit for modal to load
         setTimeout(() => {
-            document.getElementById('addComputerModal')?.classList.add('show');
+            const modal = document.getElementById('addComputerModal');
+            console.log('After timeout, modal is:', modal);
+            if (modal) {
+                console.log('Adding .show class to modal');
+                modal.classList.add('show');
+            } else {
+                console.error('Modal still not found after loading!');
+            }
         }, 500);
     } else {
-        document.getElementById('addComputerModal').classList.add('show');
+        console.log('Modal found, adding .show class');
+        existingModal.classList.add('show');
+        console.log('Modal classes:', existingModal.className);
     }
 }
 
