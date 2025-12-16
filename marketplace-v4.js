@@ -64,9 +64,11 @@ function renderComputers(computers) {
         const rating = computer.user?.rating || 5.0;
         const reviewCount = computer.user?.reviewsCount || 0;
 
-        // FINAL CORRECTED DESIGN - Edge-to-edge image, labeled specs
+        // FINAL DESIGN REFINEMENT - Clickable Card + Rating at Bottom Right
         return `
-            <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important;">
+            <div class="computer-card glass-card" 
+                 onclick="window.location.href='computer-detail.html?id=${computer.id}'"
+                 style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important; cursor: pointer;">
                 <div style="position: relative;">
                     <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
                         style="width: 100%; height: 220px; object-fit: cover; display: block;">
@@ -108,9 +110,11 @@ function renderComputers(computers) {
                             <span class="price" style="font-size: 1.5rem; font-weight: 700; color: white;">$${computer.pricePerHour}</span>
                             <span class="price-unit" style="font-size: 0.9rem; color: var(--text-muted);">/hora</span>
                         </div>
-                        <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 8px;">
-                            Ver Detalles
-                        </a>
+                        <div style="display: flex; align-items: center; gap: 0.3rem; color: #fbbf24;">
+                             <span>★</span> 
+                             <span style="font-weight: 600;">${rating}</span>
+                             <span style="color: var(--text-muted); font-size: 0.85rem;">(${reviewCount})</span>
+                        </div>
                     </div>
                 </div>
             </div>
