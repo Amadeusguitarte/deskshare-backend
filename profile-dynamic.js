@@ -72,26 +72,33 @@ function createComputerCard(computer) {
         else if (computer.images[0].url) imageUrl = computer.images[0].url;
     }
     div.innerHTML = `
-        <div style="display: flex; gap: 1.5rem;">
-            <img src="${imageUrl}" alt="${computer.name}"
-                style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md);">
-            <div style="flex: 1;">
-                <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;">${computer.name}</h3>
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-                    <span class="spec-badge" style="font-size: 0.75rem;">${computer.cpu || 'CPU'}</span>
-                    <span class="spec-badge" style="font-size: 0.75rem;">${computer.gpu || 'GPU'}</span>
-                    <span class="spec-badge" style="font-size: 0.75rem;">${computer.ram || 'RAM'}GB</span>
+        <div style="display: flex; flex-direction: column; height: 100%;">
+            <div style="position: relative; width: 100%; height: 200px; overflow: hidden; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+                <img src="${imageUrl}" alt="${computer.name}"
+                    style="width: 100%; height: 100%; object-fit: cover; transition: transform var(--transition-slow);">
+                <div style="position: absolute; top: 10px; right: 10px;">
+                   ${status}
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+            </div>
+            
+            <div style="padding: 1.5rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3 style="margin-bottom: 0.5rem; font-size: 1.4rem;">${computer.name}</h3>
+                    
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <span class="spec-badge">${computer.cpu || 'CPU'}</span>
+                        <span class="spec-badge">${computer.gpu || 'GPU'}</span>
+                        <span class="spec-badge">${computer.ram || 'RAM'}GB</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--glass-border);">
                     <div>
                         <span class="price" style="font-size: 1.5rem;">$${computer.pricePerHour}</span>
                         <span class="price-unit">/hora</span>
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary" onclick="editComputer(${computer.id})"
-                            style="padding: 0.5rem 1rem; font-size: 0.9rem;">Editar</button>
-                        ${status}
-                    </div>
+                    <button class="btn btn-secondary" onclick="editComputer(${computer.id})"
+                        style="padding: 0.5rem 1.5rem;">Editar</button>
                 </div>
             </div>
         </div>
