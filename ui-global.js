@@ -12,8 +12,8 @@ function loadAddComputerModal() {
         return; // Already loaded
     }
 
-    console.log('Fetching add-computer-modal.html...');
-    fetch('add-computer-modal.html')
+    console.log('Fetching modal-fragment.html...');
+    fetch('modal-fragment.html')
         .then(r => {
             console.log('Fetch response:', r.status, r.statusText);
             return r.text();
