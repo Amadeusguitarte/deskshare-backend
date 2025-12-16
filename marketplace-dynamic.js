@@ -39,15 +39,15 @@ function renderComputers(computers) {
         return;
     }
 
-    if (computers.length === 0) {
-        grid.innerHTML = '<p style="text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No se encontraron computadoras con estos filtros.</p>';
-        return;
-    }
-
-    // Update computer count
+    // Update computer count ALWAYS, even if 0
     const countElement = document.getElementById('computerCount');
     if (countElement) {
         countElement.innerHTML = `${computers.length} computadoras disponibles`;
+    }
+
+    if (computers.length === 0) {
+        grid.innerHTML = '<p style="text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No se encontraron computadoras con estos filtros.</p>';
+        return;
     }
 
     grid.innerHTML = computers.map(computer => {
@@ -83,9 +83,12 @@ function renderComputers(computers) {
                     <!-- Title & Header -->
                     <div style="margin-bottom: 1rem;">
                         <h3 class="computer-title" style="margin: 0 0 0.5rem 0; font-size: 1.4rem; font-weight: 700;">${computer.name}</h3>
-                        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                             ${computer.description || 'Sin descripción disponible.'}
-                        </p>
+                        <div style="margin-top: 0.5rem;">
+                            <span style="font-size: 0.75rem; color: var(--accent-purple); font-weight: 600; display: block; margin-bottom: 4px;">DESCRIPCIÓN</span>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                ${computer.description || 'Sin descripción disponible.'}
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Divider -->
