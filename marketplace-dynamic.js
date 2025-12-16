@@ -69,8 +69,9 @@ function renderComputers(computers) {
         const ratingStar = '★';
 
         return `
-            <div class="glass-card" style="display: flex; gap: 1.5rem; padding: 1rem; align-items: flex-start; height: auto;">
-                <!-- Image (Left) -->
+        return `
+            < div class="glass-card" style = "display: flex; gap: 1.5rem; padding: 1rem; align-items: flex-start; height: auto;" >
+                < !--Image(Left) -->
                 <div style="flex-shrink: 0; width: 220px; height: 160px; border-radius: var(--radius-md); overflow: hidden; position: relative;">
                     <img src="${imageUrl}" alt="${computer.name}" loading="lazy"
                         style="width: 100%; height: 100%; object-fit: cover;"
@@ -80,46 +81,47 @@ function renderComputers(computers) {
                     </div>
                 </div>
                 
-                <!-- Content (Right) -->
-                <div style="flex: 1; min-width: 0;">
-                    <!-- Header -->
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                        <div>
-                             <h3 style="font-size: 1.4rem; margin: 0; color: var(--text-primary); line-height: 1.2;">${computer.name}</h3>
-                             <div style="display: flex; align-items: center; gap: 4px; font-size: 0.9rem; color: #fbbf24; margin-top: 4px;">
-                                <span>${ratingStar}</span>
-                                <span style="font-weight: 600;">${rating}</span>
-                                <span style="color: var(--text-muted);">(${reviewCount})</span>
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); display: block;">$${computer.pricePerHour}</span>
-                            <span style="font-size: 0.85rem; color: var(--text-muted);">/hora</span>
+                <!--Content(Right) -->
+            <div style="flex: 1; min-width: 0;">
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <div>
+                        <h3 style="font-size: 1.4rem; margin: 0; color: var(--text-primary); line-height: 1.2;">${computer.name}</h3>
+                        <div style="display: flex; align-items: center; gap: 4px; font-size: 0.9rem; color: #fbbf24; margin-top: 4px;">
+                            <span>${ratingStar}</span>
+                            <span style="font-weight: 600;">${rating}</span>
+                            <span style="color: var(--text-muted);">(${reviewCount})</span>
                         </div>
                     </div>
-
-                    <!-- Description -->
-                    <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        ${computer.description || 'Sin descripción disponible.'}
-                    </p>
-
-                    <!-- Specs List -->
-                    <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--glass-border);">
-                        <div><strong style="color: var(--text-primary);">CPU:</strong> ${computer.cpu || 'N/A'}</div>
-                        <div><strong style="color: var(--text-primary);">GPU:</strong> ${computer.gpu || 'N/A'}</div>
-                        <div><strong style="color: var(--text-primary);">RAM:</strong> ${computer.ram ? computer.ram + 'GB' : 'N/A'}</div>
-                        <div style="flex: 1;"><strong style="color: var(--text-primary);">Software:</strong> ${computer.softwareInstalled || 'N/A'}</div>
-                    </div>
-
-                    <!-- Action -->
                     <div style="text-align: right;">
-                        <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" 
-                            style="padding: 0.5rem 1.5rem; font-weight: 600; font-size: 0.95rem; text-decoration: none; display: inline-flex; align-items: center;">
-                            Ver Detalles
-                        </a>
+                        <span style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); display: block;">$${computer.pricePerHour}</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">/hora</span>
                     </div>
                 </div>
+
+                <!-- Description -->
+                <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    ${computer.description || 'Sin descripción disponible.'}
+                </p>
+
+                <!-- Specs List (Horizontal Wrap) -->
+                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--glass-border);">
+                    <div><strong style="color: var(--text-primary);">CPU:</strong> ${computer.cpu || 'N/A'}</div>
+                    <div><strong style="color: var(--text-primary);">GPU:</strong> ${computer.gpu || 'N/A'}</div>
+                    <div><strong style="color: var(--text-primary);">RAM:</strong> ${computer.ram ? computer.ram + 'GB' : 'N/A'}</div>
+                    <div style="flex: 1; min-width: 150px;"><strong style="color: var(--text-primary);">Software:</strong> ${computer.softwareInstalled || 'N/A'}</div>
+                </div>
+
+                <!-- Action -->
+                <div style="text-align: right;">
+                    <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary"
+                        style="padding: 0.5rem 1.5rem; font-weight: 600; font-size: 0.95rem; text-decoration: none; display: inline-flex; align-items: center;">
+                        Ver Detalles
+                    </a>
+                </div>
             </div>
+            </div >
+            `;
         `;
     }).join('');
 }

@@ -77,7 +77,7 @@ function createComputerCard(computer) {
     const ratingStar = '★';
 
     div.innerHTML = `
-        <div style="display: flex; gap: 1.5rem; padding: 1rem; align-items: flex-start;">
+        <div class="glass-card" style="display: flex; gap: 1.5rem; padding: 1rem; align-items: flex-start; height: auto;">
             <!-- Image (Left) -->
             <div style="flex-shrink: 0; width: 180px; height: 140px; border-radius: var(--radius-md); overflow: hidden; position: relative;">
                 <img src="${imageUrl}" alt="${computer.name}" loading="lazy"
@@ -108,14 +108,13 @@ function createComputerCard(computer) {
                     ${computer.description || 'Sin descripción disponible.'}
                 </p>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--glass-border);">
                     <div><strong style="color: var(--text-primary);">CPU:</strong> ${computer.cpu || 'N/A'}</div>
                     <div><strong style="color: var(--text-primary);">GPU:</strong> ${computer.gpu || 'N/A'}</div>
                     <div><strong style="color: var(--text-primary);">RAM:</strong> ${computer.ram ? computer.ram + 'GB' : 'N/A'}</div>
-                    <div><strong style="color: var(--text-primary);">Software:</strong> ${computer.softwareInstalled ? (computer.softwareInstalled.length > 20 ? computer.softwareInstalled.substring(0, 20) + '...' : computer.softwareInstalled) : 'N/A'}</div>
                 </div>
 
-                <div style="margin-top: 1rem; text-align: right;">
+                <div style="margin-top: auto; text-align: right;">
                      <button class="btn btn-secondary" onclick="editComputer(${computer.id})"
                         style="padding: 0.4rem 1.2rem; font-size: 0.9rem;">
                         Gestionar
