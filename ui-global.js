@@ -44,13 +44,20 @@ function openAddComputerModal() {
     }
 }
 
-// Setup "Publicar PC" buttons
-document.addEventListener('DOMContentLoaded', () => {
-    // Find all "Publicar PC" buttons/links
-    document.querySelectorAll('a[href="#"]').forEach(link => {
+// Setup \"Publicar PC\" buttons
+function setupPublishButtons() {
+    console.log('Setting up Publicar PC buttons...');
+
+    // Find all \"Publicar PC\" buttons/links
+    const links = document.querySelectorAll('a[href="#"]');
+    console.log(`Found ${links.length} links with href="#"`);
+
+    links.forEach(link => {
         if (link.textContent.includes('Publicar PC')) {
+            console.log('Found Publicar PC button:', link);
             link.onclick = (e) => {
                 e.preventDefault();
+                console.log('Publicar PC clicked!');
                 openAddComputerModal();
             };
         }
@@ -72,7 +79,14 @@ document.addEventListener('DOMContentLoaded', () => {
             openAddComputerModal();
         }, 500);
     }
-});
+}
+
+// Execute setup immediately if DOM is ready, otherwise wait
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupPublishButtons);
+} else {
+    setupPublishButtons();
+}
 
 // Make functions globally available
 window.openAddComputerModal = openAddComputerModal;
