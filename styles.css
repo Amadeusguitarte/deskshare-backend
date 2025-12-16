@@ -694,3 +694,18 @@ input:focus, select:focus, textarea:focus {
 .gap-1 { gap: var(--spacing-sm); }
 .gap-2 { gap: var(--spacing-md); }
 .gap-3 { gap: var(--spacing-lg); }
+
+/* Fix for My Computers Grid Loop */
+#myComputersGrid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+  gap: 2rem !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 768px) {
+  #myComputersGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
