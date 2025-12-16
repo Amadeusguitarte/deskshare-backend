@@ -76,45 +76,68 @@ function createComputerCard(computer) {
     const reviewCount = computer.user?.reviewsCount || 0;
     const ratingStar = '★';
 
-    div.className = 'computer-card glass-card'; // Ensure class for hover effect
+    div.className = 'computer-card glass-card';
     div.innerHTML = `
         <div style="display: flex; flex-direction: column; height: 100%;">
             <div style="position: relative;">
                 <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
-                    style="width: 100%; height: 200px; object-fit: cover; border-bottom: 1px solid var(--glass-border);">
-                 <div style="position: absolute; top: 10px; right: 10px;">
+                    style="width: 100%; height: 220px; object-fit: cover; border-bottom: 1px solid var(--glass-border);">
+                 <div style="position: absolute; top: 12px; right: 12px;">
                    ${status}
                 </div>
             </div>
             
             <div class="computer-info" style="flex: 1; display: flex; flex-direction: column; padding: 1.25rem;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                    <h3 class="computer-title" style="margin: 0; font-size: 1.3rem;">${computer.name}</h3>
+                <!-- Title & Header -->
+                <div style="margin-bottom: 1rem;">
+                    <h3 class="computer-title" style="margin: 0 0 0.5rem 0; font-size: 1.4rem; font-weight: 700;">${computer.name}</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                         ${computer.description || 'Sin descripción disponible.'}
+                    </p>
                 </div>
 
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                    ${computer.description || 'Sin descripción disponible.'}
-                </p>
+                <!-- Divider -->
+                <div style="height: 1px; background: var(--glass-border); margin-bottom: 1rem; width: 100%;"></div>
 
-                <div class="computer-specs" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
-                    <span class="spec-badge">CPU: ${computer.cpu || 'N/A'}</span>
-                    <span class="spec-badge">GPU: ${computer.gpu || 'N/A'}</span>
-                    <span class="spec-badge">RAM: ${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
+                <!-- Specs Header -->
+                <h4 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 0 0 0.75rem 0; font-weight: 600;">Especificaciones</h4>
+
+                <!-- Structured Specs Grid -->
+                <div class="computer-specs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; flex-direction: column;">
+                         <span style="font-size: 0.75rem; color: var(--accent-purple);">CPU</span>
+                         <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.cpu || 'N/A'}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                         <span style="font-size: 0.75rem; color: var(--accent-purple);">GPU</span>
+                         <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.gpu || 'N/A'}</span>
+                    </div>
+                     <div style="display: flex; flex-direction: column;">
+                         <span style="font-size: 0.75rem; color: var(--accent-purple);">RAM</span>
+                         <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                         <span style="font-size: 0.75rem; color: var(--accent-purple);">Software</span>
+                         <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${computer.softwareInstalled || 'N/A'}</span>
+                    </div>
                 </div>
 
-                <div class="computer-footer" style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                <!-- Footer -->
+                <div class="computer-footer" style="margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
                     <div class="computer-price">
-                        <span class="price">$${computer.pricePerHour}</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px;">Precio</div>
+                        <span class="price" style="font-size: 1.6rem;">$${computer.pricePerHour}</span>
                         <span class="price-unit">/hora</span>
                     </div>
-                    <div class="rating">
-                         <span>★</span> ${rating}
+                    <div style="text-align: right;">
+                         <div class="rating" style="justify-content: flex-end; margin-bottom: 0.5rem;">
+                             <span>★</span> ${rating}
+                        </div>
+                        <button class="btn btn-secondary" onclick="editComputer(${computer.id})" style="padding: 0.4rem 1.2rem; font-size: 0.9rem;">
+                            Gestionar
+                        </button>
                     </div>
                 </div>
-                 <button class="btn btn-secondary" onclick="editComputer(${computer.id})"
-                    style="width: 100%; margin-top: 1rem; padding: 0.5rem;">
-                    Gestionar
-                </button>
             </div>
         </div>
     `;
