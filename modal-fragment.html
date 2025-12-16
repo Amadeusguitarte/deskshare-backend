@@ -77,6 +77,11 @@
         font-size: 1rem;
     }
 
+    .form-group select option {
+        background: #1a1a2e;
+        color: #fff;
+    }
+
     .form-group input:focus,
     .form-group select:focus,
     .form-group textarea:focus {
@@ -118,6 +123,7 @@
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 10px;
         margin-top: 15px;
+        min-height: 0;
     }
 
     .image-preview img {
@@ -125,6 +131,7 @@
         height: 100px;
         object-fit: cover;
         border-radius: 8px;
+        border: 2px solid rgba(138, 43, 226, 0.3);
     }
 
     @media (max-width: 768px) {
