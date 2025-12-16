@@ -146,50 +146,79 @@ function redirectIfLoggedIn() {
     }
 }
 
+
 // ========================================
 // Google OAuth
 // ========================================
 
-async function loginWithGoogle() {
-    // TODO: Implement Google OAuth
-    // For now, show instructions
-    alert(
-        'Google OAuth está en desarrollo.\n\n' +
-        'Para implementarlo completamente:\n' +
-        '1. Crear proyecto en Google Cloud Console\n' +
-        '2. Habilitar Google Sign-In API\n' +
-        '3. Configurar OAuth credentials\n' +
-        '4. Agregar dominio autorizado\n\n' +
-        'Por ahora, usa email/password.'
-    );
+const GOOGLE_CLIENT_ID = '140142949138-750nr6507i1l0jqviu1ejc348prp8pj9.apps.googleusercontent.com';
 
-    /* Full implementation would be:
+async function loginWithGoogle() {
     try {
+        // Check if Google SDK is loaded
+        if (typeof google === 'undefined') {
+            alert('Google SDK no está cargado. Recarga la página e intenta de nuevo.');
+            return;
+        }
+
         // Initialize Google Sign-In
-        await gapi.auth2.getAuthInstance().signIn();
-        const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
-        const idToken = googleUser.getAuthResponse().id_token;
-        
-        // Send to backend
-        const response = await apiRequest('/auth/google', {
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCallback
+        });
+
+        // Prompt for Google account
+        google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                // Fallback to One Tap if prompt doesn't work
+                console.log('Google One Tap not available, user may need to click button');
+            }
+        });
+
+    } catch (error) {
+        console.error('Google login failed:', error);
+        alert('Error al iniciar sesión con Google: ' + error.message);
+    }
+}
+
+async function handleGoogleCallback(response) {
+    try {
+        // Get ID token from Google
+        const idToken = response.credential;
+
+        console.log('Google login successful, sending to backend...');
+
+        // Send to backend for verification
+        const data = await apiRequest('/auth/google', {
             method: 'POST',
             body: JSON.stringify({ idToken })
         });
-        
+
         // Save session
-        authToken = response.token;
-        currentUser = response.user;
+        authToken = data.token;
+        currentUser = data.user;
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        
+
         initializeSocket();
-        window.location.href = 'profile.html';
+
+        // Check if coming from publish flow
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('redirect') === 'publish') {
+            window.location.href = 'index.html?openPublish=true';
+        } else {
+            window.location.href = 'profile.html';
+        }
+
     } catch (error) {
-        console.error('Google login failed:', error);
-        alert('Error al iniciar sesión con Google');
+        console.error('Error processing Google login:', error);
+        alert('Error al procesar login de Google: ' + error.message);
     }
-    */
 }
+
+// Make globally available
+window.handleGoogleCallback = handleGoogleCallback;
+
 
 // ========================================
 // Navbar Auth State Management
