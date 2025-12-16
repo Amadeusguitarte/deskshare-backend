@@ -24,7 +24,9 @@ function loadAddComputerModal() {
 
 // Open add computer modal
 function openAddComputerModal() {
-    if (!checkAuth || !checkAuth()) {
+    // Check if user is logged in
+    const token = localStorage.getItem('authToken');
+    if (!token) {
         // Redirect to register with return URL
         window.location.href = 'register.html?redirect=publish';
         return;
