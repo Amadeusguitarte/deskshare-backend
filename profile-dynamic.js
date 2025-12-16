@@ -18,7 +18,7 @@ async function loadUserProfile() {
         const user = response.user || response;
         // Update profile header
         document.querySelector('h1').textContent = user.name;
-        document.querySelector('[alt="Profile"]').src = user.avatarUrl || 'assets/user_avatar_1_1765783036666.png';
+        document.querySelector('[alt="Profile"]').src = user.avatarUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120"%3E%3Crect fill="%23444" width="120" height="120"/%3E%3Ctext x="50%25" y="50%25" fill="%23fff" font-size="48" text-anchor="middle" dy=".3em"%3E👤%3C/text%3E%3C/svg%3E';
         const memberSince = new Date(user.createdAt).toLocaleDateString('es', { year: 'numeric', month: 'long' });
         document.querySelector('p[style*="color: var(--text-secondary)"]').textContent = `Miembro desde ${memberSince}`;
     } catch (error) {
