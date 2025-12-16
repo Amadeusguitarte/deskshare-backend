@@ -86,32 +86,67 @@ async function login(email, password) {
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
         initializeSocket();
-        return data;
+        return true;
     } catch (error) {
-        alert('Login failed: ' + error.message);
+        console.error('Login failed:', error);
         throw error;
     }
 }
 
-async function register(email, password, name) {
+async function register(userData) {
     try {
         const data = await apiRequest('/auth/register', {
             method: 'POST',
-            body: JSON.stringify({ email, password, name })
+            body: JSON.stringify(userData)
         });
 
-        authToken = data.token;
-        currentUser = data.user;
-        localStorage.setItem('authToken', authToken);
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        // Auto-login after registration
+        if (data.token) {
+            authToken = data.token;
+            currentUser = data.user;
+            localStorage.setItem('authToken', authToken);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            initializeSocket();
+        }
 
-        initializeSocket();
-        return data;
+        return true;
     } catch (error) {
-        alert('Registration failed: ' + error.message);
+        console.error('Registration failed:', error);
         throw error;
     }
 }
+
+function logout() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+
+    if (socket) {
+        socket.disconnect();
+        socket = null;
+    }
+
+    window.location.href = 'index.html';
+}
+
+function checkAuth() {
+    return !!authToken && !!currentUser;
+}
+
+function redirectIfNotLoggedIn() {
+    if (!checkAuth()) {
+        window.location.href = 'login.html';
+    }
+}
+
+function redirectIfLoggedIn() {
+    if (checkAuth()) {
+        window.location.href = 'profile.html';
+    }
+}
+
+
 
 function logout() {
     authToken = null;
