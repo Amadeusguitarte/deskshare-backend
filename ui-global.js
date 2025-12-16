@@ -1,92 +1,29 @@
 // ========================================  
 // Global UI Functions
-// Handles modal loading and button events
+// Handles button events for publish page
 // ========================================
 
-// Load add computer modal dynamically
-function loadAddComputerModal() {
-    console.log('loadAddComputerModal called');
-
-    if (document.getElementById('addComputerModal')) {
-        console.log('Modal already exists');
-        return; // Already loaded
-    }
-
-    console.log('Fetching modal-fragment.html...');
-    fetch('modal-fragment.html')
-        .then(r => {
-            console.log('Fetch response:', r.status, r.statusText);
-            return r.text();
-        })
-        .then(html => {
-            console.log('HTML loaded, length:', html.length);
-
-            // Create a temporary container and insert all HTML
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = html;
-
-            // Append all children to body (styles, modal div, scripts)
-            while (tempContainer.firstChild) {
-                document.body.appendChild(tempContainer.firstChild);
-            }
-
-            console.log('Modal content appended to body');
-
-            // Verify modal was added
-            const modal = document.getElementById('addComputerModal');
-            console.log('Modal verification:', modal ? 'FOUND' : 'NOT FOUND');
-        })
-        .catch(err => {
-            console.error('Error loading modal:', err);
-        });
-}
-
-// Open add computer modal
+// Redirect to publish page
 function openAddComputerModal() {
-    console.log('openAddComputerModal called!');
+    console.log('Redirecting to publish page...');
 
     // Check if user is logged in
     const token = localStorage.getItem('authToken');
-    console.log('Auth token:', token ? 'EXISTS' : 'MISSING');
 
     if (!token) {
-        // Redirect to register with return URL
-        console.log('No token, redirecting to register...');
         window.location.href = 'register.html?redirect=publish';
         return;
     }
 
-    console.log('Checking if modal exists...');
-    const existingModal = document.getElementById('addComputerModal');
-    console.log('Existing modal:', existingModal);
-
-    // Load modal if not loaded
-    if (!existingModal) {
-        console.log('Modal not found, loading...');
-        loadAddComputerModal();
-        // Wait a bit for modal to load
-        setTimeout(() => {
-            const modal = document.getElementById('addComputerModal');
-            console.log('After timeout, modal is:', modal);
-            if (modal) {
-                console.log('Adding .show class to modal');
-                modal.classList.add('show');
-            } else {
-                console.error('Modal still not found after loading!');
-            }
-        }, 500);
-    } else {
-        console.log('Modal found, adding .show class');
-        existingModal.classList.add('show');
-        console.log('Modal classes:', existingModal.className);
-    }
+    // Redirect to dedicated publish page
+    window.location.href = 'publish.html';
 }
 
-// Setup \"Publicar PC\" buttons
+// Setup "Publicar PC" buttons
 function setupPublishButtons() {
     console.log('Setting up Publicar PC buttons...');
 
-    // Find all \"Publicar PC\" buttons/links
+    // Find all "Publicar PC" buttons/links
     const links = document.querySelectorAll('a[href="#"]');
     console.log(`Found ${links.length} links with href="#"`);
 
@@ -108,15 +45,6 @@ function setupPublishButtons() {
             openAddComputerModal();
         };
     });
-
-    // Check if should auto-open publish modal  
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('openPublish') === 'true') {
-        // Wait a bit for everything to load
-        setTimeout(() => {
-            openAddComputerModal();
-        }, 500);
-    }
 }
 
 // Execute setup immediately if DOM is ready, otherwise wait
@@ -128,4 +56,3 @@ if (document.readyState === 'loading') {
 
 // Make functions globally available
 window.openAddComputerModal = openAddComputerModal;
-window.loadAddComputerModal = loadAddComputerModal;
