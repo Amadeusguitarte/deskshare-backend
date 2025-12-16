@@ -1,5 +1,6 @@
 // ========================================
 // Marketplace Dynamic Functionality V3
+// Using 'Profile' Card Layout (Vertical + Glow)
 // ========================================
 
 let allComputers = [];
@@ -23,8 +24,6 @@ async function loadMarketplaceComputers(filters = {}) {
         const response = await apiRequest('/computers?' + params.toString());
         allComputers = response.computers || response;
 
-        // Debug logging
-        console.log('Rendering computers (V3):', allComputers);
         renderComputers(allComputers);
     } catch (error) {
         console.error('Error loading computers:', error);
@@ -36,7 +35,7 @@ function renderComputers(computers) {
     const grid = document.getElementById('computerGrid');
     if (!grid) return;
 
-    // Update count always
+    // Update count
     const countElement = document.getElementById('computerCount');
     if (countElement) {
         countElement.innerHTML = `${computers.length} computadoras disponibles`;
@@ -57,78 +56,77 @@ function renderComputers(computers) {
         // Status
         const isAvailable = computer.status === 'active';
         const status = isAvailable ?
-            '<span style="display:inline-block; background: rgba(0, 255, 0, 0.15); color: #4ade80; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(74, 222, 128, 0.2);">● Disponible</span>' :
-            '<span style="display:inline-block; background: rgba(255, 170, 0, 0.15); color: #fbbf24; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(251, 191, 36, 0.2);">● Ocupado</span>';
+            '<span style="background: rgba(0, 255, 0, 0.2); color: #00ff00; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(0, 255, 0, 0.3);">● Disponible</span>' :
+            '<span style="background: rgba(255, 165, 0, 0.2); color: #ffa500; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(255, 165, 0, 0.3);">● Ocupado</span>';
 
         // Reviews
         const rating = computer.user?.rating || 5.0;
         const reviewCount = computer.user?.reviewsCount || 0;
 
+        // Card HTML - EXACT COPY of Profile Card Layout + "Ver Detalles" button
         return `
-            <div class="glass-card computer-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;">
-                <!-- Image Wrapper -->
-                <div style="position: relative; height: 220px; width: 100%;">
-                    <img src="${imageUrl}" alt="${computer.name}" style="width: 100%; height: 100%; object-fit: cover;">
-                    <div style="position: absolute; top: 12px; right: 12px; z-index: 10;">
-                        ${status}
+            <div class="computer-card glass-card" style="display: flex; flex-direction: column; height: 100%;">
+                <div style="position: relative;">
+                    <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
+                        style="width: 100%; height: 220px; object-fit: cover; border-bottom: 1px solid var(--glass-border);">
+                     <div style="position: absolute; top: 12px; right: 12px;">
+                       ${status}
                     </div>
-                    <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);"></div>
                 </div>
                 
-                <!-- Content -->
-                <div style="padding: 1.5rem; flex: 1; display: flex; flex-direction: column;">
-                    
-                    <!-- Title and Price Row -->
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                        <h3 style="font-size: 1.25rem; font-weight: 700; color: white; margin: 0; line-height: 1.3;">${computer.name}</h3>
-                        <div style="text-align: right;">
-                            <span style="display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary-purple);">$${computer.pricePerHour}</span>
-                            <span style="font-size: 0.8rem; color: var(--text-secondary);">/hora</span>
-                        </div>
-                    </div>
-
-                    <!-- Rating -->
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
-                        <span style="color: #fbbf24;">★</span>
-                        <span style="font-weight: 600; color: var(--text-primary);">${rating}</span>
-                        <span style="color: var(--text-muted); font-size: 0.85rem;">(${reviewCount} reseñas)</span>
+                <div class="computer-info" style="flex: 1; display: flex; flex-direction: column; padding: 1.25rem;">
+                    <!-- Title & Description Header -->
+                    <div style="margin-bottom: 1rem;">
+                        <h3 class="computer-title" style="margin: 0 0 0.5rem 0; font-size: 1.4rem; font-weight: 700;">${computer.name}</h3>
+                         <div style="margin-top: 0.5rem;">
+                             <span style="font-size: 0.75rem; color: var(--accent-purple); font-weight: 600; display: block; margin-bottom: 4px;">DESCRIPCIÓN</span>
+                             <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                 ${computer.description || 'Sin descripción disponible.'}
+                             </p>
+                         </div>
                     </div>
 
                     <!-- Divider -->
-                    <div style="height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 1rem;"></div>
+                    <div style="height: 1px; background: var(--glass-border); margin-bottom: 1rem; width: 100%;"></div>
 
-                    <!-- Specs Grid with LABELS -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; margin-bottom: 1.5rem;">
-                        <!-- CPU -->
-                        <div>
-                            <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: block; margin-bottom: 2px;">Procesador</span>
-                            <span style="font-size: 0.95rem; color: white; font-weight: 500;">${computer.cpu || 'N/A'}</span>
-                        </div>
-                        
-                        <!-- RAM -->
-                        <div>
-                            <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: block; margin-bottom: 2px;">Memoria RAM</span>
-                            <span style="font-size: 0.95rem; color: white; font-weight: 500;">${computer.ram ? computer.ram + ' GB' : 'N/A'}</span>
-                        </div>
+                    <!-- Specs Header -->
+                    <h4 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 0 0 0.75rem 0; font-weight: 600;">Especificaciones</h4>
 
-                        <!-- GPU -->
-                        <div>
-                            <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: block; margin-bottom: 2px;">Tarjeta Gráfica</span>
-                            <span style="font-size: 0.95rem; color: white; font-weight: 500;">${computer.gpu || 'N/A'}</span>
+                    <!-- Structured Specs Grid -->
+                    <div class="computer-specs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; flex-direction: column;">
+                             <span style="font-size: 0.75rem; color: var(--accent-purple);">CPU</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.cpu || 'N/A'}</span>
                         </div>
-
-                        <!-- Software (Full Width) -->
-                        <div style="grid-column: 1 / -1;">
-                            <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); display: block; margin-bottom: 2px;">Software Incluido</span>
-                            <span style="font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${computer.softwareInstalled || 'Ninguno'}</span>
+                        <div style="display: flex; flex-direction: column;">
+                             <span style="font-size: 0.75rem; color: var(--accent-purple);">GPU</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.gpu || 'N/A'}</span>
+                        </div>
+                         <div style="display: flex; flex-direction: column;">
+                             <span style="font-size: 0.75rem; color: var(--accent-purple);">RAM</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                             <span style="font-size: 0.75rem; color: var(--accent-purple);">Software</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${computer.softwareInstalled || 'N/A'}</span>
                         </div>
                     </div>
 
-                    <!-- Action Button -->
-                    <div style="margin-top: auto;">
-                        <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
-                            Ver Detalles
-                        </a>
+                    <!-- Footer -->
+                    <div class="computer-footer" style="margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                        <div class="computer-price">
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px;">Precio</div>
+                            <span class="price" style="font-size: 1.6rem;">$${computer.pricePerHour}</span>
+                            <span class="price-unit">/hora</span>
+                        </div>
+                        <div style="text-align: right;">
+                             <div class="rating" style="justify-content: flex-end; margin-bottom: 0.5rem;">
+                                 <span>★</span> ${rating} <span style="font-size: 0.8rem; color: var(--text-muted);">(${reviewCount})</span>
+                            </div>
+                            <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="padding: 0.4rem 1.2rem; font-size: 0.9rem; text-decoration: none; display: inline-block;">
+                                Ver Detalles
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -167,7 +165,6 @@ function gatherFilters() {
 
 function applyFilters() {
     let filters = gatherFilters();
-    // Normalize 'all' to undefined
     Object.keys(filters).forEach(key => {
         if (filters[key] === 'all' || filters[key] === '') delete filters[key];
     });
