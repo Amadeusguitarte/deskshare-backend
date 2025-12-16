@@ -64,43 +64,44 @@ function renderComputers(computers) {
         const rating = computer.user?.rating || 5.0;
         const reviewCount = computer.user?.reviewsCount || 0;
 
-        // ORIGINAL VERTICAL CARD DESIGN - WITH LABELED BADGES
+        // EXACT DESIGN FROM USER'S SCREENSHOT
         return `
-            <div class="computer-card glass-card">
-                <div style="position: relative;">
-                    <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
-                        style="width: 100%; height: 280px; object-fit: cover; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
-                     <div style="position: absolute; top: 10px; right: 10px;">
+            <div class="computer-card glass-card" style="padding: 1rem;">
+                <div style="position: relative; margin-bottom: 1rem;">
+                    <img src="${imageUrl}" alt="${computer.name}" 
+                        style="width: 100%; height: 180px; object-fit: cover; border-radius: var(--radius-md);">
+                     <div style="position: absolute; top: 8px; right: 8px;">
                        ${status}
                     </div>
                 </div>
                 
-                <div class="computer-info">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                        <h3 class="computer-title" style="margin: 0; font-size: 1.3rem;">${computer.name}</h3>
-                    </div>
-
-                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                <div>
+                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: 700; color: white;">${computer.name}</h3>
+                    
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">
                         ${computer.description || 'Sin descripción disponible.'}
                     </p>
 
-                    <div class="computer-specs" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
                         <span class="spec-badge">Procesador: ${computer.cpu || 'N/A'}</span>
                         <span class="spec-badge">GPU: ${computer.gpu || 'N/A'}</span>
                         <span class="spec-badge">RAM: ${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
                         <span class="spec-badge">Software: ${computer.softwareInstalled || 'N/A'}</span>
                     </div>
 
-                    <div class="computer-footer" style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                        <div class="computer-price">
-                            <span class="price">$${computer.pricePerHour}</span>
-                            <span class="price-unit">/hora</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <span style="font-size: 1.5rem; font-weight: 700; color: var(--primary-purple);">$${computer.pricePerHour}</span>
+                            <span style="font-size: 0.9rem; color: var(--text-muted);">/hora</span>
                         </div>
-                        <div class="rating">
-                             <span>★</span> ${rating} <span style="font-size: 0.8rem; color: var(--text-muted);">(${reviewCount})</span>
+                        <div style="display: flex; align-items: center; gap: 0.3rem; color: #fbbf24;">
+                             <span>★</span> 
+                             <span style="font-weight: 600;">${rating}</span>
+                             <span style="color: var(--text-muted); font-size: 0.85rem;">(${reviewCount})</span>
                         </div>
                     </div>
-                     <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem; text-align: center; display: block; text-decoration: none;">
+                     
+                    <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="width: 100%; padding: 0.75rem; text-align: center; display: block; text-decoration: none;">
                         Ver Detalles
                     </a>
                 </div>
