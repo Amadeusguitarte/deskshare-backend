@@ -578,8 +578,51 @@ if (computerId && document.getElementById('chatMessages')) {
 async function loadComputerDetails(id) {
     try {
         const data = await apiRequest(`/computers/${id}`);
-        // Display computer details (you'd populate the existing HTML)
-        console.log('Computer loaded:', data.computer);
+        const computer = data.computer;
+
+        // Update browser title
+        document.title = `${computer.name} - DeskShare`;
+
+        // 1. Populate Images
+        const mainImage = document.getElementById('mainImage');
+        if (mainImage) {
+            let primaryParams = computer.images.find(img => img.isPrimary) || computer.images[0];
+            mainImage.src = primaryParams?.imageUrl || 'assets/hero_background_1765783023163.png';
+            mainImage.alt = computer.name;
+        }
+
+        // Handle Thumbnails (Only if > 1 image)
+        const thumbnailRow = document.getElementById('thumbnailRow');
+        if (thumbnailRow) {
+            thumbnailRow.innerHTML = ''; // Clear existing
+
+            if (computer.images && computer.images.length > 1) {
+                computer.images.slice(0, 3).forEach(img => {
+                    const thumb = document.createElement('div');
+                    thumb.className = 'glass-card';
+                    thumb.style.cssText = 'padding: 0; overflow: hidden; height: 100px; cursor: pointer; opacity: 0.7; transition: opacity 0.3s;';
+                    thumb.onmouseover = () => { mainImage.src = img.imageUrl; thumb.style.opacity = '1'; };
+                    thumb.onmouseout = () => { thumb.style.opacity = '0.7'; };
+
+                    thumb.innerHTML = `<img src="${img.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    thumbnailRow.appendChild(thumb);
+                });
+            } else {
+                thumbnailRow.style.display = 'none'; // Hide container completely
+            }
+        }
+
+        // 2. Populate Text Info
+        // Note: You need to add IDs to these elements in HTML first, but for now I'll use placeholders 
+        // assuming standard IDs might exist or will be added. 
+        // Based on typical structure:
+        const titleEl = document.querySelector('h1'); // Assuming h1 is title
+        if (titleEl) titleEl.textContent = computer.name;
+
+        // ... This part is tricky without seeing IDs in HTML file fully. 
+        // I will focus on the user request: Images and spacing.
+
+        console.log('Computer loaded:', computer);
     } catch (error) {
         console.error('Failed to load computer:', error);
     }
