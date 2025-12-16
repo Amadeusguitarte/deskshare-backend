@@ -20,20 +20,21 @@ function loadAddComputerModal() {
         })
         .then(html => {
             console.log('HTML loaded, length:', html.length);
-            // Create container for modal
-            const container = document.createElement('div');
-            container.innerHTML = html;
 
-            // Find the modal element specifically (not firstElement which might be <html>)
-            const modalElement = container.querySelector('#addComputerModal');
-            console.log('Modal element found:', modalElement);
+            // Create a temporary container and insert all HTML
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
 
-            if (modalElement) {
-                document.body.appendChild(modalElement);
-                console.log('Modal appended to body');
-            } else {
-                console.error('Could not find #addComputerModal in loaded HTML');
+            // Append all children to body (styles, modal div, scripts)
+            while (tempContainer.firstChild) {
+                document.body.appendChild(tempContainer.firstChild);
             }
+
+            console.log('Modal content appended to body');
+
+            // Verify modal was added
+            const modal = document.getElementById('addComputerModal');
+            console.log('Modal verification:', modal ? 'FOUND' : 'NOT FOUND');
         })
         .catch(err => {
             console.error('Error loading modal:', err);
