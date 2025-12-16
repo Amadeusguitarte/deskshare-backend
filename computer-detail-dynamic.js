@@ -32,8 +32,9 @@ async function loadComputerDetails(computerId) {
 
     } catch (error) {
         console.error('Error loading computer:', error);
-        alert('Error al cargar la computadora');
-        window.location.href = 'marketplace.html';
+        alert(`Error al cargar la computadora: ${error.message}`);
+        // Keep on page to see error, or redirect after delay?
+        // window.location.href = 'marketplace.html'; 
     }
 }
 
