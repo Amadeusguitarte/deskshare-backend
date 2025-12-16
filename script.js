@@ -540,6 +540,7 @@ function toggleMobileMenu() {
     navLinks?.classList.toggle('active');
 }
 
+
 // ========================================
 // Auth Helper Functions
 // ========================================
