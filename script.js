@@ -507,29 +507,29 @@ async function startSession(bookingId) {
 // Page-Specific Initializations
 // ========================================
 
-// Marketplace page
-if (document.getElementById('computerGrid')) {
-    loadComputers();
+// Marketplace page - DISABLED: Now handled by marketplace-dynamic.js
+// if (document.getElementById('computerGrid')) {
+//     loadComputers();
 
-    // Set up filters
-    const searchInput = document.getElementById('searchInput');
-    const categoryFilter = document.getElementById('categoryFilter');
-    const priceFilter = document.getElementById('priceFilter');
+//     // Set up filters
+//     const searchInput = document.getElementById('searchInput');
+//     const categoryFilter = document.getElementById('categoryFilter');
+//     const priceFilter = document.getElementById('priceFilter');
 
-    if (searchInput) {
-        searchInput.addEventListener('input', debounce(() => {
-            const filters = gatherFilters();
-            loadComputers(filters);
-        }, 500));
-    }
+//     if (searchInput) {
+//         searchInput.addEventListener('input', debounce(() => {
+//             const filters = gatherFilters();
+//             loadComputers(filters);
+//         }, 500));
+//     }
 
-    if (categoryFilter) {
-        categoryFilter.addEventListener('change', () => {
-            const filters = gatherFilters();
-            loadComputers(filters);
-        });
-    }
-}
+//     if (categoryFilter) {
+//         categoryFilter.addEventListener('change', () => {
+//             const filters = gatherFilters();
+//             loadComputers(filters);
+//         });
+//     }
+// }
 
 function gatherFilters() {
     const filters = {};
