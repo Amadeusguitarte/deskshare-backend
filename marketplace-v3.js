@@ -7,6 +7,7 @@ let allComputers = [];
 let currentFilters = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('V3 SCRIPT LOADED - GRID LAYOUT');
     await loadMarketplaceComputers();
     setupFilters();
 });
