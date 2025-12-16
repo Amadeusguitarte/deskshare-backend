@@ -1,0 +1,2 @@
+<!-- Add this before closing </head> tag in all HTML files -->
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>

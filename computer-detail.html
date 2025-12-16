@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Detalles de la computadora - DeskShare">
+    <title>Workstation Profesional - DeskShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
+                <li><a href="index.html#how-it-works">Cómo Funciona</a></li>
+                <li><a href="profile.html">Mi Perfil</a></li>
+                <li><a href="#" class="btn btn-primary">Publicar PC</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Computer Detail -->
+    <section style="padding-top: 100px; padding-bottom: 3rem;">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 3rem;">
+                <!-- Left Column: Images and Specs -->
+                <div>
+                    <!-- Main Image -->
+                    <div class="glass-card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
+                        <img src="assets/workstation_professional_1765782988095.png" alt="Workstation Profesional"
+                            style="width: 100%; height: 400px; object-fit: cover;" id="mainImage">
+                    </div>
+
+                    <!-- Thumbnail Gallery -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                        <img src="assets/workstation_professional_1765782988095.png" alt="Vista 1"
+                            class="thumbnail-image" onclick="changeMainImage(this.src)">
+                        <img src="assets/rendering_powerhouse_1765783009982.png" alt="Vista 2" class="thumbnail-image"
+                            onclick="changeMainImage(this.src)">
+                        <img src="assets/hero_background_1765783023163.png" alt="Vista 3" class="thumbnail-image"
+                            onclick="changeMainImage(this.src)">
+                    </div>
+
+                    <!-- Detailed Specifications -->
+                    <div class="glass-card">
+                        <h3 style="margin-bottom: 1.5rem;">Especificaciones Completas</h3>
+
+                        <div style="display: grid; gap: 1rem;">
+                            <div class="spec-row">
+                                <span class="spec-label">Procesador</span>
+                                <span class="spec-value">Intel Core i9-13900K (24-Core, 5.8GHz)</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Tarjeta Gráfica</span>
+                                <span class="spec-value">NVIDIA GeForce RTX 4080 16GB</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Memoria RAM</span>
+                                <span class="spec-value">64GB DDR5 5600MHz</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Almacenamiento</span>
+                                <span class="spec-value">2TB NVMe SSD Gen4</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Sistema Operativo</span>
+                                <span class="spec-value">Windows 11 Pro</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Internet</span>
+                                <span class="spec-value">Fibra Óptica 1Gbps</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);">
+                            <h4 style="margin-bottom: 1rem;">Software Instalado</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                <span class="spec-badge">Adobe Creative Cloud</span>
+                                <span class="spec-badge">DaVinci Resolve</span>
+                                <span class="spec-badge">Blender</span>
+                                <span class="spec-badge">Visual Studio</span>
+                                <span class="spec-badge">Docker</span>
+                                <span class="spec-badge">Node.js</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Info and Chat -->
+                <div>
+                    <!-- Computer Info -->
+                    <div class="glass-card" style="margin-bottom: 2rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div>
+                                <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Workstation Profesional</h1>
+                                <div class="rating" style="font-size: 1.1rem; margin-bottom: 0.5rem;">
+                                    ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(47
+                                        reseñas)</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="price" style="font-size: 2.5rem;">$8</div>
+                                <div class="price-unit">por hora</div>
+                            </div>
+                        </div>
+
+                        <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem;">
+                            Estación de trabajo de alto rendimiento perfecta para edición de video profesional, modelado
+                            3D, y desarrollo de software. Equipada con los mejores componentes para garantizar máxima
+                            productividad.
+                        </p>
+
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                            <div
+                                style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
+                                    Disponibilidad</div>
+                                <div style="font-weight: 600; color: var(--accent-purple);">Inmediata</div>
+                            </div>
+                            <div
+                                style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
+                                    Tiempo Mínimo</div>
+                                <div style="font-weight: 600; color: var(--accent-purple);">1 hora</div>
+                            </div>
+                        </div>
+
+                        <!-- Host Info -->
+                        <div
+                            style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                            <img src="assets/user_avatar_1_1765783036666.png" alt="Host"
+                                style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-purple);">
+                            <div>
+                                <h4 style="margin-bottom: 0.3rem;">Carlos Méndez</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">Miembro desde
+                                    2023 • Responde en ~15min</p>
+                                <div class="rating" style="font-size: 0.9rem;">
+                                    ★★★★★ <span style="margin-left: 0.3rem;">(89 valoraciones)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn btn-primary" style="flex: 1;" onclick="initiateConnection()">Solicitar
+                                Acceso</button>
+                            <button class="btn btn-secondary" onclick="scrollToChat()">Negociar Precio</button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Interface -->
+                    <div class="glass-card" id="chatSection">
+                        <h3 style="margin-bottom: 1rem;">Conversa con el Anfitrión</h3>
+
+                        <div class="chat-container">
+                            <div class="chat-header">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <img src="assets/user_avatar_1_1765783036666.png" alt="Host"
+                                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 1rem;">Carlos Méndez</h4>
+                                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">En línea
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="message message-received">
+                                    <p style="margin: 0;">¡Hola! Gracias por tu interés en mi workstation. ¿En qué te
+                                        puedo ayudar?</p>
+                                    <small
+                                        style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-top: 0.3rem; display: block;">10:34
+                                        AM</small>
+                                </div>
+                                <div class="message message-sent">
+                                    <p style="margin: 0;">Hola! Necesito el equipo para render de video 4K. ¿Cuánto es
+                                        para 5 horas?</p>
+                                    <small
+                                        style="color: rgba(255,255,255,0.8); font-size: 0.75rem; margin-top: 0.3rem; display: block;">10:36
+                                        AM</small>
+                                </div>
+                                <div class="message message-received">
+                                    <p style="margin: 0;">Perfecto! Para 5 horas te puedo hacer $35 en total. La máquina
+                                        está optimizada para DaVinci Resolve.</p>
+                                    <small
+                                        style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-top: 0.3rem; display: block;">10:37
+                                        AM</small>
+                                </div>
+                            </div>
+
+                            <div class="chat-input-container">
+                                <input type="text" class="chat-input" id="messageInput"
+                                    placeholder="Escribe un mensaje..." onkeypress="handleChatKeyPress(event)">
+                                <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviews Section -->
+            <div class="glass-card">
+                <h3 style="margin-bottom: 2rem;">Reseñas de Usuarios</h3>
+
+                <div style="display: grid; gap: 1.5rem;">
+                    <!-- Review 1 -->
+                    <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border);">
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+                            <div
+                                style="width: 45px; height: 45px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                MG</div>
+                            <div>
+                                <h4 style="margin: 0; font-size: 1rem;">María García</h4>
+                                <div class="rating" style="font-size: 0.9rem;">★★★★★</div>
+                            </div>
+                            <span style="margin-left: auto; color: var(--text-muted); font-size: 0.9rem;">Hace 2
+                                días</span>
+                        </div>
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            Excelente equipo! Renderé un proyecto de 45 minutos en solo 3 horas. Carlos fue muy atento y
+                            me ayudó con la configuración inicial. 100% recomendado.
+                        </p>
+                    </div>
+
+                    <!-- Review 2 -->
+                    <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border);">
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+                            <div
+                                style="width: 45px; height: 45px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                JL</div>
+                            <div>
+                                <h4 style="margin: 0; font-size: 1rem;">Juan López</h4>
+                                <div class="rating" style="font-size: 0.9rem;">★★★★★</div>
+                            </div>
+                            <span style="margin-left: auto; color: var(--text-muted); font-size: 0.9rem;">Hace 1
+                                semana</span>
+                        </div>
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            Potencia increíble. Lo usé para compilar proyectos grandes y fue muchísimo más rápido que mi
+                            laptop. La conexión fue estable todo el tiempo.
+                        </p>
+                    </div>
+
+                    <!-- Review 3 -->
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+                            <div
+                                style="width: 45px; height: 45px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                AS</div>
+                            <div>
+                                <h4 style="margin: 0; font-size: 1rem;">Ana Sánchez</h4>
+                                <div class="rating" style="font-size: 0.9rem;">★★★★★</div>
+                            </div>
+                            <span style="margin-left: auto; color: var(--text-muted); font-size: 0.9rem;">Hace 2
+                                semanas</span>
+                        </div>
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            Perfecto para mis necesidades. Software preinstalado tal como se describe. Carlos es muy
+                            profesional y flexible con los horarios.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>DeskShare</h3>
+                    <p style="color: var(--text-secondary);">La plataforma líder para alquilar y compartir poder de
+                        cómputo.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Plataforma</h3>
+                    <ul class="footer-links">
+                        <li><a href="marketplace.html">Explorar Computadoras</a></li>
+                        <li><a href="#">Publicar PC</a></li>
+                        <li><a href="#">Cómo Funciona</a></li>
+                        <li><a href="#">Precios</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Soporte</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Seguridad</a></li>
+                        <li><a href="#">Términos de Servicio</a></li>
+                        <li><a href="#">Privacidad</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Compañía</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Sobre Nosotros</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Carreras</a></li>
+                        <li><a href="#">Contacto</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DeskShare. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        .thumbnail-image {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            border: 2px solid var(--glass-border);
+            transition: all var(--transition-fast);
+        }
+
+        .thumbnail-image:hover {
+            border-color: var(--primary-purple);
+            transform: scale(1.05);
+        }
+
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+        }
+
+        .spec-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .spec-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        @media (max-width: 968px) {
+            section>div>div:first-child {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+        function changeMainImage(src) {
+            document.getElementById('mainImage').src = src;
+        }
+
+        function scrollToChat() {
+            document.getElementById('chatSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function initiateConnection() {
+            alert('Esta funcionalidad creará un booking y te redirigirá al acceso remoto.');
+            // In production, this would call createBooking() and redirect to remote-access.html
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // In production, this would call sendMessageAPI() with actual IDs
+            console.log('Sending message:', message);
+            
+            // Clear input
+            input.value = '';
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+
+</html>

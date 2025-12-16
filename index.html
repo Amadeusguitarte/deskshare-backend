@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="DeskShare - Alquila o comparte acceso remoto a computadoras potentes. Gana dinero compartiendo tu PC o accede a equipos de alto rendimiento por hora.">
+    <title>DeskShare - Alquila Computadoras de Alto Rendimiento</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
+                <li><a href="#how-it-works">Cómo Funciona</a></li>
+                <li><a href="profile.html">Mi Perfil</a></li>
+                <li><a href="#" class="btn btn-primary">Publicar PC</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Acceso Remoto a Computadoras Potentes</h1>
+            <p>Alquila equipos de alto rendimiento por hora o monetiza tu PC cuando no lo uses. La plataforma definitiva para compartir poder de cómputo.</p>
+            <div class="hero-buttons">
+                <a href="marketplace.html" class="btn btn-primary">Explorar Computadoras</a>
+                <a href="#how-it-works" class="btn btn-secondary">Cómo Funciona</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section">
+        <div class="container">
+            <h2 class="text-center mb-3">¿Por Qué DeskShare?</h2>
+            <div class="grid grid-3">
+                <div class="glass-card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">💻</div>
+                    <h3>Equipos Potentes</h3>
+                    <p>Accede a PCs gaming, estaciones de trabajo y servidores de alto rendimiento sin comprarlos.</p>
+                </div>
+                <div class="glass-card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">💰</div>
+                    <h3>Gana Dinero</h3>
+                    <p>Monetiza tu computadora cuando no la uses. Establece tu propia tarifa por hora.</p>
+                </div>
+                <div class="glass-card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                    <h3>Seguro y Confiable</h3>
+                    <p>Conexiones encriptadas, pagos seguros y sistema de calificaciones integrado.</p>
+                </div>
+                <div class="glass-card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚡</div>
+                    <h3>Acceso Instantáneo</h3>
+                    <p>Conéctate remotamente en segundos. Sin instalaciones complicadas.</p>
+                </div>
+                <div class="glass-card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+                    <h3>Chat Integrado</h3>
+                    <p>Negocia precios y condiciones directamente con los propietarios.</p>
+                </div>
+                <div class="glass-card">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🎯</div>
+                    <h3>Flexible</h3>
+                    <p>Alquila por horas, días o semanas. Tú decides cuánto tiempo necesitas.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Computers -->
+    <section class="section" style="background: var(--bg-secondary);">
+        <div class="container">
+            <h2 class="text-center mb-3">Computadoras Destacadas</h2>
+            <div class="grid grid-3" id="featuredComputers">
+                <!-- Computer Card 1 -->
+                <div class="computer-card" onclick="window.location.href='computer-detail.html?id=1'">
+                    <img src="assets/workstation_professional_1765782988095.png" alt="Workstation Profesional" class="computer-image">
+                    <div class="computer-info">
+                        <h3 class="computer-title">Workstation Profesional</h3>
+                        <div class="computer-specs">
+                            <span class="spec-badge">i9-13900K</span>
+                            <span class="spec-badge">RTX 4080</span>
+                            <span class="spec-badge">64GB RAM</span>
+                            <span class="spec-badge">2TB NVMe</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0.5rem 0;">
+                            Ideal para edición de video, 3D rendering y desarrollo
+                        </p>
+                        <div class="computer-price">
+                            <div>
+                                <span class="price">$8</span>
+                                <span class="price-unit">/hora</span>
+                            </div>
+                            <div class="rating">
+                                ★★★★★ <span style="margin-left: 0.3rem;">(47)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Computer Card 2 -->
+                <div class="computer-card" onclick="window.location.href='computer-detail.html?id=2'">
+                    <img src="assets/rendering_powerhouse_1765783009982.png" alt="Rendering Powerhouse" class="computer-image">
+                    <div class="computer-info">
+                        <h3 class="computer-title">Rendering Powerhouse</h3>
+                        <div class="computer-specs">
+                            <span class="spec-badge">Threadripper PRO</span>
+                            <span class="spec-badge">RTX 4090</span>
+                            <span class="spec-badge">128GB RAM</span>
+                            <span class="spec-badge">4TB NVMe</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0.5rem 0;">
+                            Máxima potencia para renders 3D y simulaciones
+                        </p>
+                        <div class="computer-price">
+                            <div>
+                                <span class="price">$15</span>
+                                <span class="price-unit">/hora</span>
+                            </div>
+                            <div class="rating">
+                                ★★★★★ <span style="margin-left: 0.3rem;">(89)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Computer Card 3 -->
+                <div class="computer-card" onclick="window.location.href='computer-detail.html?id=3'">
+                    <img src="assets/hero_background_1765783023163.png" alt="Gaming Elite" class="computer-image">
+                    <div class="computer-info">
+                        <h3 class="computer-title">Gaming Elite Setup</h3>
+                        <div class="computer-specs">
+                            <span class="spec-badge">Ryzen 9 7950X</span>
+                            <span class="spec-badge">RTX 4070 Ti</span>
+                            <span class="spec-badge">32GB RAM</span>
+                            <span class="spec-badge">1TB NVMe</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0.5rem 0;">
+                            Gaming en ultra settings, streaming y grabación
+                        </p>
+                        <div class="computer-price">
+                            <div>
+                                <span class="price">$6</span>
+                                <span class="price-unit">/hora</span>
+                            </div>
+                            <div class="rating">
+                                ★★★★☆ <span style="margin-left: 0.3rem;">(32)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <a href="marketplace.html" class="btn btn-primary">Ver Todas las Computadoras</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section" id="how-it-works">
+        <div class="container">
+            <h2 class="text-center mb-3">Cómo Funciona</h2>
+            <div class="grid grid-2" style="gap: 3rem; margin-top: 3rem;">
+                <!-- For Renters -->
+                <div>
+                    <h3 class="text-gradient" style="font-size: 2rem; margin-bottom: 1.5rem;">Para Arrendatarios</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="glass-card">
+                            <div style="display: flex; gap: 1rem; align-items: start;">
+                                <div style="background: var(--gradient-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</div>
+                                <div>
+                                    <h4>Explora el Catálogo</h4>
+                                    <p style="margin: 0.5rem 0 0 0;">Navega entre cientos de computadoras con diferentes especificaciones y precios.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div style="display: flex; gap: 1rem; align-items: start;">
+                                <div style="background: var(--gradient-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">2</div>
+                                <div>
+                                    <h4>Negocia con el Propietario</h4>
+                                    <p style="margin: 0.5rem 0 0 0;">Usa el chat integrado para discutir precios, horarios y requerimientos específicos.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div style="display: flex; gap: 1rem; align-items: start;">
+                                <div style="background: var(--gradient-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">3</div>
+                                <div>
+                                    <h4>Conéctate Remotamente</h4>
+                                    <p style="margin: 0.5rem 0 0 0;">Una vez acordado, accede al equipo de forma segura desde tu navegador.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- For Hosts -->
+                <div>
+                    <h3 class="text-gradient" style="font-size: 2rem; margin-bottom: 1.5rem;">Para Anfitriones</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="glass-card">
+                            <div style="display: flex; gap: 1rem; align-items: start;">
+                                <div style="background: var(--gradient-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</div>
+                                <div>
+                                    <h4>Publica tu Computadora</h4>
+                                    <p style="margin: 0.5rem 0 0 0;">Crea un listado con fotos, especificaciones y tu tarifa por hora deseada.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div style="display: flex; gap: 1rem; align-items: start;">
+                                <div style="background: var(--gradient-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">2</div>
+                                <div>
+                                    <h4>Recibe Solicitudes</h4>
+                                    <p style="margin: 0.5rem 0 0 0;">Los usuarios interesados te contactarán. Negocia términos que funcionen para ambos.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div style="display: flex; gap: 1rem; align-items: start;">
+                                <div style="background: var(--gradient-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">3</div>
+                                <div>
+                                    <h4>Gana Dinero</h4>
+                                    <p style="margin: 0.5rem 0 0 0;">Recibe pagos automáticamente por cada hora de uso. ¡Así de simple!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="section" style="background: var(--gradient-hero); text-align: center;">
+        <div class="container">
+            <h2 style="margin-bottom: 1rem;">¿Listo para Empezar?</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Únete a miles de usuarios que ya están ganando dinero o accediendo a equipos potentes
+            </p>
+            <div class="flex-center gap-2" style="flex-wrap: wrap;">
+                <a href="marketplace.html" class="btn btn-primary">Explorar Ahora</a>
+                <a href="#" class="btn btn-secondary">Publicar mi PC</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>DeskShare</h3>
+                    <p style="color: var(--text-secondary);">La plataforma líder para alquilar y compartir poder de cómputo.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Plataforma</h3>
+                    <ul class="footer-links">
+                        <li><a href="marketplace.html">Explorar Computadoras</a></li>
+                        <li><a href="#">Publicar PC</a></li>
+                        <li><a href="#">Cómo Funciona</a></li>
+                        <li><a href="#">Precios</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Soporte</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Seguridad</a></li>
+                        <li><a href="#">Términos de Servicio</a></li>
+                        <li><a href="#">Privacidad</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Compañía</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Sobre Nosotros</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Carreras</a></li>
+                        <li><a href="#">Contacto</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DeskShare. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

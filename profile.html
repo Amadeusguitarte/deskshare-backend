@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Perfil de Usuario - DeskShare">
+    <title>Mi Perfil - DeskShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
+                <li><a href="index.html#how-it-works">Cómo Funciona</a></li>
+                <li><a href="profile.html" style="color: var(--primary-purple);">Mi Perfil</a></li>
+                <li><a href="#" class="btn btn-primary">Publicar PC</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Profile Header -->
+    <section style="padding-top: 120px; padding-bottom: 2rem; background: var(--gradient-hero);">
+        <div class="container">
+            <div style="display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;">
+                <img src="assets/user_avatar_1_1765783036666.png" alt="Profile"
+                    style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary-purple); box-shadow: 0 8px 24px rgba(138, 43, 226, 0.4);">
+                <div>
+                    <h1 style="margin-bottom: 0.5rem;">Carlos Méndez</h1>
+                    <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Miembro desde
+                        Marzo 2023</p>
+                    <div class="rating" style="font-size: 1.2rem;">
+                        ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(89 valoraciones)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Content -->
+    <section class="section">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start;">
+                <!-- Sidebar -->
+                <aside class="glass-card" style="position: sticky; top: 100px;">
+                    <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <a href="#" class="profile-nav-link active" onclick="switchTab('computers')">Mis
+                            Computadoras</a>
+                        <a href="#" class="profile-nav-link" onclick="switchTab('rentals')">Mis Alquileres</a>
+                        <a href="#" class="profile-nav-link" onclick="switchTab('earnings')">Ganancias</a>
+                        <a href="#" class="profile-nav-link" onclick="switchTab('settings')">Configuración</a>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <div>
+                    <!-- Dashboard Stats -->
+                    <div class="grid grid-3" style="margin-bottom: 2rem;">
+                        <div class="glass-card">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💻</div>
+                            <div
+                                style="font-size: 2rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                                3</div>
+                            <p style="color: var(--text-secondary); margin: 0;">Computadoras Activas</p>
+                        </div>
+                        <div class="glass-card">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💰</div>
+                            <div
+                                style="font-size: 2rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                                $1,247</div>
+                            <p style="color: var(--text-secondary); margin: 0;">Ganancias este mes</p>
+                        </div>
+                        <div class="glass-card">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⏱️</div>
+                            <div
+                                style="font-size: 2rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                                156</div>
+                            <p style="color: var(--text-secondary); margin: 0;">Horas alquiladas</p>
+                        </div>
+                    </div>
+
+                    <!-- My Computers Tab -->
+                    <div id="computersTab" class="tab-content">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h2>Mis Computadoras</h2>
+                            <button class="btn btn-primary">+ Añadir Computadora</button>
+                        </div>
+
+                        <div class="grid grid-2">
+                            <!-- Computer Listing 1 -->
+                            <div class="glass-card">
+                                <div style="display: flex; gap: 1.5rem;">
+                                    <img src="assets/workstation_professional_1765782988095.png" alt="Workstation"
+                                        style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md);">
+                                    <div style="flex: 1;">
+                                        <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;">Workstation Profesional
+                                        </h3>
+                                        <div
+                                            style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                                            <span class="spec-badge" style="font-size: 0.75rem;">i9-13900K</span>
+                                            <span class="spec-badge" style="font-size: 0.75rem;">RTX 4080</span>
+                                            <span class="spec-badge" style="font-size: 0.75rem;">64GB</span>
+                                        </div>
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                                            <div>
+                                                <span class="price" style="font-size: 1.5rem;">$8</span>
+                                                <span class="price-unit">/hora</span>
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <button class="btn btn-secondary"
+                                                    style="padding: 0.5rem 1rem; font-size: 0.9rem;">Editar</button>
+                                                <span
+                                                    style="background: rgba(0, 255, 0, 0.2); color: #00ff00; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(0, 255, 0, 0.3);">●
+                                                    Activo</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Computer Listing 2 -->
+                            <div class="glass-card">
+                                <div style="display: flex; gap: 1.5rem;">
+                                    <img src="assets/rendering_powerhouse_1765783009982.png" alt="Gaming PC"
+                                        style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md);">
+                                    <div style="flex: 1;">
+                                        <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;">Rendering Powerhouse</h3>
+                                        <div
+                                            style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                                            <span class="spec-badge" style="font-size: 0.75rem;">Threadripper</span>
+                                            <span class="spec-badge" style="font-size: 0.75rem;">RTX 4090</span>
+                                            <span class="spec-badge" style="font-size: 0.75rem;">128GB</span>
+                                        </div>
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                                            <div>
+                                                <span class="price" style="font-size: 1.5rem;">$15</span>
+                                                <span class="price-unit">/hora</span>
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <button class="btn btn-secondary"
+                                                    style="padding: 0.5rem 1rem; font-size: 0.9rem;">Editar</button>
+                                                <span
+                                                    style="background: rgba(0, 255, 0, 0.2); color: #00ff00; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(0, 255, 0, 0.3);">●
+                                                    Activo</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Computer Listing 3 -->
+                            <div class="glass-card" style="opacity: 0.7;">
+                                <div style="display: flex; gap: 1.5rem;">
+                                    <img src="assets/hero_background_1765783023163.png" alt="Dev Setup"
+                                        style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md);">
+                                    <div style="flex: 1;">
+                                        <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;">Gaming Setup Elite</h3>
+                                        <div
+                                            style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                                            <span class="spec-badge" style="font-size: 0.75rem;">Ryzen 9</span>
+                                            <span class="spec-badge" style="font-size: 0.75rem;">RTX 4070 Ti</span>
+                                            <span class="spec-badge" style="font-size: 0.75rem;">32GB</span>
+                                        </div>
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                                            <div>
+                                                <span class="price" style="font-size: 1.5rem;">$6</span>
+                                                <span class="price-unit">/hora</span>
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <button class="btn btn-secondary"
+                                                    style="padding: 0.5rem 1rem; font-size: 0.9rem;">Editar</button>
+                                                <span
+                                                    style="background: rgba(255, 165, 0, 0.2); color: #ffa500; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(255, 165, 0, 0.3);">●
+                                                    Ocupado</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>DeskShare</h3>
+                    <p style="color: var(--text-secondary);">La plataforma líder para alquilar y compartir poder de
+                        cómputo.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Plataforma</h3>
+                    <ul class="footer-links">
+                        <li><a href="marketplace.html">Explorar Computadoras</a></li>
+                        <li><a href="#">Publicar PC</a></li>
+                        <li><a href="#">Cómo Funciona</a></li>
+                        <li><a href="#">Precios</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Soporte</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Seguridad</a></li>
+                        <li><a href="#">Términos de Servicio</a></li>
+                        <li><a href="#">Privacidad</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Compañía</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Sobre Nosotros</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Carreras</a></li>
+                        <li><a href="#">Contacto</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DeskShare. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        .profile-nav-link {
+            padding: 0.875rem 1.25rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            font-weight: 500;
+        }
+
+        .profile-nav-link:hover {
+            background: rgba(138, 43, 226, 0.1);
+            color: var(--text-primary);
+        }
+
+        .profile-nav-link.active {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .tab-content {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @media (max-width: 968px) {
+            section>div>div {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

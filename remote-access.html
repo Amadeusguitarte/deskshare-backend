@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Acceso Remoto - DeskShare">
+    <title>Sesión Remota Activa - DeskShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body style="background: var(--bg-primary);">
+    <!-- Remote Access Header -->
+    <div
+        style="background: var(--bg-secondary); border-bottom: 1px solid var(--glass-border); padding: 1rem 0; position: fixed; top: 0; left: 0; right: 0; z-index: 1000;">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 2rem;">
+                    <a href="index.html" class="logo">DeskShare</a>
+                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                        <div>
+                            <span style="color: var(--text-secondary); font-size: 0.85rem;">Conectado a:</span>
+                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 0.5rem;">Workstation
+                                Profesional</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 8px; height: 8px; background: #00ff00; border-radius: 50%; animation: pulse 2s ease-in-out infinite;">
+                            </div>
+                            <span style="color: #00ff00; font-size: 0.9rem; font-weight: 600;">Conectado</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div
+                        style="background: rgba(138, 43, 226, 0.2); padding: 0.75rem 1.5rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.4);">
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Tiempo transcurrido:</span>
+                        <span id="sessionTimer"
+                            style="color: var(--primary-purple); font-weight: 700; margin-left: 0.5rem; font-size: 1.1rem;">00:43:27</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="minimizeRemote()">Minimizar</button>
+                    <button class="btn" style="background: #ff4444; color: white;"
+                        onclick="disconnectRemote()">Desconectar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remote Desktop Area -->
+    <div style="padding-top: 80px; height: 100vh; display: flex; flex-direction: column;">
+        <div class="container" style="flex: 1; padding-top: 1rem; padding-bottom: 1rem;">
+            <!-- Connection Info Bar -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <div class="glass-card"
+                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="font-size: 1.5rem;">📊</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Latencia</div>
+                        <div style="font-weight: 600; color: var(--text-primary);">18ms</div>
+                    </div>
+                </div>
+                <div class="glass-card"
+                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="font-size: 1.5rem;">🖥️</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Resolución</div>
+                        <div style="font-weight: 600; color: var(--text-primary);">1920x1080</div>
+                    </div>
+                </div>
+                <div class="glass-card"
+                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="font-size: 1.5rem;">⚡</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Velocidad</div>
+                        <div style="font-weight: 600; color: var(--text-primary);">250 Mbps</div>
+                    </div>
+                </div>
+                <div class="glass-card"
+                    style="flex: 1; padding: 0.875rem 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="font-size: 1.5rem;">💰</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Costo Actual</div>
+                        <div style="font-weight: 600; color: var(--accent-purple);">$5.79</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Remote Desktop Viewer -->
+            <div class="glass-card"
+                style="padding: 0; height: calc(100vh - 240px); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #1a1a2e;">
+                <!-- Simulated Remote Desktop -->
+                <div
+                    style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); display: flex; align-items: center; justify-content: center;">
+                    <!-- Windows-like Desktop Simulation -->
+                    <div
+                        style="width: 90%; height: 90%; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-lg); padding: 1.5rem; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div style="text-align: center; padding: 3rem;">
+                            <div style="font-size: 4rem; margin-bottom: 1.5rem;">🖥️</div>
+                            <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Sesión Remota Activa</h2>
+                            <p
+                                style="color: var(--text-secondary); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                                Estás conectado de forma segura a <strong>Workstation Profesional</strong>.
+                                Todos los datos están encriptados de extremo a extremo.
+                            </p>
+
+                            <!-- Simulated Desktop Icons -->
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 2rem; max-width: 800px; margin: 3rem auto;">
+                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.1)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Documentos</div>
+                                </div>
+                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.1)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎨</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Adobe CC</div>
+                                </div>
+                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.1)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">💻</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">VS Code</div>
+                                </div>
+                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.1)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎬</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">DaVinci</div>
+                                </div>
+                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.1)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🔷</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Blender</div>
+                                </div>
+                                <div style="text-align: center; cursor: pointer; transition: transform 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.1)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🌐</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Chrome</div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card" style="max-width: 500px; margin: 3rem auto; padding: 1.5rem;">
+                                <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Controles de Sesión</h4>
+                                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                    <button class="btn btn-secondary">📋 Portapapeles</button>
+                                    <button class="btn btn-secondary">📁 Transferir Archivos</button>
+                                    <button class="btn btn-secondary">🖨️ Imprimir</button>
+                                    <button class="btn btn-secondary">⚙️ Configuración</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Connection Quality Indicator -->
+                    <div
+                        style="position: absolute; top: 1rem; right: 1rem; background: rgba(0, 255, 0, 0.2); padding: 0.5rem 1rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 255, 0, 0.4); backdrop-filter: blur(10px);">
+                        <span style="color: #00ff00; font-size: 0.85rem; font-weight: 600;">● Excelente Conexión</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.2);
+            }
+        }
+    </style>
+
+    <script>
+        // Session Timer
+        let sessionSeconds = 2607; // Starting at 43:27
+
+        function updateTimer() {
+            sessionSeconds++;
+            const hours = Math.floor(sessionSeconds / 3600);
+            const minutes = Math.floor((sessionSeconds % 3600) / 60);
+            const seconds = sessionSeconds % 60;
+
+            const timerDisplay =
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
+
+            document.getElementById('sessionTimer').textContent = timerDisplay;
+        }
+
+        setInterval(updateTimer, 1000);
+
+        function minimizeRemote() {
+            alert('La sesión continuará en segundo plano. Puedes volver en cualquier momento.');
+            window.location.href = 'index.html';
+        }
+
+        function disconnectRemote() {
+            if (confirm('¿Estás seguro de que deseas finalizar la sesión remota?')) {
+                alert('Sesión finalizada. Duración total: 43 minutos. Costo: $5.79');
+                window.location.href = 'computer-detail.html';
+            }
+        }
+    </script>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
