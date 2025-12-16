@@ -377,20 +377,39 @@
 
                 if (selectedFiles.length > 0) {
                     for (let file of selectedFiles) {
-                        const formData = new FormData();
-                        formData.append('image', file);
+                        try {
+                            const formData = new FormData();
+                            formData.append('image', file);
 
-                        const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${authToken}`
-                            },
-                            body: formData
-                        });
+                            console.log('Uploading file:', file.name);
+                            const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${authToken}`
+                                },
+                                body: formData
+                            });
 
-                        const uploadData = await uploadResponse.json();
-                        if (uploadData.url) {
-                            imageUrls.push({ url: uploadData.url, isPrimary: imageUrls.length === 0 });
+                            if (!uploadResponse.ok) {
+                                const errText = await uploadResponse.text();
+                                console.error('Upload failed:', errText);
+                                throw new Error(`Error subiendo imagen: ${uploadResponse.status}`);
+                            }
+
+                            const uploadData = await uploadResponse.json();
+                            console.log('Upload success:', uploadData);
+
+                            if (uploadData.url) {
+                                imageUrls.push({ url: uploadData.url, isPrimary: imageUrls.length === 0 });
+                            } else {
+                                console.warn('No URL in upload response', uploadData);
+                            }
+                        } catch (imgError) {
+                            console.error('Image upload error:', imgError);
+                            alert(`Error subiendo imagen ${file.name}: ${imgError.message}`);
+                            // Continue with other images? or Fail?
+                            // For now let's fail to ensure user knows
+                            throw imgError;
                         }
                     }
                 }
