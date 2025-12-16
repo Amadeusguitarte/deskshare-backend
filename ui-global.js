@@ -23,9 +23,17 @@ function loadAddComputerModal() {
             // Create container for modal
             const container = document.createElement('div');
             container.innerHTML = html;
-            console.log('Container created, firstElementChild:', container.firstElementChild);
-            document.body.appendChild(container.firstElementChild);
-            console.log('Modal appended to body');
+
+            // Find the modal element specifically (not firstElement which might be <html>)
+            const modalElement = container.querySelector('#addComputerModal');
+            console.log('Modal element found:', modalElement);
+
+            if (modalElement) {
+                document.body.appendChild(modalElement);
+                console.log('Modal appended to body');
+            } else {
+                console.error('Could not find #addComputerModal in loaded HTML');
+            }
         })
         .catch(err => {
             console.error('Error loading modal:', err);
