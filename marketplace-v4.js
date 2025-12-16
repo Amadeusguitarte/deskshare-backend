@@ -105,12 +105,12 @@ function renderComputers(computers) {
                         </div>
                     </div>
 
-                    <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
                         <div class="computer-price">
                             <span class="price" style="font-size: 1.5rem; font-weight: 700; color: white;">$${computer.pricePerHour}</span>
                             <span class="price-unit" style="font-size: 0.9rem; color: var(--text-muted);">/hora</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.3rem; color: #fbbf24;">
+                        <div style="display: flex; align-items: baseline; gap: 0.3rem; color: var(--accent-purple);">
                              <span>★</span> 
                              <span style="font-weight: 600;">${rating}</span>
                              <span style="color: var(--text-muted); font-size: 0.85rem;">(${reviewCount})</span>
