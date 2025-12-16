@@ -146,6 +146,75 @@ function redirectIfLoggedIn() {
     }
 }
 
+// ========================================
+// Google OAuth
+// ========================================
+
+async function loginWithGoogle() {
+    // TODO: Implement Google OAuth
+    // For now, show instructions
+    alert(
+        'Google OAuth está en desarrollo.\n\n' +
+        'Para implementarlo completamente:\n' +
+        '1. Crear proyecto en Google Cloud Console\n' +
+        '2. Habilitar Google Sign-In API\n' +
+        '3. Configurar OAuth credentials\n' +
+        '4. Agregar dominio autorizado\n\n' +
+        'Por ahora, usa email/password.'
+    );
+
+    /* Full implementation would be:
+    try {
+        // Initialize Google Sign-In
+        await gapi.auth2.getAuthInstance().signIn();
+        const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
+        const idToken = googleUser.getAuthResponse().id_token;
+        
+        // Send to backend
+        const response = await apiRequest('/auth/google', {
+            method: 'POST',
+            body: JSON.stringify({ idToken })
+        });
+        
+        // Save session
+        authToken = response.token;
+        currentUser = response.user;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        initializeSocket();
+        window.location.href = 'profile.html';
+    } catch (error) {
+        console.error('Google login failed:', error);
+        alert('Error al iniciar sesión con Google');
+    }
+    */
+}
+
+// ========================================
+// Navbar Auth State Management
+// ========================================
+
+function updateNavbarAuthState() {
+    const isLoggedIn = checkAuth();
+
+    // Show/hide elements based on auth state
+    document.querySelectorAll('.auth-only').forEach(el => {
+        el.style.display = isLoggedIn ? 'block' : 'none';
+    });
+
+    document.querySelectorAll('.guest-only').forEach(el => {
+        el.style.display = isLoggedIn ? 'none' : 'block';
+    });
+}
+
+// Update navbar on page load
+document.addEventListener('DOMContentLoaded', () => {
+    updateNavbarAuthState();
+});
+
+// Make Google login globally available
+window.loginWithGoogle = loginWithGoogle;
 
 
 function logout() {
