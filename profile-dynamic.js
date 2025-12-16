@@ -71,39 +71,80 @@ function createComputerCard(computer) {
         if (computer.images[0].imageUrl) imageUrl = computer.images[0].imageUrl;
         else if (computer.images[0].url) imageUrl = computer.images[0].url;
     }
+    // Format reviews
+    const rating = computer.user?.rating || 5.0;
+    const reviewCount = computer.user?.reviewsCount || 0;
+    const ratingStar = '★';
+
     div.innerHTML = `
         <div style="display: flex; flex-direction: column; height: 100%;">
-            <div style="position: relative; width: 100%; height: 200px; overflow: hidden; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
-                <img src="${imageUrl}" alt="${computer.name}"
-                    style="width: 100%; height: 100%; object-fit: cover; transition: transform var(--transition-slow);">
-                <div style="position: absolute; top: 10px; right: 10px;">
+            <!-- Image Container -->
+            <div style="position: relative; width: 100%; height: 220px; overflow: hidden;">
+                <img src="${imageUrl}" alt="${computer.name}" loading="lazy"
+                    style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
+                <div style="position: absolute; top: 12px; right: 12px;">
                    ${status}
                 </div>
             </div>
             
-            <div style="padding: 1.5rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <h3 style="margin-bottom: 0.5rem; font-size: 1.4rem;">${computer.name}</h3>
-                    
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <span class="spec-badge">${computer.cpu || 'CPU'}</span>
-                        <span class="spec-badge">${computer.gpu || 'GPU'}</span>
-                        <span class="spec-badge">${computer.ram || 'RAM'}GB</span>
+            <!-- Content Container -->
+            <div style="padding: 1.25rem; flex: 1; display: flex; flex-direction: column;">
+                
+                <!-- Header -->
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700; line-height: 1.3; margin: 0; color: var(--text-primary);">${computer.name}</h3>
+                        <div style="display: flex; align-items: center; gap: 4px; font-size: 0.9rem; color: #fbbf24;">
+                            <span>${ratingStar}</span>
+                            <span style="font-weight: 600;">${rating}</span>
+                            <span style="color: var(--text-muted);">(${reviewCount})</span>
+                        </div>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--glass-border);">
+                <!-- Specs Grid (Fiverr/Airbnb style) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; margin-bottom: 1.5rem; background: rgba(255,255,255,0.03); padding: 1rem; border-radius: var(--radius-sm);">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Procesador</span>
+                        <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${computer.cpu || 'N/A'}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Tarjeta Gráfica</span>
+                        <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${computer.gpu || 'N/A'}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">RAM</span>
+                        <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Almacenamiento</span>
+                        <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.storage || 'N/A'}</span>
+                    </div>
+                </div>
+
+                <!-- Footer (Price & Action) -->
+                <div style="margin-top: auto; display: flex; items-align: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--glass-border);">
                     <div>
-                        <span class="price" style="font-size: 1.5rem;">$${computer.pricePerHour}</span>
-                        <span class="price-unit">/hora</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Precio por hora</span>
+                        <div style="display: flex; align-items: baseline; gap: 2px;">
+                            <span style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">$${computer.pricePerHour}</span>
+                            <span style="font-size: 0.9rem; color: var(--text-muted);">USD</span>
+                        </div>
                     </div>
                     <button class="btn btn-secondary" onclick="editComputer(${computer.id})"
-                        style="padding: 0.5rem 1.5rem;">Editar</button>
+                        style="padding: 0.5rem 1.25rem; font-weight: 600; border-width: 1px;">
+                        Gestionar
+                    </button>
                 </div>
             </div>
         </div>
     `;
     return div;
+}
+
+function editComputer(id) {
+    // Placeholder for edit functionality
+    alert('Editar computadora ' + id);
 }
 async function loadUserBookings() {
     try {
