@@ -77,61 +77,47 @@ function createComputerCard(computer) {
     const ratingStar = '★';
 
     div.innerHTML = `
-        <div style="display: flex; flex-direction: column; height: 100%;">
-            <!-- Image Container -->
-            <div style="margin: 0.75rem 0.75rem 0 0.75rem; border-radius: var(--radius-lg); overflow: hidden; height: 200px; position: relative;">
+        <div style="display: flex; gap: 1.5rem; padding: 1rem; align-items: flex-start;">
+            <!-- Image (Left) -->
+            <div style="flex-shrink: 0; width: 180px; height: 140px; border-radius: var(--radius-md); overflow: hidden; position: relative;">
                 <img src="${imageUrl}" alt="${computer.name}" loading="lazy"
-                    style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;">
-                <div style="position: absolute; top: 10px; right: 10px;">
+                    style="width: 100%; height: 100%; object-fit: cover;">
+                 <div style="position: absolute; top: 8px; left: 8px;">
                    ${status}
                 </div>
             </div>
             
-            <!-- Content Container -->
-            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column;">
-                
-                <!-- Header -->
-                <div style="margin-bottom: 0.75rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
-                        <h3 style="font-size: 1.2rem; font-weight: 700; line-height: 1.3; margin: 0; color: var(--text-primary);">${computer.name}</h3>
-                        <div style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: #fbbf24;">
+            <!-- Content (Right) -->
+            <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <div>
+                         <h3 style="font-size: 1.3rem; margin: 0; color: var(--text-primary); line-height: 1.2;">${computer.name}</h3>
+                         <div style="display: flex; align-items: center; gap: 4px; font-size: 0.9rem; color: #fbbf24; margin-top: 4px;">
                             <span>${ratingStar}</span>
                             <span style="font-weight: 600;">${rating}</span>
+                            <span style="color: var(--text-muted);">(${reviewCount})</span>
                         </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary); display: block;">$${computer.pricePerHour}</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">/hora</span>
                     </div>
                 </div>
 
-                <!-- Specs Grid (Cleaner) -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; margin-bottom: 1rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: var(--radius-sm);">
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Procesador</span>
-                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${computer.cpu || 'N/A'}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Gráfica</span>
-                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${computer.gpu || 'N/A'}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">RAM</span>
-                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Almacenamiento</span>
-                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">${computer.storage || 'N/A'}</span>
-                    </div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    ${computer.description || 'Sin descripción disponible.'}
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                    <div><strong style="color: var(--text-primary);">CPU:</strong> ${computer.cpu || 'N/A'}</div>
+                    <div><strong style="color: var(--text-primary);">GPU:</strong> ${computer.gpu || 'N/A'}</div>
+                    <div><strong style="color: var(--text-primary);">RAM:</strong> ${computer.ram ? computer.ram + 'GB' : 'N/A'}</div>
+                    <div><strong style="color: var(--text-primary);">Software:</strong> ${computer.softwareInstalled ? (computer.softwareInstalled.length > 20 ? computer.softwareInstalled.substring(0, 20) + '...' : computer.softwareInstalled) : 'N/A'}</div>
                 </div>
 
-                <!-- Footer (Price & Action) -->
-                <div style="margin-top: auto; display: flex; items-align: center; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--glass-border);">
-                    <div>
-                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Precio por hora</span>
-                        <div style="display: flex; align-items: baseline; gap: 2px;">
-                            <span style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary);">$${computer.pricePerHour}</span>
-                            <span style="font-size: 0.8rem; color: var(--text-muted);">USD</span>
-                        </div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="editComputer(${computer.id})"
-                        style="padding: 0.4rem 1rem; font-weight: 600; font-size: 0.9rem;">
+                <div style="margin-top: 1rem; text-align: right;">
+                     <button class="btn btn-secondary" onclick="editComputer(${computer.id})"
+                        style="padding: 0.4rem 1.2rem; font-size: 0.9rem;">
                         Gestionar
                     </button>
                 </div>
