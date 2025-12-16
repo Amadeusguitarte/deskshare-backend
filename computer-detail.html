@@ -59,39 +59,35 @@
                         <div style="display: grid; gap: 1rem;">
                             <div class="spec-row">
                                 <span class="spec-label">Procesador</span>
-                                <span class="spec-value">Intel Core i9-13900K (24-Core, 5.8GHz)</span>
+                                <span class="spec-value" id="specCpu">-</span>
                             </div>
                             <div class="spec-row">
                                 <span class="spec-label">Tarjeta Gráfica</span>
-                                <span class="spec-value">NVIDIA GeForce RTX 4080 16GB</span>
+                                <span class="spec-value" id="specGpu">-</span>
                             </div>
                             <div class="spec-row">
                                 <span class="spec-label">Memoria RAM</span>
-                                <span class="spec-value">64GB DDR5 5600MHz</span>
+                                <span class="spec-value" id="specRam">-</span>
                             </div>
                             <div class="spec-row">
                                 <span class="spec-label">Almacenamiento</span>
-                                <span class="spec-value">2TB NVMe SSD Gen4</span>
+                                <span class="spec-value" id="specStorage">-</span>
                             </div>
                             <div class="spec-row">
                                 <span class="spec-label">Sistema Operativo</span>
-                                <span class="spec-value">Windows 11 Pro</span>
+                                <span class="spec-value" id="specOs">-</span>
                             </div>
                             <div class="spec-row">
                                 <span class="spec-label">Internet</span>
-                                <span class="spec-value">Fibra Óptica 1Gbps</span>
+                                <span class="spec-value" id="specInternet">-</span>
                             </div>
                         </div>
 
-                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);">
+                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);"
+                            id="softwareSection">
                             <h4 style="margin-bottom: 1rem;">Software Instalado</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                <span class="spec-badge">Adobe Creative Cloud</span>
-                                <span class="spec-badge">DaVinci Resolve</span>
-                                <span class="spec-badge">Blender</span>
-                                <span class="spec-badge">Visual Studio</span>
-                                <span class="spec-badge">Docker</span>
-                                <span class="spec-badge">Node.js</span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="softwareList">
+                                <!-- Dynamic software badges -->
                             </div>
                         </div>
                     </div>
@@ -104,22 +100,21 @@
                         <div
                             style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                             <div>
-                                <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Workstation Profesional</h1>
+                                <h1 style="font-size: 2rem; margin-bottom: 0.5rem;" id="computerTitle">Cargando...</h1>
                                 <div class="rating" style="font-size: 1.1rem; margin-bottom: 0.5rem;">
-                                    ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(47
+                                    ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(0
                                         reseñas)</span>
                                 </div>
                             </div>
                             <div style="text-align: right;">
-                                <div class="price" style="font-size: 2.5rem;">$8</div>
+                                <div class="price" style="font-size: 2.5rem;" id="computerPrice">$-</div>
                                 <div class="price-unit">por hora</div>
                             </div>
                         </div>
 
-                        <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem;">
-                            Estación de trabajo de alto rendimiento perfecta para edición de video profesional, modelado
-                            3D, y desarrollo de software. Equipada con los mejores componentes para garantizar máxima
-                            productividad.
+                        <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem;"
+                            id="computerDescription">
+                            ...
                         </p>
 
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
@@ -140,14 +135,14 @@
                         <!-- Host Info -->
                         <div
                             style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-                            <img src="assets/user_avatar_1_1765783036666.png" alt="Host"
+                            <img src="assets/default-avatar.png" alt="Host" id="hostAvatar"
                                 style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-purple);">
                             <div>
-                                <h4 style="margin-bottom: 0.3rem;">Carlos Méndez</h4>
-                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">Miembro desde
-                                    2023 • Responde en ~15min</p>
+                                <h4 style="margin-bottom: 0.3rem;" id="hostName">Cargando...</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;"
+                                    id="hostMemberSince">Miembro desde...</p>
                                 <div class="rating" style="font-size: 0.9rem;">
-                                    ★★★★★ <span style="margin-left: 0.3rem;">(89 valoraciones)</span>
+                                    ★★★★★ <span style="margin-left: 0.3rem;">(0 valoraciones)</span>
                                 </div>
                             </div>
                         </div>
@@ -177,26 +172,8 @@
                             </div>
 
                             <div class="chat-messages" id="chatMessages">
-                                <div class="message message-received">
-                                    <p style="margin: 0;">¡Hola! Gracias por tu interés en mi workstation. ¿En qué te
-                                        puedo ayudar?</p>
-                                    <small
-                                        style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-top: 0.3rem; display: block;">10:34
-                                        AM</small>
-                                </div>
-                                <div class="message message-sent">
-                                    <p style="margin: 0;">Hola! Necesito el equipo para render de video 4K. ¿Cuánto es
-                                        para 5 horas?</p>
-                                    <small
-                                        style="color: rgba(255,255,255,0.8); font-size: 0.75rem; margin-top: 0.3rem; display: block;">10:36
-                                        AM</small>
-                                </div>
-                                <div class="message message-received">
-                                    <p style="margin: 0;">Perfecto! Para 5 horas te puedo hacer $35 en total. La máquina
-                                        está optimizada para DaVinci Resolve.</p>
-                                    <small
-                                        style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-top: 0.3rem; display: block;">10:37
-                                        AM</small>
+                                <div class="message message-received" style="font-style: italic; opacity: 0.7;">
+                                    <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
                                 </div>
                             </div>
 
@@ -214,63 +191,8 @@
             <div class="glass-card">
                 <h3 style="margin-bottom: 2rem;">Reseñas de Usuarios</h3>
 
-                <div style="display: grid; gap: 1.5rem;">
-                    <!-- Review 1 -->
-                    <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border);">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
-                            <div
-                                style="width: 45px; height: 45px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                                MG</div>
-                            <div>
-                                <h4 style="margin: 0; font-size: 1rem;">María García</h4>
-                                <div class="rating" style="font-size: 0.9rem;">★★★★★</div>
-                            </div>
-                            <span style="margin-left: auto; color: var(--text-muted); font-size: 0.9rem;">Hace 2
-                                días</span>
-                        </div>
-                        <p style="color: var(--text-secondary); margin: 0;">
-                            Excelente equipo! Renderé un proyecto de 45 minutos en solo 3 horas. Carlos fue muy atento y
-                            me ayudó con la configuración inicial. 100% recomendado.
-                        </p>
-                    </div>
-
-                    <!-- Review 2 -->
-                    <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border);">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
-                            <div
-                                style="width: 45px; height: 45px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                                JL</div>
-                            <div>
-                                <h4 style="margin: 0; font-size: 1rem;">Juan López</h4>
-                                <div class="rating" style="font-size: 0.9rem;">★★★★★</div>
-                            </div>
-                            <span style="margin-left: auto; color: var(--text-muted); font-size: 0.9rem;">Hace 1
-                                semana</span>
-                        </div>
-                        <p style="color: var(--text-secondary); margin: 0;">
-                            Potencia increíble. Lo usé para compilar proyectos grandes y fue muchísimo más rápido que mi
-                            laptop. La conexión fue estable todo el tiempo.
-                        </p>
-                    </div>
-
-                    <!-- Review 3 -->
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
-                            <div
-                                style="width: 45px; height: 45px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                                AS</div>
-                            <div>
-                                <h4 style="margin: 0; font-size: 1rem;">Ana Sánchez</h4>
-                                <div class="rating" style="font-size: 0.9rem;">★★★★★</div>
-                            </div>
-                            <span style="margin-left: auto; color: var(--text-muted); font-size: 0.9rem;">Hace 2
-                                semanas</span>
-                        </div>
-                        <p style="color: var(--text-secondary); margin: 0;">
-                            Perfecto para mis necesidades. Software preinstalado tal como se describe. Carlos es muy
-                            profesional y flexible con los horarios.
-                        </p>
-                    </div>
+                <div id="reviewsContainer">
+                    <p style="color: var(--text-secondary);">No hay reseñas aún.</p>
                 </div>
             </div>
         </div>

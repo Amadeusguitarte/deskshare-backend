@@ -60,10 +60,17 @@ async function loadUserComputers() {
 function createComputerCard(computer) {
     const div = document.createElement('div');
     div.className = 'glass-card';
-    const status = computer.isAvailable ?
-        '<span style="background: rgba(0, 255, 0, 0.2); color: #00ff00; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(0, 255, 0, 0.3);">● Activo</span>' :
+    const isAvailable = computer.status === 'active' && (!computer.bookings || computer.bookings.length === 0);
+    const status = isAvailable ?
+        '<span style="background: rgba(0, 255, 0, 0.2); color: #00ff00; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(0, 255, 0, 0.3);">● Disponible</span>' :
         '<span style="background: rgba(255, 165, 0, 0.2); color: #ffa500; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; border: 1px solid rgba(255, 165, 0, 0.3);">● Ocupado</span>';
-    const imageUrl = computer.images && computer.images[0] ? computer.images[0].url : 'assets/workstation_professional_1765782988095.png';
+
+    // Fix image URL handling - prioritize imageUrl from new backend logic
+    let imageUrl = 'assets/workstation_professional_1765782988095.png';
+    if (computer.images && computer.images.length > 0) {
+        if (computer.images[0].imageUrl) imageUrl = computer.images[0].imageUrl;
+        else if (computer.images[0].url) imageUrl = computer.images[0].url;
+    }
     div.innerHTML = `
         <div style="display: flex; gap: 1.5rem;">
             <img src="${imageUrl}" alt="${computer.name}"

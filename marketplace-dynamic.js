@@ -48,32 +48,42 @@ function renderComputers(computers) {
         const imageUrl = computer.images && computer.images[0] ? computer.images[0].url : 'assets/workstation_professional_1765782988095.png';
 
         return `
-            <div class="computer-card glass-card">
-                <img src="${imageUrl}" alt="${computer.name}" class="computer-image">
-                <span class="computer-badge">${computer.category || 'General'}</span>
-                <h3>${computer.name}</h3>
-                <p class="computer-description">${computer.description || 'Computadora de alto rendimiento'}</p>
-                
-                <div class="computer-specs">
-                    <span class="spec-badge">${computer.cpu || 'CPU'}</span>
-                    <span class="spec-badge">${computer.gpu || 'GPU'}</span>
-                    <span class="spec-badge">${computer.ram || '16'}GB RAM</span>
-                </div>
-                
-                <div class="computer-footer">
-                    <div class="computer-price">
-                        <span class="price">$${computer.pricePerHour}</span>
-                        <span class="price-unit">/hora</span>
+        // Determine status based on multiple fields
+        const isAvailable = computer.status === 'active';
+        
+        // Handle image URL
+        let imageUrl = 'https://via.placeholder.com/400x300?text=No+Image';
+        if (computer.images && computer.images.length > 0) {
+            imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+        }
+
+        return `
+            < div class="computer-card glass-card" >
+                <img src="${imageUrl}" alt="${computer.name}" class="computer-image" onerror="this.src='assets/workstation_professional_1765782988095.png'">
+                    <span class="computer-badge">${computer.category || 'General'}</span>
+                    <h3>${computer.name}</h3>
+                    <p class="computer-description">${computer.description || 'Computadora de alto rendimiento'}</p>
+
+                    <div class="computer-specs">
+                        <span class="spec-badge">${computer.cpu || 'CPU'}</span>
+                        <span class="spec-badge">${computer.gpu || 'GPU'}</span>
+                        <span class="spec-badge">${computer.ram || '16'}GB RAM</span>
                     </div>
-                    <span class="availability ${computer.isAvailable ? 'available' : 'busy'}">
-                        ${computer.isAvailable ? '● Disponible' : '● Ocupado'}
-                    </span>
+
+                    <div class="computer-footer">
+                        <div class="computer-price">
+                            <span class="price">$${computer.pricePerHour}</span>
+                            <span class="price-unit">/hora</span>
+                        </div>
+                        <span class="availability ${isAvailable ? 'available' : 'busy'}">
+                            ${isAvailable ? '● Disponible' : '● Ocupado'}
+                        </span>
+                    </div>
+
+                    <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Ver Detalles
+                    </a>
                 </div>
-                
-                <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                    Ver Detalles
-                </a>
-            </div>
         `;
     }).join('');
 }

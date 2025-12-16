@@ -42,18 +42,72 @@ function updateComputerInfo(computer) {
     document.title = computer.name + ' - DeskShare';
 
     const mainImage = document.getElementById('mainImage');
-    if (mainImage && computer.images && computer.images[0]) {
-        mainImage.src = computer.images[0].url;
+    if (mainImage) {
+        let imageUrl = 'assets/workstation_professional_1765782988095.png';
+        if (computer.images && computer.images.length > 0) {
+            imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+        }
+        mainImage.src = imageUrl;
+
+        // Populate thumbnails
+        const thumbnailContainer = document.querySelector('.thumbnail-image').parentNode;
+        if (thumbnailContainer) {
+            thumbnailContainer.innerHTML = '';
+            computer.images.forEach(img => {
+                const thumbUrl = img.imageUrl || img.url;
+                const imgEl = document.createElement('img');
+                imgEl.src = thumbUrl;
+                imgEl.className = 'thumbnail-image';
+                imgEl.onclick = () => changeMainImage(thumbUrl);
+                thumbnailContainer.appendChild(imgEl);
+            });
+        }
     }
 
-    // Update specs if elements exist
-    const priceEl = document.querySelector('.price');
-    if (priceEl) {
-        priceEl.textContent = '$' + computer.pricePerHour;
+    // Update Text Fields
+    setTextContent('computerTitle', computer.name);
+    setTextContent('computerDescription', computer.description);
+    setTextContent('computerPrice', '$' + computer.pricePerHour);
+
+    // Update Specs
+    setTextContent('specCpu', computer.cpu);
+    setTextContent('specGpu', computer.gpu);
+    setTextContent('specRam', (computer.ram ? computer.ram + 'GB' : '-'));
+    setTextContent('specStorage', (computer.storage ? computer.storage + 'GB' : '-')); // Handle conversion if generic
+    setTextContent('specOs', computer.os);
+    setTextContent('specInternet', computer.internetSpeed);
+
+    // Handle Software Section (Hide for now as it's not in DB)
+    const softwareSection = document.getElementById('softwareSection');
+    if (softwareSection) {
+        if (computer.software && computer.software.length > 0) {
+            softwareSection.style.display = 'block';
+            // TODO: Populate list
+        } else {
+            softwareSection.style.display = 'none';
+        }
     }
 
-    // Update any other elements dynamically
-    // (This would be more complete with actual element IDs from computer-detail.html)
+    // Update User Info
+    if (computer.user) {
+        setTextContent('hostName', computer.user.name);
+        setTextContent('hostMemberSince', 'Miembro desde ' + new Date(computer.user.createdAt || Date.now()).getFullYear());
+
+        const avatarEl = document.getElementById('hostAvatar');
+        if (avatarEl) {
+            avatarEl.src = computer.user.avatarUrl || 'assets/default-avatar.png';
+        }
+    }
+
+    // Update Chat Host Info (if visible initially)
+    const chatHostName = document.querySelector('.chat-header h4');
+    if (chatHostName && computer.user) chatHostName.textContent = computer.user.name;
+
+}
+
+function setTextContent(id, text) {
+    const el = document.getElementById(id);
+    if (el && text) el.textContent = text;
 }
 
 async function createBookingAndPay() {
