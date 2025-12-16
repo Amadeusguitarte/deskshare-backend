@@ -18,7 +18,16 @@ async function loadUserProfile() {
         const user = response.user || response;
         // Update profile header
         document.querySelector('h1').textContent = user.name;
-        document.querySelector('[alt="Profile"]').src = user.avatarUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120"%3E%3Crect fill="%23444" width="120" height="120"/%3E%3Ctext x="50%25" y="50%25" fill="%23fff" font-size="48" text-anchor="middle" dy=".3em"%3E👤%3C/text%3E%3C/svg%3E';
+
+        // Update avatar
+        const avatarImg = document.getElementById('profileAvatar');
+        const avatarIcon = document.getElementById('profileIcon');
+        if (user.avatarUrl) {
+            avatarImg.src = user.avatarUrl;
+            avatarImg.style.display = 'block';
+            avatarIcon.style.display = 'none';
+        }
+
         const memberSince = new Date(user.createdAt).toLocaleDateString('es', { year: 'numeric', month: 'long' });
         document.querySelector('p[style*="color: var(--text-secondary)"]').textContent = `Miembro desde ${memberSince}`;
     } catch (error) {
@@ -39,8 +48,11 @@ async function loadUserComputers() {
             const card = createComputerCard(computer);
             container.appendChild(card);
         });
-        // Update stats
-        document.querySelectorAll('.glass-card')[0].querySelector('div[style*="font-size: 2rem"]').textContent = computers.length;
+        // Update stats - target the dashboard stats grid specifically
+        const statsCards = document.querySelectorAll('.grid.grid-3 > .glass-card');
+        if (statsCards.length >= 1) {
+            statsCards[0].querySelector('div[style*="font-size: 2rem"]').textContent = computers.length;
+        }
     } catch (error) {
         console.error('Error loading computers:', error);
     }
@@ -83,12 +95,21 @@ async function loadUserBookings() {
     try {
         const response = await apiRequest('/bookings/my-bookings');
         const bookings = response.bookings || response;
-        // Update earnings stat
+
+        // Target the dashboard stats grid specifically
+        const statsCards = document.querySelectorAll('.grid.grid-3 > .glass-card');
+
+        // Update earnings stat (second card)
         const totalEarnings = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
-        document.querySelectorAll('.glass-card')[1].querySelector('div[style*="font-size: 2rem"]').textContent = '$' + totalEarnings.toFixed(0);
-        // Update hours stat
+        if (statsCards.length >= 2) {
+            statsCards[1].querySelector('div[style*="font-size: 2rem"]').textContent = '$' + totalEarnings.toFixed(0);
+        }
+
+        // Update hours stat (third card)
         const totalHours = bookings.reduce((sum, b) => sum + (b.actualDurationHours || 0), 0);
-        document.querySelectorAll('.glass-card')[2].querySelector('div[style*="font-size: 2rem"]').textContent = totalHours.toFixed(0);
+        if (statsCards.length >= 3) {
+            statsCards[2].querySelector('div[style*="font-size: 2rem"]').textContent = totalHours.toFixed(0);
+        }
     } catch (error) {
         console.error('Error loading bookings:', error);
     }
