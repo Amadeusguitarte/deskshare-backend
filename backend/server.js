@@ -13,6 +13,7 @@ const { Server } = require('socket.io');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const googleAuthRoutes = require('./routes/google-auth');
 const computerRoutes = require('./routes/computers');
 const bookingRoutes = require('./routes/bookings');
 const userRoutes = require('./routes/users');
@@ -75,6 +76,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api', googleAuthRoutes);
 app.use('/api/computers', computerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/users', userRoutes);
