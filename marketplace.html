@@ -129,8 +129,14 @@
                     </div>
 
                     <!-- Computer Cards Grid -->
-                    <div class="grid grid-3" id="computerGrid">
-                        <!-- Cards will be dynamically populated by JavaScript -->
+                    <!-- Computer Cards Grid -->
+                    <div class="grid" id="computerGrid"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem;">
+                        <div
+                            style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 4rem;">
+                            <div class="spinner tip"></div>
+                            <p style="margin-top: 1rem;">Cargando inventario...</p>
+                        </div>
                     </div>
                 </div>
             </div>
