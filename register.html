@@ -266,8 +266,17 @@
                 const success = await register({ name, email, password });
 
                 if (success) {
-                    // Redirect to login
-                    window.location.href = 'login.html?registered=true';
+                    // Check if coming from "Publicar PC" button
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirect = urlParams.get('redirect');
+
+                    if (redirect === 'publish') {
+                        // Redirect to index and open publish modal
+                        window.location.href = 'index.html?openPublish=true';
+                    } else {
+                        // Normal redirect to profile
+                        window.location.href = 'profile.html';
+                    }
                 }
             } catch (error) {
                 errorEl.textContent = error.message || 'Error al crear la cuenta. Intenta de nuevo.';

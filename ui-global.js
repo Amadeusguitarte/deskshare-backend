@@ -25,8 +25,8 @@ function loadAddComputerModal() {
 // Open add computer modal
 function openAddComputerModal() {
     if (!checkAuth || !checkAuth()) {
-        alert('Debes iniciar sesión para publicar una computadora');
-        window.location.href = 'login.html';
+        // Redirect to register with return URL
+        window.location.href = 'register.html?redirect=publish';
         return;
     }
 
@@ -61,6 +61,15 @@ document.addEventListener('DOMContentLoaded', () => {
             openAddComputerModal();
         };
     });
+
+    // Check if should auto-open publish modal  
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('openPublish') === 'true') {
+        // Wait a bit for everything to load
+        setTimeout(() => {
+            openAddComputerModal();
+        }, 500);
+    }
 });
 
 // Make functions globally available
