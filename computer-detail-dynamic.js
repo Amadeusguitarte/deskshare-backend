@@ -103,6 +103,11 @@ function updateComputerInfo(computer) {
     const chatHostName = document.querySelector('.chat-header h4');
     if (chatHostName && computer.user) chatHostName.textContent = computer.user.name;
 
+    const chatHostAvatar = document.getElementById('chatHostAvatar');
+    if (chatHostAvatar && computer.user) {
+        chatHostAvatar.src = computer.user.avatarUrl || 'assets/default-avatar.png';
+    }
+
 }
 
 function setTextContent(id, text) {
