@@ -64,46 +64,54 @@ function renderComputers(computers) {
         const rating = computer.user?.rating || 5.0;
         const reviewCount = computer.user?.reviewsCount || 0;
 
-        // EXACT DESIGN FROM USER'S SCREENSHOT
+        // FINAL CORRECTED DESIGN - Edge-to-edge image, labeled specs
         return `
-            <div class="computer-card glass-card" style="padding: 1rem;">
-                <div style="position: relative; margin-bottom: 1rem;">
-                    <img src="${imageUrl}" alt="${computer.name}" 
-                        style="width: 100%; height: 180px; object-fit: cover; border-radius: var(--radius-md);">
-                     <div style="position: absolute; top: 8px; right: 8px;">
+            <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden;">
+                <div style="position: relative;">
+                    <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
+                        style="width: 100%; height: 220px; object-fit: cover; display: block;">
+                     <div style="position: absolute; top: 12px; right: 12px;">
                        ${status}
                     </div>
                 </div>
                 
-                <div>
-                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: 700; color: white;">${computer.name}</h3>
+                <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
+                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 700; color: white;">${computer.name}</h3>
                     
-                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                         ${computer.description || 'Sin descripción disponible.'}
                     </p>
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
-                        <span class="spec-badge">Procesador: ${computer.cpu || 'N/A'}</span>
-                        <span class="spec-badge">GPU: ${computer.gpu || 'N/A'}</span>
-                        <span class="spec-badge">RAM: ${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
-                        <span class="spec-badge">Software: ${computer.softwareInstalled || 'N/A'}</span>
+                    <div style="height: 1px; background: var(--glass-border); margin-bottom: 1rem; width: 100%;"></div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div>
+                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">Procesador</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.cpu || 'N/A'}</span>
+                        </div>
+                        <div>
+                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">Gráfica</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.gpu || 'N/A'}</span>
+                        </div>
+                         <div>
+                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">RAM</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
+                        </div>
+                        <div>
+                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">Software</span>
+                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; display: block;" title="${computer.softwareInstalled}">${computer.softwareInstalled || 'N/A'}</span>
+                        </div>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div>
-                            <span style="font-size: 1.5rem; font-weight: 700; color: var(--primary-purple);">$${computer.pricePerHour}</span>
-                            <span style="font-size: 0.9rem; color: var(--text-muted);">/hora</span>
+                    <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                        <div class="computer-price">
+                            <span class="price" style="font-size: 1.5rem; font-weight: 700; color: white;">$${computer.pricePerHour}</span>
+                            <span class="price-unit" style="font-size: 0.9rem; color: var(--text-muted);">/hora</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.3rem; color: #fbbf24;">
-                             <span>★</span> 
-                             <span style="font-weight: 600;">${rating}</span>
-                             <span style="color: var(--text-muted); font-size: 0.85rem;">(${reviewCount})</span>
-                        </div>
+                        <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 8px;">
+                            Ver Detalles
+                        </a>
                     </div>
-                     
-                    <a href="computer-detail.html?id=${computer.id}" class="btn btn-primary" style="width: 100%; padding: 0.75rem; text-align: center; display: block; text-decoration: none;">
-                        Ver Detalles
-                    </a>
                 </div>
             </div>
         `;
