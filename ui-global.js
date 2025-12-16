@@ -5,17 +5,27 @@
 
 // Load add computer modal dynamically
 function loadAddComputerModal() {
+    console.log('loadAddComputerModal called');
+
     if (document.getElementById('addComputerModal')) {
+        console.log('Modal already exists');
         return; // Already loaded
     }
 
+    console.log('Fetching add-computer-modal.html...');
     fetch('add-computer-modal.html')
-        .then(r => r.text())
+        .then(r => {
+            console.log('Fetch response:', r.status, r.statusText);
+            return r.text();
+        })
         .then(html => {
+            console.log('HTML loaded, length:', html.length);
             // Create container for modal
             const container = document.createElement('div');
             container.innerHTML = html;
+            console.log('Container created, firstElementChild:', container.firstElementChild);
             document.body.appendChild(container.firstElementChild);
+            console.log('Modal appended to body');
         })
         .catch(err => {
             console.error('Error loading modal:', err);
