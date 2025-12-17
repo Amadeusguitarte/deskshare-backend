@@ -438,8 +438,10 @@
                 const data = await response.json();
                 console.log('Computer created:', data);
 
-                alert('¡Computadora publicada exitosamente! Un administrador la revisará pronto.');
-                window.location.href = 'profile.html';
+                // Show success message instead of alert
+                document.getElementById('publishForm').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'block';
+                document.getElementById('successMessage').scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             } catch (error) {
                 console.error('Publish error:', error);
