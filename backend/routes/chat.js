@@ -103,90 +103,92 @@ router.get('/:computerId', auth, async (req, res, next) => {
         next(error);
     }
 
-    // ========================================
-    // GET /api/chat/history/:userId
-    // Get messages between current user and another user (any context)
-    // ========================================
-    router.get('/history/:userId', auth, async (req, res, next) => {
-        try {
-            const partnerId = parseInt(req.params.userId);
-            const userId = req.user.userId;
+});
 
-            const messages = await prisma.message.findMany({
-                where: {
-                    OR: [
-                        { senderId: userId, receiverId: partnerId },
-                        { senderId: partnerId, receiverId: userId }
-                    ]
-                },
-                include: {
-                    sender: { select: { id: true, name: true, avatarUrl: true } },
-                    receiver: { select: { id: true, name: true, avatarUrl: true } },
-                    computer: { select: { id: true, name: true } }
-                },
-                orderBy: { createdAt: 'asc' }
-            });
+// ========================================
+// GET /api/chat/history/:userId
+// Get messages between current user and another user (any context)
+// ========================================
+router.get('/history/:userId', auth, async (req, res, next) => {
+    try {
+        const partnerId = parseInt(req.params.userId);
+        const userId = req.user.userId;
 
-            // Mark as read
-            await prisma.message.updateMany({
-                where: {
-                    senderId: partnerId,
-                    receiverId: userId,
-                    isRead: false
-                },
-                data: { isRead: true }
-            });
+        const messages = await prisma.message.findMany({
+            where: {
+                OR: [
+                    { senderId: userId, receiverId: partnerId },
+                    { senderId: partnerId, receiverId: userId }
+                ]
+            },
+            include: {
+                sender: { select: { id: true, name: true, avatarUrl: true } },
+                receiver: { select: { id: true, name: true, avatarUrl: true } },
+                computer: { select: { id: true, name: true } }
+            },
+            orderBy: { createdAt: 'asc' }
+        });
 
-            res.json({ messages });
-        } catch (error) {
-            next(error);
+        // Mark as read
+        await prisma.message.updateMany({
+            where: {
+                senderId: partnerId,
+                receiverId: userId,
+                isRead: false
+            },
+            data: { isRead: true }
+        });
+
+        res.json({ messages });
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+// ========================================
+// POST /api/chat
+// Send a new message
+// ========================================
+router.post('/', auth, async (req, res, next) => {
+    try {
+        const { receiverId, computerId, message } = req.body;
+
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'Message cannot be empty' });
         }
-    });
 
+        const newMessage = await prisma.message.create({
+            data: {
+                senderId: req.user.userId,
+                receiverId: parseInt(receiverId),
+                computerId: computerId ? parseInt(computerId) : null,
+                message: message.trim()
+            },
+            include: {
+                sender: { select: { id: true, name: true, avatarUrl: true } },
+                receiver: { select: { id: true, name: true, avatarUrl: true } }
+            }
+        });
 
-    // ========================================
-    // POST /api/chat
-    // Send a new message
-    // ========================================
-    router.post('/', auth, async (req, res, next) => {
-        try {
-            const { receiverId, computerId, message } = req.body;
-
-            if (!message || !message.trim()) {
-                return res.status(400).json({ error: 'Message cannot be empty' });
+        // Emit socket event (if io is available)
+        const io = req.app.get('io');
+        if (io) {
+            // 1. Emit to specific computer room (for Detail Page)
+            if (computerId) {
+                io.to(`computer-${computerId}`).emit('new-message', newMessage);
             }
 
-            const newMessage = await prisma.message.create({
-                data: {
-                    senderId: req.user.userId,
-                    receiverId: parseInt(receiverId),
-                    computerId: computerId ? parseInt(computerId) : null,
-                    message: message.trim()
-                },
-                include: {
-                    sender: { select: { id: true, name: true, avatarUrl: true } },
-                    receiver: { select: { id: true, name: true, avatarUrl: true } }
-                }
-            });
-
-            // Emit socket event (if io is available)
-            const io = req.app.get('io');
-            if (io) {
-                // 1. Emit to specific computer room (for Detail Page)
-                if (computerId) {
-                    io.to(`computer-${computerId}`).emit('new-message', newMessage);
-                }
-
-                // 2. Emit to user-specific room (for Global Widget)
-                // Ideally, users should join a room "user-{myId}" on connection
-                io.to(`user-${receiverId}`).emit('private-message', newMessage);
-                io.to(`user-${req.user.userId}`).emit('private-message', newMessage); // Also to sender (for multi-tab sync)
-            }
-
-            res.status(201).json({ message: newMessage });
-        } catch (error) {
-            next(error);
+            // 2. Emit to user-specific room (for Global Widget)
+            // Ideally, users should join a room "user-{myId}" on connection
+            io.to(`user-${receiverId}`).emit('private-message', newMessage);
+            io.to(`user-${req.user.userId}`).emit('private-message', newMessage); // Also to sender (for multi-tab sync)
         }
-    });
 
-    module.exports = router;
+        res.status(201).json({ message: newMessage });
+    } catch (error) {
+        next(error);
+    }
+});
+
+module.exports = router;
