@@ -760,8 +760,11 @@ function loadUserProfile() {
 
     if (nameEl) nameEl.textContent = currentUser.name || 'Usuario';
     if (memberSinceEl) {
-        const date = currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : '2024';
-        memberSinceEl.textContent = `Miembro desde ${date}`;
+        // Use createdAt or fallback to "Hoy" instead of hardcoded year
+        // If user just registered, createdAt might be missing in some auth flows, so default to Now
+        const dateStr = currentUser.createdAt || new Date().toISOString();
+        const date = new Date(dateStr).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+        memberSinceEl.textContent = `Miembro desde: ${date}`;
     }
 
     const avatarUrl = currentUser.avatar || currentUser.picture || currentUser.image || currentUser.photoUrl;

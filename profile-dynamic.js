@@ -18,12 +18,16 @@ async function loadMyComputers() {
         const response = await apiRequest('/computers');
         const allComputers = response.computers || response;
 
-        // Filter by current user ID
+        // Filter by current user ID using String conversion to be safe
         const myComputers = allComputers.filter(comp => {
             if (!comp.owner) return false;
+
+            // Handle populated owner object or direct ID string
             const ownerId = typeof comp.owner === 'object' ? (comp.owner._id || comp.owner.id) : comp.owner;
             const currentUserId = currentUser._id || currentUser.id;
-            return ownerId === currentUserId;
+
+            // Strict string comparison to avoid ObjectId/String mismatches
+            return String(ownerId) === String(currentUserId);
         });
 
         if (myComputers.length === 0) {
