@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Explora y alquila computadoras potentes por hora en DeskShare - Gaming PCs, Workstations, Servidores y más">
+    <title>Explorar Computadoras - DeskShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html" style="color: var(--primary-purple);">Explorar</a></li>
+                <li><a href="index.html#how-it-works">Cómo Funciona</a></li>
+                <li><a href="profile.html">Mi Perfil</a></li>
+                <li><a href="#" class="btn btn-primary">Publicar PC</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section style="padding-top: 120px; padding-bottom: 2rem; background: var(--gradient-hero);">
+        <div class="container relative z-10">
+            <h1 class="fade-in" style="font-size: 3rem; margin-bottom: 1rem;">Explorar Computadoras</h1>
+            <p class="fade-in" style="font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9;">
+                Encuentra la computadora perfecta para tus necesidades
+            </p>
+        </div>
+    </section>
+
+    <!-- Marketplace Content -->
+    <section class="section">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start;">
+                <!-- Filters Sidebar -->
+                <aside class="glass-card" style="position: sticky; top: 100px;">
+                    <h3 style="margin-bottom: 1.5rem;">Filtros</h3>
+
+                    <!-- Search -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Buscar</label>
+                        <input type="text" id="searchInput" placeholder="Buscar..." onkeyup="filterComputers()">
+                    </div>
+
+                    <!-- Category -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Categoría</label>
+                        <select id="categoryFilter" onchange="filterComputers()">
+                            <option value="all">Todas</option>
+                            <option value="gaming">Gaming</option>
+                            <option value="workstation">Workstation</option>
+                            <option value="rendering">Rendering</option>
+                            <option value="development">Desarrollo</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Range -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Precio
+                            por Hora</label>
+                        <select id="priceFilter" onchange="filterComputers()">
+                            <option value="all">Todos</option>
+                            <option value="0-5">$0 - $5</option>
+                            <option value="5-10">$5 - $10</option>
+                            <option value="10-20">$10 - $20</option>
+                            <option value="20+">$20+</option>
+                        </select>
+                    </div>
+
+                    <!-- GPU -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">GPU</label>
+                        <select id="gpuFilter" onchange="filterComputers()">
+                            <option value="all">Todas</option>
+                            <option value="rtx4090">RTX 4090</option>
+                            <option value="rtx4080">RTX 4080</option>
+                            <option value="rtx4070">RTX 4070</option>
+                            <option value="rtx3090">RTX 3090</option>
+                        </select>
+                    </div>
+
+                    <!-- RAM -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">RAM
+                            Mínima</label>
+                        <select id="ramFilter" onchange="filterComputers()">
+                            <option value="all">Todas</option>
+                            <option value="16">16GB+</option>
+                            <option value="32">32GB+</option>
+                            <option value="64">64GB+</option>
+                            <option value="128">128GB+</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="resetFilters()">Limpiar
+                        Filtros</button>
+                </aside>
+
+                <!-- Computer Grid -->
+                <div>
+                    <!-- Sort Options -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <p style="color: var(--text-secondary);"><span id="computerCount">0</span> computadoras
+                            disponibles</p>
+                        <select id="sortFilter" onchange="sortComputers()" style="width: 200px;">
+                            <option value="featured">Destacados</option>
+                            <option value="price-low">Precio: Menor a Mayor</option>
+                            <option value="price-high">Precio: Mayor a Menor</option>
+                            <option value="rating">Mejor Valoradas</option>
+                        </select>
+                    </div>
+
+                    <!-- Computer Cards Grid -->
+                    <!-- Computer Cards Grid -->
+                    <div class="grid" id="computerGrid"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem;">
+                        <div
+                            style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 4rem;">
+                            <div class="spinner tip"></div>
+                            <p style="margin-top: 1rem;">Cargando inventario...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>DeskShare</h3>
+                    <p style="color: var(--text-secondary);">La plataforma líder para alquilar y compartir poder de
+                        cómputo.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Plataforma</h3>
+                    <ul class="footer-links">
+                        <li><a href="marketplace.html">Explorar Computadoras</a></li>
+                        <li><a href="#">Publicar PC</a></li>
+                        <li><a href="#">Cómo Funciona</a></li>
+                        <li><a href="#">Precios</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Soporte</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Seguridad</a></li>
+                        <li><a href="#">Términos de Servicio</a></li>
+                        <li><a href="#">Privacidad</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Compañía</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Sobre Nosotros</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Carreras</a></li>
+                        <li><a href="#">Contacto</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DeskShare. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function filterComputers() {
+            // This would normally call loadComputers() with filters
+            // The main script.js already has this logic in gatherFilters()
+            const filters = gatherFilters();
+            loadComputers(filters);
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = 'all';
+            document.getElementById('priceFilter').value = 'all';
+            document.getElementById('gpuFilter').value = 'all';
+            document.getElementById('ramFilter').value = 'all';
+            loadComputers();
+        }
+
+        function sortComputers() {
+            const sortBy = document.getElementById('sortFilter').value;
+            const filters = gatherFilters();
+
+            let sortParams = {};
+            switch (sortBy) {
+                case 'price-low':
+                    sortParams = { sortBy: 'pricePerHour', order: 'asc' };
+                    break;
+                case 'price-high':
+                    sortParams = { sortBy: 'pricePerHour', order: 'desc' };
+                    break;
+                case 'rating':
+                    sortParams = { sortBy: 'rating', order: 'desc' };
+                    break;
+                default:
+                    sortParams = { sortBy: 'createdAt', order: 'desc' };
+            }
+
+            loadComputers({ ...filters, ...sortParams });
+        }
+    </script>
+    <script src="script.js"></script>
+    <script src="marketplace-v4.js"></script>
+    <script src="ui-global.js"></script>
+</body>
+
+</html>

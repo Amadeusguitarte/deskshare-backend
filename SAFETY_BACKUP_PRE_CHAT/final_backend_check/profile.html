@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Perfil de Usuario - DeskShare">
+    <title>Mi Perfil - DeskShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
+                <li><a href="index.html#how-it-works">Cómo Funciona</a></li>
+                <li><a href="profile.html" style="color: var(--primary-purple);">Mi Perfil</a></li>
+                <li><a href="#" class="btn btn-primary">Publicar PC</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Profile Header -->
+    <section style="padding-top: 120px; padding-bottom: 2rem; background: var(--gradient-hero);">
+        <div class="container">
+            <div style="display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;">
+                <div
+                    style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--primary-purple); box-shadow: 0 8px 24px rgba(138, 43, 226, 0.4); background: #333; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <img src="" alt="Profile" id="profileAvatar"
+                        style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                    <svg id="profileIcon" xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="#8b5cf6"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 style="margin-bottom: 0.5rem;" id="profileName">Cargando...</h1>
+                    <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 0.5rem;" id="memberSince">
+                        Miembro desde...
+                    </p>
+                    <div class="rating" style="font-size: 1.2rem; display: none;">
+                        ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(0 valoraciones)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Content -->
+    <section class="section">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start;">
+                <!-- Sidebar -->
+                <aside class="glass-card" style="position: sticky; top: 100px;">
+                    <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <a href="#" class="profile-nav-link active" onclick="switchTab('computers')">Mis
+                            Computadoras</a>
+                        <a href="#" class="profile-nav-link" onclick="switchTab('rentals')">Mis Alquileres</a>
+                        <a href="#" class="profile-nav-link" onclick="switchTab('earnings')">Ganancias</a>
+                        <a href="#" class="profile-nav-link" onclick="switchTab('settings')">Configuración</a>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <div>
+                    <!-- Dashboard Stats -->
+                    <div class="grid grid-3" style="margin-bottom: 2rem;">
+                        <div class="glass-card">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💻</div>
+                            <div
+                                style="font-size: 2rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                                0</div>
+                            <p style="color: var(--text-secondary); margin: 0;">Computadoras Activas</p>
+                        </div>
+                        <div class="glass-card">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💰</div>
+                            <div
+                                style="font-size: 2rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                                0</div>
+                            <p style="color: var(--text-secondary); margin: 0;">Ganancias este mes</p>
+                        </div>
+                        <div class="glass-card">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⏱️</div>
+                            <div
+                                style="font-size: 2rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                                0</div>
+                            <p style="color: var(--text-secondary); margin: 0;">Horas alquiladas</p>
+                        </div>
+                    </div>
+
+                    <!-- My Computers Tab -->
+                    <div id="computersTab" class="tab-content">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h2>Mis Computadoras</h2>
+                            <button class="btn btn-primary" onclick="window.location.href='publish.html'">+ Añadir
+                                Computadora</button>
+                        </div>
+
+                        <div class="grid grid-2">
+                            <p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">Cargando
+                                computadoras...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>DeskShare</h3>
+                    <p style="color: var(--text-secondary);">La plataforma líder para alquilar y compartir poder de
+                        cómputo.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Plataforma</h3>
+                    <ul class="footer-links">
+                        <li><a href="marketplace.html">Explorar Computadoras</a></li>
+                        <li><a href="#">Publicar PC</a></li>
+                        <li><a href="#">Cómo Funciona</a></li>
+                        <li><a href="#">Precios</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Soporte</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Seguridad</a></li>
+                        <li><a href="#">Términos de Servicio</a></li>
+                        <li><a href="#">Privacidad</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Compañía</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Sobre Nosotros</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Carreras</a></li>
+                        <li><a href="#">Contacto</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DeskShare. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        .profile-nav-link {
+            padding: 0.875rem 1.25rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            font-weight: 500;
+        }
+
+        .profile-nav-link:hover {
+            background: rgba(138, 43, 226, 0.1);
+            color: var(--text-primary);
+        }
+
+        .profile-nav-link.active {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .tab-content {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @media (max-width: 968px) {
+            section>div>div {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+
+    <script src="script.js"></script>
+    <script src="profile-dynamic.js"></script>
+    <script src="ui-global.js"></script>
+</body>
+
+</html>

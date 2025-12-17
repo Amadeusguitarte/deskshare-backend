@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Detalles de la computadora - DeskShare">
+    <title>Workstation Profesional - DeskShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
+                <li><a href="index.html#how-it-works">Cómo Funciona</a></li>
+                <li><a href="profile.html">Mi Perfil</a></li>
+                <li><a href="#" class="btn btn-primary">Publicar PC</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Computer Detail -->
+    <section style="padding-top: 140px; padding-bottom: 3rem;">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 3rem;">
+
+                <!-- Left Column: Images and Specs -->
+                <div>
+                    <!-- Main Image -->
+                    <div class="glass-card"
+                        style="padding: 0; overflow: hidden; margin-bottom: 1.5rem; background: var(--bg-tertiary);">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E"
+                            alt="Cargando..."
+                            style="width: 100%; height: 400px; object-fit: cover; display: block; background: var(--bg-secondary);"
+                            id="mainImage">
+                    </div>
+
+                    <!-- Thumbnail Gallery -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;"
+                        id="thumbnailRow">
+                        <!-- Thumbs will be injected by JS if needed -->
+                    </div>
+
+                    <!-- Detailed Specifications (Moved to Left Col) -->
+                    <div class="glass-card">
+                        <h3 style="margin-bottom: 1.5rem;">Especificaciones Completas</h3>
+                        <div style="display: grid; gap: 1rem;">
+                            <div class="spec-row">
+                                <span class="spec-label">Procesador</span>
+                                <span class="spec-value" id="specCpu">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Tarjeta Gráfica</span>
+                                <span class="spec-value" id="specGpu">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Memoria RAM</span>
+                                <span class="spec-value" id="specRam">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Almacenamiento</span>
+                                <span class="spec-value" id="specStorage">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Sistema Operativo</span>
+                                <span class="spec-value" id="specOs">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Internet</span>
+                                <span class="spec-value" id="specInternet">-</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);"
+                            id="softwareSection">
+                            <h4 style="margin-bottom: 1rem;">Software Instalado</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="softwareList">
+                                <!-- Dynamic software badges -->
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- END LEFT COLUMN -->
+
+                <!-- Right Column: Info and Chat -->
+                <div>
+                    <!-- Computer Info -->
+                    <div class="glass-card" style="margin-bottom: 2rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div>
+                                <h1 style="font-size: 2rem; margin-bottom: 0.5rem;" id="computerTitle">Cargando...</h1>
+                                <div class="rating" style="font-size: 1.1rem; margin-bottom: 0.5rem;">
+                                    ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(0
+                                        reseñas)</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="price" style="font-size: 2.5rem;" id="computerPrice">$-</div>
+                                <div class="price-unit">por hora</div>
+                            </div>
+                        </div>
+
+                        <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem;"
+                            id="computerDescription">
+                            ...
+                        </p>
+
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                            <div
+                                style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
+                                    Disponibilidad</div>
+                                <div style="font-weight: 600; color: var(--accent-purple);">Inmediata</div>
+                            </div>
+                            <div
+                                style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
+                                    Tiempo Mínimo</div>
+                                <div style="font-weight: 600; color: var(--accent-purple);">1 hora</div>
+                            </div>
+                        </div>
+
+                        <!-- Host Info -->
+                        <div
+                            style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23aaa'%3E%3Cg transform='scale(0.65) translate(6.5,6.5)'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/g%3E%3C/svg%3E"
+                                alt="Host" id="hostAvatar"
+                                style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-purple); background: var(--bg-secondary);">
+                            <div>
+                                <h4 style="margin-bottom: 0.3rem;" id="hostName">Cargando anfitrión...</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;"
+                                    id="hostMemberSince">...</p>
+                                <div class="rating" style="font-size: 0.9rem;">
+                                    ★★★★★ <span style="margin-left: 0.3rem;">(0 valoraciones)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn btn-primary" style="flex: 1;" onclick="initiateConnection()">Solicitar
+                                Acceso</button>
+                            <button class="btn btn-secondary" onclick="scrollToChat()">Negociar Precio</button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Interface -->
+                    <div class="glass-card" id="chatSection">
+                        <h3 style="margin-bottom: 1rem;">Conversa con el Anfitrión</h3>
+                        <div class="chat-container">
+                            <div class="chat-header">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23aaa'%3E%3Cg transform='scale(0.65) translate(6.5,6.5)'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/g%3E%3C/svg%3E"
+                                        alt="Host" id="chatHostAvatar"
+                                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--bg-secondary);">
+                                    <div>
+                                        <h4 id="hostName" style="margin: 0; font-size: 1rem;">Cargando...</h4>
+                                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">En línea
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="message message-received" style="font-style: italic; opacity: 0.7;">
+                                    <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
+                                </div>
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" class="chat-input" id="messageInput"
+                                    placeholder="Escribe un mensaje..." onkeypress="handleChatKeyPress(event)">
+                                <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- END RIGHT COLUMN -->
+            </div> <!-- END GRID ROW -->
+
+            <!-- Reviews Section -->
+            <div class="glass-card">
+                <h3 style="margin-bottom: 2rem;">Reseñas de Usuarios</h3>
+                <div id="reviewsContainer">
+                    <p style="color: var(--text-secondary);">No hay reseñas aún.</p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>DeskShare</h3>
+                    <p style="color: var(--text-secondary);">La plataforma líder para alquilar y compartir poder de
+                        cómputo.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Plataforma</h3>
+                    <ul class="footer-links">
+                        <li><a href="marketplace.html">Explorar Computadoras</a></li>
+                        <li><a href="#">Publicar PC</a></li>
+                        <li><a href="#">Cómo Funciona</a></li>
+                        <li><a href="#">Precios</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Soporte</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Seguridad</a></li>
+                        <li><a href="#">Términos de Servicio</a></li>
+                        <li><a href="#">Privacidad</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Compañía</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Sobre Nosotros</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Carreras</a></li>
+                        <li><a href="#">Contacto</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DeskShare. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        .thumbnail-image {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            border: 2px solid var(--glass-border);
+            transition: all var(--transition-fast);
+        }
+
+        .thumbnail-image:hover {
+            border-color: var(--primary-purple);
+            transform: scale(1.05);
+        }
+
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+        }
+
+        .spec-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .spec-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        @media (max-width: 968px) {
+            section>div>div:first-child {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+        function changeMainImage(src) {
+            document.getElementById('mainImage').src = src;
+        }
+
+        function scrollToChat() {
+            document.getElementById('chatSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function initiateConnection() {
+            alert('Esta funcionalidad creará un booking y te redirigirá al acceso remoto.');
+            // In production, this would call createBooking() and redirect to remote-access.html
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // In production, this would call sendMessageAPI() with actual IDs
+            console.log('Sending message:', message);
+
+            // Clear input
+            input.value = '';
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+    <script src="computer-detail-dynamic.js"></script>
+</body>
+
+</html>
+
+

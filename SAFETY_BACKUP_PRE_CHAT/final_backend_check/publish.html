@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publicar Computadora - DeskShare</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .publish-header {
+            background: var(--gradient-hero);
+            padding: 120px 0 40px;
+            text-align: center;
+        }
+
+        .publish-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--primary-purple);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(138, 43, 226, 0.05);
+        }
+
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            border-color: var(--primary-purple);
+            background: rgba(138, 43, 226, 0.1);
+        }
+
+        .file-upload-area input {
+            display: none;
+        }
+
+        .file-upload-area .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid rgba(138, 43, 226, 0.3);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .preview-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
+                <li><a href="profile.html">Mi Perfil</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="publish-header">
+        <div class="container">
+            <h1>📝 Publicar Nueva Computadora</h1>
+            <p style="font-size: 1.1rem; color: var(--text-secondary); margin-top: 10px;">
+                Completa la información de tu computadora y comienza a ganar dinero
+            </p>
+        </div>
+    </header>
+
+    <!-- Form Container -->
+    <div class="publish-container">
+        <form id="publishForm">
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h3>Información Básica</h3>
+
+                <div class="form-group">
+                    <label for="computerName">Nombre de la Computadora *</label>
+                    <input type="text" id="computerName" required placeholder="Ej: Workstation Profesional">
+                </div>
+
+                <div class="form-group">
+                    <label for="computerDescription">Descripción *</label>
+                    <textarea id="computerDescription" required
+                        placeholder="Describe tu computadora, qué la hace especial, para qué tipo de trabajo es ideal..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="computerCategory">Categoría *</label>
+                    <select id="computerCategory" required>
+                        <option value="">Seleccionar categoría...</option>
+                        <option value="Gaming">🎮 Gaming</option>
+                        <option value="Workstation">💼 Workstation</option>
+                        <option value="Mining">⛏️ Mining</option>
+                        <option value="Development">💻 Development</option>
+                        <option value="Rendering">🎨 Rendering</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Hardware Specs -->
+            <div class="form-section">
+                <h3>Especificaciones de Hardware</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="computerCPU">Procesador (CPU) *</label>
+                        <input type="text" id="computerCPU" required placeholder="Ej: Intel i9-13900K">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="computerGPU">Tarjeta Gráfica (GPU) *</label>
+                        <input type="text" id="computerGPU" required placeholder="Ej: NVIDIA RTX 4090">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="computerRAM">Memoria RAM (GB) *</label>
+                        <input type="number" id="computerRAM" required placeholder="64" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="computerStorage">Almacenamiento (GB) *</label>
+                        <input type="number" id="computerStorage" required placeholder="2000" min="1">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="computerSoftware">Software Instalado (Separado por comas)</label>
+                    <input type="text" id="computerSoftware" placeholder="Ej: Adobe Suite, Blender, AutoCAD, Maya">
+                    <small style="color: var(--text-secondary);">Lista los programas principales que vienen
+                        incluidos</small>
+                </div>
+            </div>
+
+            <!-- Pricing -->
+            <div class="form-section">
+                <h3>Precio</h3>
+
+                <div class="form-group">
+                    <label for="computerPrice">Precio por Hora (USD) *</label>
+                    <input type="number" step="0.01" id="computerPrice" required placeholder="8.00" min="0.01">
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 5px;">
+                        💡 Sugerencia: Computadoras similares se rentan entre $5-$15/hora
+                    </p>
+                </div>
+            </div>
+
+            <!-- Images -->
+            <div class="form-section">
+                <h3>Imágenes</h3>
+
+                <div class="file-upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">Arrastra imágenes aquí o haz click para
+                        seleccionar</p>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">PNG, JPG hasta 5MB • Máximo 5 imágenes
+                    </p>
+                    <input type="file" id="computerImages" accept="image/*" multiple>
+                </div>
+
+                <div id="imagePreview" class="image-preview-grid"></div>
+            </div>
+
+            <!-- Submit -->
+            <div class="form-actions">
+                <a href="profile.html" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Publicar Computadora</button>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage"
+                style="display: none; margin-top: 30px; padding: 30px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.2)); border: 2px solid var(--primary-purple); border-radius: 20px; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 15px;">✅</div>
+                <h3 style="color: var(--primary-purple); margin-bottom: 10px;">¡Computadora Publicada!</h3>
+                <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 20px;">Tu computadora ha sido
+                    enviada para revisión.</p>
+                <div
+                    style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <p style="color: #ffc107; font-weight: 500; margin: 0;">⏳ Pendiente de Aprobación</p>
+                    <p style="font-size: 0.95rem; color: var(--text-secondary); margin: 5px 0 0 0;">Un administrador
+                        revisará tu publicación pronto. Te notificaremos cuando esté aprobada.</p>
+                </div>
+                <a href="profile.html" class="btn btn-primary" style="display: inline-block;">Ver Mi Perfil</a>
+            </div>
+        </form>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Redirect if not logged in
+        if (redirectIfNotLoggedIn()) {
+            // User will be redirected, stop execution
+        }
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('computerImages');
+        const imagePreview = document.getElementById('imagePreview');
+        let selectedFiles = [];
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const maxFiles = 5;
+            const maxSize = 5 * 1024 * 1024; // 5MB
+
+            Array.from(files).forEach(file => {
+                if (selectedFiles.length >= maxFiles) {
+                    alert(`Máximo ${maxFiles} imágenes permitidas`);
+                    return;
+                }
+
+                if (file.size > maxSize) {
+                    alert(`${file.name} es muy grande. Máximo 5MB`);
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    alert(`${file.name} no es una imagen válida`);
+                    return;
+                }
+
+                selectedFiles.push(file);
+                addPreview(file);
+            });
+        }
+
+        function addPreview(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <button type="button" class="remove-btn" onclick="removeImage(${selectedFiles.length - 1})">×</button>
+                `;
+                imagePreview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeImage(index) {
+            selectedFiles.splice(index, 1);
+            updatePreview();
+        }
+
+        function updatePreview() {
+            imagePreview.innerHTML = '';
+            selectedFiles.forEach((file, index) => addPreview(file));
+        }
+
+        // Form submission
+        document.getElementById('publishForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Publicando...';
+
+            try {
+                const authToken = localStorage.getItem('authToken');
+                if (!authToken) {
+                    throw new Error('No autenticado. Por favor inicia sesión.');
+                }
+
+                // Create FormData with all computer data + images
+                const formData = new FormData();
+
+                // Add text fields
+                formData.append('name', document.getElementById('computerName').value);
+                formData.append('description', document.getElementById('computerDescription').value);
+                formData.append('category', document.getElementById('computerCategory').value);
+                formData.append('cpu', document.getElementById('computerCPU').value);
+                formData.append('gpu', document.getElementById('computerGPU').value);
+                formData.append('ram', parseInt(document.getElementById('computerRAM').value));
+                formData.append('storage', parseInt(document.getElementById('computerStorage').value));
+                formData.append('pricePerHour', parseFloat(document.getElementById('computerPrice').value));
+
+                // Add images
+                selectedFiles.forEach((file) => {
+                    formData.append('images', file);
+                });
+
+                console.log('Submitting computer with', selectedFiles.length, 'images');
+
+                // Send to backend
+                const response = await fetch(`${API_BASE_URL}/computers`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                        // Don't set Content-Type - browser will set it with boundary for multipart
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+                    throw new Error(errorData.error || `Error ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Computer created:', data);
+
+                // Show success message instead of alert
+                document.getElementById('publishForm').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'block';
+                document.getElementById('successMessage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            } catch (error) {
+                console.error('Publish error:', error);
+                alert('Error al publicar: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Publicar Computadora';
+            }
+        });
+    </script>
+</body>
+
+</html>
