@@ -187,13 +187,13 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2"></script>
     <script>
         function filterComputers() {
             // This would normally call loadComputers() with filters
             // The main script.js already has this logic in gatherFilters()
             const filters = gatherFilters();
-            loadComputers(filters);
+            loadMarketplaceComputers(filters);
         }
 
         function resetFilters() {
@@ -202,33 +202,21 @@
             document.getElementById('priceFilter').value = 'all';
             document.getElementById('gpuFilter').value = 'all';
             document.getElementById('ramFilter').value = 'all';
-            loadComputers();
+            if (document.getElementById('sortFilter')) document.getElementById('sortFilter').value = 'featured';
+            loadMarketplaceComputers();
         }
 
         function sortComputers() {
-            const sortBy = document.getElementById('sortFilter').value;
+            const sortBy = document.getElementById('sortFilter').value || 'featured';
+            // Logic handled inside loadMarketplaceComputers now (via gathered filters)
+
             const filters = gatherFilters();
-
-            let sortParams = {};
-            switch (sortBy) {
-                case 'price-low':
-                    sortParams = { sortBy: 'pricePerHour', order: 'asc' };
-                    break;
-                case 'price-high':
-                    sortParams = { sortBy: 'pricePerHour', order: 'desc' };
-                    break;
-                case 'rating':
-                    sortParams = { sortBy: 'rating', order: 'desc' };
-                    break;
-                default:
-                    sortParams = { sortBy: 'createdAt', order: 'desc' };
-            }
-
-            loadComputers({ ...filters, ...sortParams });
+            // Map specific sort options if needed, but the API handles the params
+            loadMarketplaceComputers(filters);
         }
     </script>
-    <script src="marketplace-v4.js"></script>
-    <script src="ui-global.js"></script>
+    <script src="marketplace-v4.js?v=2"></script>
+    <script src="ui-global.js?v=2"></script>
 </body>
 
 </html>
