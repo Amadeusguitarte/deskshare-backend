@@ -52,8 +52,11 @@ function renderComputers(computers) {
 
         if (computer.images && Array.isArray(computer.images) && computer.images.length > 0) {
             const firstImage = computer.images[0];
-            if (firstImage && (firstImage.imageUrl || firstImage.url)) {
-                imageUrl = firstImage.imageUrl || firstImage.url;
+            let url = firstImage?.imageUrl || firstImage?.url;
+
+            // Validate URL - must be http/https and not obviously broken
+            if (url && typeof url === 'string' && url.trim() && (url.startsWith('http://') || url.startsWith('https://'))) {
+                imageUrl = url;
                 hasRealImage = true;
             }
         }
