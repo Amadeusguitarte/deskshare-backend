@@ -123,9 +123,27 @@ async function loginWithGoogle() {
     }
 }
 
+// Helper to decode JWT
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return {};
+    }
+}
+
 // Handle Google OAuth response
 async function handleGoogleResponse(response) {
     try {
+        // Decode Google Token immediately to get picture
+        const googleUser = parseJwt(response.credential);
+        const googlePicture = googleUser.picture;
+
         const data = await apiRequest('/auth/google', {
             method: 'POST',
             body: JSON.stringify({ idToken: response.credential })
@@ -133,6 +151,14 @@ async function handleGoogleResponse(response) {
 
         authToken = data.token;
         currentUser = data.user;
+
+        // Force Google Picture if backend didn't provide one
+        if (!currentUser.avatar && googlePicture) {
+            currentUser.avatar = googlePicture;
+            // Optional: Update backend with this avatar? 
+            // For now, just save locally to ensure UI works
+        }
+
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
