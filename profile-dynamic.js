@@ -31,7 +31,20 @@ async function loadMyComputers() {
         });
 
         if (myComputers.length === 0) {
-            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">No tienes computadoras publicadas aún.</p>';
+            // DIAGNOSTIC INFO FOR USER
+            const currentId = currentUser._id || currentUser.id;
+            const sampleOwners = allComputers.slice(0, 3).map(c => typeof c.owner === 'object' ? (c.owner._id || c.owner.id) : c.owner).join(', ');
+
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 2rem; background: rgba(255,255,255,0.05); border-radius: 12px;">
+                    <p style="margin-bottom: 1rem; font-size: 1.1rem;">No se encontraron computadoras asociadas a tu cuenta actual.</p>
+                    <div style="font-family: monospace; font-size: 0.8rem; color: #888; text-align: left; display: inline-block; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+                        <strong>Diagnóstico:</strong><br>
+                        Tu ID de Usuario: ${currentId}<br>
+                        IDs encontrados en sistema: ${sampleOwners || 'Ninguno'}<br>
+                        Total computadoras cargadas: ${allComputers.length}
+                    </div>
+                </div>`;
             return;
         }
 
