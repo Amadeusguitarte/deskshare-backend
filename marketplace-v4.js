@@ -44,10 +44,14 @@ function renderComputers(computers) {
 
     // MATCHING THE DESIGN FROM index.html "Computadoras Destacadas"
     grid.innerHTML = computers.map(computer => {
-        // Image handling
-        let imageUrl = 'assets/workstation_professional_1765782988095.png';
-        if (computer.images && computer.images.length > 0) {
-            imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+        // Image handling with SVG fallback
+        let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Cpath d='M60 70h80v40H60z' fill='%23444'/%3E%3Crect x='70' y='80' width='60' height='25' fill='%23666'/%3E%3Ccircle cx='100' cy='135' r='3' fill='%23888'/%3E%3Crect x='50' y='110' width='100' height='3' fill='%23444'/%3E%3Crect x='85' y='113' width='30' height='20' fill='%23333'/%3E%3C/svg%3E";
+
+        if (computer.images && Array.isArray(computer.images) && computer.images.length > 0) {
+            const firstImage = computer.images[0];
+            if (firstImage && (firstImage.imageUrl || firstImage.url)) {
+                imageUrl = firstImage.imageUrl || firstImage.url;
+            }
         }
 
         // Generate spec badges (LIKE THE FEATURED CARDS)
