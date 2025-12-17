@@ -56,7 +56,15 @@ async function loadMyComputers() {
             container.insertBefore(disclaimer, container.firstChild);
         }
 
-        container.innerHTML += computersToShow.map(computer => {
+        // Add warning if showing fallback
+        let warningHtml = '';
+        if (showingFallback) {
+            warningHtml = `<div style="grid-column: 1 / -1; background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; color: #ffa500;">
+                <strong>⚠️ Nota:</strong> Estas computadoras no tienen dueño asignado. Nuevas publicaciones ya no tendrán este problema.
+            </div>`;
+        }
+
+        container.innerHTML = warningHtml + computersToShow.map(computer => {
             // Robust image handling
             let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
 
