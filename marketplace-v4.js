@@ -21,6 +21,11 @@ function getComputerImage(computer) {
         return { url: FALLBACK_SVG, isFallback: true };
     }
 
+    // BLOCK LOCALHOST URLs (Cause of 5s timeout delay)
+    if (rawUrl.includes('localhost') || rawUrl.includes('127.0.0.1')) {
+        return { url: FALLBACK_SVG, isFallback: true };
+    }
+
     return { url: rawUrl, isFallback: false };
 }
 
