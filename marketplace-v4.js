@@ -1,9 +1,9 @@
+
 // ========================================
 // Marketplace V4 - Matches Featured Computers Design
 // ========================================
 
 let allComputers = [];
-
 const FALLBACK_SVG = "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 200 200%27 fill=%27none%27%3E%3Crect width=%27200%27 height=%27200%27 fill=%27%23222%27/%3E%3Crect x=%2745%27 y=%2750%27 width=%27110%27 height=%2775%27 rx=%274%27 fill=%27%23444%27 stroke=%27%23666%27 stroke-width=%272%27/%3E%3Crect x=%2752%27 y=%2757%27 width=%2796%27 height=%2761%27 fill=%27%23333%27/%3E%3Crect x=%2785%27 y=%27125%27 width=%2730%27 height=%274%27 fill=%27%23444%27/%3E%3Crect x=%2770%27 y=%27129%27 width=%2760%27 height=%278%27 rx=%272%27 fill=%27%23555%27/%3E%3Ccircle cx=%27100%27 cy=%27133%27 r=%271.5%27 fill=%27%23888%27/%3E%3C/svg%3E";
 
 function getComputerImage(computer) {
@@ -21,14 +21,9 @@ function getComputerImage(computer) {
         return { url: FALLBACK_SVG, isFallback: true };
     }
 
-    // DEBUG: Log what we are checking
     if (rawUrl.includes('localhost') || rawUrl.includes('127.0.0.1')) {
-        console.warn('Blocking localhost image:', rawUrl);
         return { url: FALLBACK_SVG, isFallback: true };
     }
-
-    // DEBUG: If we get here, we think the URL is good. Log it if it fails later.
-    // console.log('Accepting image URL:', rawUrl);
 
     return { url: rawUrl, isFallback: false };
 }
@@ -71,11 +66,8 @@ function renderComputers(computers) {
         return;
     }
 
-    // MATCHING THE DESIGN FROM index.html "Computadoras Destacadas"
     grid.innerHTML = computers.map(computer => {
-        const { url: imageUrl, isFallback } = getComputerImage(computer);
-
-        // Generate spec badges (LIKE THE FEATURED CARDS)
+        // Generate spec badges
         const specBadges = [
             computer.cpu,
             computer.gpu,
@@ -85,7 +77,7 @@ function renderComputers(computers) {
             `<span class="spec-badge">${spec}</span>`
         ).join('');
 
-        // Rating (use existing or default to 5 stars with 0 reviews)
+        // Rating
         const rating = computer.rating || 5;
         const reviewCount = computer.reviewCount || 0;
         const stars = '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '☆').repeat(5 - Math.floor(rating));
@@ -119,8 +111,15 @@ function renderComputers(computers) {
 function renderCardImageCarousel(computer) {
     const images = computer.images && computer.images.length > 0 ? computer.images : [];
 
-    // CASE 1: No images or single image -> Use existing static logic
-    if (images.length <= 1) {
+    // CASE 1: No images -> Fallback
+    if (images.length === 0) {
+        return `
+        <div class="image-wrapper" style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
+        </div>`;
+    }
+
+    // CASE 2: Single Image
+    if (images.length === 1) {
         const { url: imageUrl } = getComputerImage(computer);
         return `
         <div class="image-wrapper" style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
@@ -133,10 +132,9 @@ function renderCardImageCarousel(computer) {
         </div>`;
     }
 
-    // CASE 2: Multiple images -> Carousel
-    const slides = images.map((img, index) => {
+    // CASE 3: Carousel
+    const slides = images.map((img) => {
         const rawUrl = img.imageUrl || img.url;
-        // Basic filter for localhost/invalid
         if (!rawUrl || rawUrl.includes('localhost') || rawUrl.includes('127.0.0.1')) {
             return FALLBACK_SVG;
         }
@@ -145,28 +143,32 @@ function renderCardImageCarousel(computer) {
 
     const carouselId = `carousel-${computer.id || computer._id || Math.random().toString(36).substr(2, 9)}`;
 
+    // Important: We use data attributes for state. 
+    // We add inline CSS for the .active class simulation
     return `
     <div class="image-wrapper carousel-container" id="${carouselId}" data-current-index="0" data-total="${slides.length}" 
-         style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
+         style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center; overflow: hidden;">
         
         ${slides.map((url, idx) => `
-            <img src="${url}" class="carousel-slide" 
-                 style="width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; transition: opacity 0.3s; opacity: ${idx === 0 ? '0' : '0'}; display: ${idx === 0 ? 'block' : 'none'};"
-                 onload="this.parentElement.dataset.currentIndex == ${idx} ? this.style.opacity = 1 : this.style.opacity = 0"
-                 onerror="this.style.display='none'">
+            <div class="carousel-slide-item ${idx === 0 ? 'active' : ''}" 
+                 style="position: absolute; top:0; left:0; width:100%; height:100%; transition: opacity 0.3s ease; opacity: ${idx === 0 ? 1 : 0}; pointer-events: none;">
+                <img src="${url}" 
+                     style="width: 100%; height: 100%; object-fit: cover;"
+                >
+            </div>
         `).join('')}
 
         <!-- Arrows -->
-        <button class="carousel-btn prev" onclick="event.stopPropagation(); moveCarousel('${carouselId}', -1)" 
-                style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;">
-            ❮
+        <button class="carousel-btn prev" onclick="event.preventDefault(); event.stopPropagation(); moveCarousel('${carouselId}', -1)" 
+                style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; z-index: 10;">
+            ❯
         </button>
-        <button class="carousel-btn next" onclick="event.stopPropagation(); moveCarousel('${carouselId}', 1)" 
-                style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;">
+        <button class="carousel-btn next" onclick="event.preventDefault(); event.stopPropagation(); moveCarousel('${carouselId}', 1)" 
+                style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; z-index: 10;">
             ❯
         </button>
 
-        <style>
+         <style>
             #${carouselId}:hover .carousel-btn { opacity: 1 !important; }
         </style>
     </div>
@@ -180,18 +182,14 @@ window.moveCarousel = function (carouselId, direction) {
     const total = parseInt(container.dataset.total);
     let current = parseInt(container.dataset.currentIndex);
 
-    // Hide current
-    const slides = container.querySelectorAll('.carousel-slide');
-    slides[current].style.opacity = '0';
-    setTimeout(() => { slides[current].style.display = 'none'; }, 300);
+    // Toggle off current
+    const slides = container.querySelectorAll('.carousel-slide-item');
+    if (slides[current]) slides[current].style.opacity = '0';
 
-    // Update index
+    // Calculate next
     current = (current + direction + total) % total;
     container.dataset.currentIndex = current;
 
-    // Show new
-    const nextSlide = slides[current];
-    nextSlide.style.display = 'block';
-    setTimeout(() => { nextSlide.style.opacity = '1'; }, 10);
+    // Toggle on next
+    if (slides[current]) slides[current].style.opacity = '1';
 };
-
