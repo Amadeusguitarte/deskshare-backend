@@ -11,40 +11,50 @@ async function loadMyComputers() {
     if (!container) return;
 
     try {
-        // Mock data for now (since backend might not have user's computers yet)
-        // In production: const computers = await apiRequest('/users/me/computers');
-        // Using mock based on user screenshot context or similar structure
-        const computers = [
-            {
-                id: '1',
-                name: 'sdfa',
-                description: 'fdsf',
-                cpu: '45',
-                gpu: '564654',
-                ram: '4545',
-                status: 'Disponible',
-                pricePerHour: 3,
-                images: [{ imageUrl: 'assets/hero_background_1765783023163.png' }], // Use placeholder if needed
-                softwareInstalled: 'N/A'
-            },
-            // Add more mocks if needed to fill grid
-        ];
+        if (!currentUser) return;
 
-        if (computers.length === 0) {
+        // Fetch all computers
+        // We filter client-side to ensure we match the backend owner object or ID
+        const response = await apiRequest('/computers');
+        const allComputers = response.computers || response;
+
+        // Filter by current user ID
+        const myComputers = allComputers.filter(comp => {
+            if (!comp.owner) return false;
+            const ownerId = typeof comp.owner === 'object' ? (comp.owner._id || comp.owner.id) : comp.owner;
+            const currentUserId = currentUser._id || currentUser.id;
+            return ownerId === currentUserId;
+        });
+
+        if (myComputers.length === 0) {
             container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">No tienes computadoras publicadas aún.</p>';
             return;
         }
 
-        container.innerHTML = computers.map(computer => {
-            const imageUrl = computer.images && computer.images.length > 0
-                ? computer.images[0].imageUrl
-                : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
+        container.innerHTML = myComputers.map(computer => {
+            // Robust image handling
+            let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
+
+            if (computer.images && computer.images.length > 0) {
+                // Check all possible image url properties
+                imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+            }
 
             const statusColors = {
-                'Disponible': 'var(--success-green)',
-                'Ocupado': 'var(--error-red)',
-                'Mantenimiento': 'var(--warning-yellow)'
+                'active': 'var(--success-green)',
+                'inactive': 'var(--error-red)',
+                'maintenance': 'var(--warning-yellow)'
             };
+            // Map backend status to UI text if needed, or use raw
+            // Assuming backend uses 'active' but UI shows 'Disponible'? 
+            // Let's use raw status or a mapper
+            const statusMap = {
+                'active': 'Disponible',
+                'inactive': 'Ocupado',
+                'maintenance': 'Mantenimiento'
+            };
+
+            const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
             const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
 
             return `
@@ -54,7 +64,7 @@ async function loadMyComputers() {
                         style="width: 100%; height: 220px; object-fit: cover; display: block; background: var(--bg-secondary);">
                      <div style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; backdrop-filter: blur(4px);">
                         <span style="width: 8px; height: 8px; background-color: ${statusColor}; border-radius: 50%; display: inline-block; margin-right: 6px;"></span>
-                        <span style="font-size: 0.8rem; font-weight: 500; color: white;">${computer.status || 'Desconocido'}</span>
+                        <span style="font-size: 0.8rem; font-weight: 500; color: white;">${displayStatus}</span>
                     </div>
                 </div>
                 
@@ -89,9 +99,9 @@ async function loadMyComputers() {
                     <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
                         <div class="computer-price">
                             <span class="price" style="font-size: 1.5rem; font-weight: 700; color: white;">$${computer.pricePerHour}</span>
-                            <span class="price-unit" style="font-size: 0.9rem; color: var(--text-muted);"/&gt;/hora</span>
+                            <span class="price-unit" style="font-size: 0.9rem; color: var(--text-muted);">/hora</span>
                         </div>
-                        <button onclick="manageComputer('${computer.id}')" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 8px;">
+                        <button onclick="manageComputer('${computer.id || computer._id}')" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 8px;">
                             Gestionar
                         </button>
                     </div>
@@ -107,6 +117,7 @@ async function loadMyComputers() {
 }
 
 function manageComputer(id) {
-    alert(`Gestionar computadora ${id} (Funcionalidad pendiente)`);
+    // For now, redirect to a manage page or show alert
     // window.location.href = `manage-computer.html?id=${id}`;
+    alert('Funcionalidad de gestión en desarrollo');
 }
