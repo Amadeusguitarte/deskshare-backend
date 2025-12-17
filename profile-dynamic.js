@@ -90,14 +90,17 @@ async function loadMyComputers() {
 
             return `
             <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important;">
-                <div style="position: relative;">
+                <div style="position: relative; width: 100%; height: 220px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
                     <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
-                        style="width: 100%; height: 220px; object-fit: cover; display: block; background: var(--bg-secondary);"${!isFallback ? ` onerror="this.src='${FALLBACK_SVG}'"` : ''}>
+                        style="width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.3s ease-in-out;"
+                        onload="this.style.opacity = 1"
+                        onerror="this.style.opacity = 0; this.style.display = 'none'">
+                        
                      ${computer.isApproved === false ? `
-                     <div style="position: absolute; top: 12px; left: 12px; background: rgba(255, 193, 7, 0.95); padding: 6px 12px; border-radius: 6px; backdrop-filter: blur(4px);">
+                     <div style="position: absolute; top: 12px; left: 12px; background: rgba(255, 193, 7, 0.95); padding: 6px 12px; border-radius: 6px; backdrop-filter: blur(4px); z-index: 10;">
                         <span style="font-size: 0.85rem; font-weight: 600; color: #000;">⏳ Pendiente de Aprobación</span>
                      </div>` : ''}
-                     <div style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; backdrop-filter: blur(4px);">
+                     <div style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; backdrop-filter: blur(4px); z-index: 10;">
                         <span style="width: 8px; height: 8px; background-color: ${statusColor}; border-radius: 50%; display: inline-block; margin-right: 6px;"></span>
                         <span style="font-size: 0.8rem; font-weight: 500; color: white;">${displayStatus}</span>
                     </div>

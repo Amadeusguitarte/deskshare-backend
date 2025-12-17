@@ -104,9 +104,13 @@ function renderComputerList(containerId, computers, isPending) {
         const { url: imageUrl, isFallback } = getComputerImage(computer);
         return `
         <div class="computer-card" data-id="${computer.id}">
-            <div class="card-image">
-                <img src="${imageUrl}" alt="${computer.name}"${!isFallback ? ` onerror="this.src='${FALLBACK_SVG}'"` : ''}>
-                ${isPending ? '<span class="status-badge pending">Pendiente</span>' : '<span class="status-badge approved">Aprobado</span>'}
+            <div class="card-image" style="background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center; position: relative;">
+                <img src="${imageUrl}" alt="${computer.name}" 
+                     style="width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s;"
+                     onload="this.style.opacity = 1"
+                     onerror="this.style.opacity = 0; this.style.display = 'none'"
+                >
+                ${isPending ? '<span class="status-badge pending" style="z-index: 10;">Pendiente</span>' : '<span class="status-badge approved" style="z-index: 10;">Aprobado</span>'}
             </div>
             <div class="card-content">
                 <h3>${computer.name}</h3>

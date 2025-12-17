@@ -92,7 +92,14 @@ function renderComputers(computers) {
 
         return `
         <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
-            <img src="${imageUrl}" alt="${computer.name}" class="computer-image"${!isFallback ? ` onerror="this.src='${FALLBACK_SVG}'"` : ''}>
+            <div class="image-wrapper" style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
+                <img src="${imageUrl}" alt="${computer.name}" 
+                     class="computer-image" 
+                     style="width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s ease-in-out;"
+                     onload="this.style.opacity = 1"
+                     onerror="this.style.opacity = 0; this.style.display = 'none'"
+                >
+            </div>
             <div class="computer-info">
                 <h3 class="computer-title">${computer.name}</h3>
                 <div class="computer-specs">
