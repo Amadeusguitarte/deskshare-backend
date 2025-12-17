@@ -150,8 +150,6 @@ async function loadMyComputers() {
 
     } catch (error) {
         console.error('PROVILE LOAD ERROR:', error);
-    } catch (error) {
-        console.error('PROVILE LOAD ERROR:', error);
         // Fallback: show the raw error to the user for debugging
         container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">
             <h3>Error al cargar computadoras</h3>
