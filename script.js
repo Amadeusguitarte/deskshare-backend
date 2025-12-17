@@ -681,8 +681,6 @@ updateUIForAuthState();
 console.log('🟣 DeskShare loaded with real backend integration!');
 console.log('🔗 API URL:', API_BASE_URL);
 console.log('👤 Current user:', currentUser);
-    // ... (existing code)
-}
 
 // ========================================
 // UI Helper Functions
