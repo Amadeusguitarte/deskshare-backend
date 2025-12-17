@@ -144,6 +144,11 @@ async function handleGoogleResponse(response) {
         const googleUser = parseJwt(response.credential);
         const googlePicture = googleUser.picture;
 
+        // BACKUP: Save Google picture locally in case backend loses it
+        if (googlePicture) {
+            localStorage.setItem('googleAvatar', googlePicture);
+        }
+
         const data = await apiRequest('/auth/google', {
             method: 'POST',
             body: JSON.stringify({ idToken: response.credential })
@@ -155,8 +160,6 @@ async function handleGoogleResponse(response) {
         // Force Google Picture if backend didn't provide one
         if (!currentUser.avatar && googlePicture) {
             currentUser.avatar = googlePicture;
-            // Optional: Update backend with this avatar? 
-            // For now, just save locally to ensure UI works
         }
 
         localStorage.setItem('authToken', authToken);
