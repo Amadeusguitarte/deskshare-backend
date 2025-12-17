@@ -139,4 +139,3 @@ function manageComputer(id) {
         // window.location.href = `manage-computer.html?id=${id}`;
         alert('Funcionalidad de gestión en desarrollo');
     }
-    ```
