@@ -30,6 +30,19 @@ async function loadMyComputers() {
 
         console.log('Loaded my computers:', myComputers.length);
 
+        // Check if user has any computers
+        if (!myComputers || myComputers.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">💻</div>
+                    <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem;">Aún no has publicado ninguna computadora</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">Comparte tu PC y comienza a ganar dinero</p>
+                    <a href="publish.html" class="btn btn-primary">+ Publicar Mi Primera PC</a>
+                </div>
+            `;
+            return;
+        }
+
         container.innerHTML = myComputers.map(computer => {
             // Robust image handling with SVG fallback
             let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Cpath d='M60 70h80v40H60z' fill='%23444'/%3E%3Crect x='70' y='80' width='60' height='25' fill='%23666'/%3E%3Ccircle cx='100' cy='135' r='3' fill='%23888'/%3E%3Crect x='50' y='110' width='100' height='3' fill='%23444'/%3E%3Crect x='85' y='113' width='30' height='20' fill='%23333'/%3E%3C/svg%3E";
