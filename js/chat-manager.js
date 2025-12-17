@@ -291,7 +291,108 @@ class ChatManager {
     // View Logic - Global Widget
     // ===========================================
     renderWidget() {
-        // TODO: Implement bottom tabs for global widget
-        // See Implementation Plan
+        if (!this.widgetContainer) {
+            // Create container if not exists
+            this.widgetContainer = document.createElement('div');
+            this.widgetContainer.id = 'chatWidgetContainer';
+            this.widgetContainer.style.cssText = 'position: fixed; bottom: 0; right: 20px; display: flex; align-items: flex-end; gap: 10px; z-index: 9999; pointer-events: none;';
+            document.body.appendChild(this.widgetContainer);
+        }
+
+        this.renderWidgetTabs();
+    }
+
+    renderWidgetTabs() {
+        if (!this.widgetContainer) return;
+
+        // Filter: Show only active or recent conversations in widget (max 3)
+        // For now, let's just show a "Messages" toggle list + active chat
+        // To simplify: Just one minimized "Chat" button that opens a tailored list, 
+        // OR individual bubbles like Messenger. Let's do individual tabs for active convs.
+
+        const activeChats = this.conversations.slice(0, 3); // Top 3
+
+        this.widgetContainer.innerHTML = activeChats.map(conv => {
+            return this.renderChatTab(conv);
+        }).join('');
+
+        // Add a "View All" main trigger if needed, or just let them go to messages.html
+    }
+
+    renderChatTab(conv) {
+        const user = conv.otherUser;
+        const isExpanded = this.activeConversation && this.activeConversation.otherUser.id === user.id;
+        const unread = conv.unreadCount > 0;
+
+        // ID for this tab
+        const tabId = `chat-tab-${user.id}`;
+
+        // If expanded, show full mini-window
+        if (isExpanded) {
+            return `
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5);">
+                <!-- Header -->
+                <div onclick="chatManager.toggleTab(${user.id})" style="padding: 10px; background: var(--glass-card); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%;">
+                        <span style="font-size: 0.9rem; font-weight: 600; color: white;">${user.name}</span>
+                    </div>
+                    <span style="color: #aaa;">✖</span>
+                </div>
+                
+                <!-- Messages -->
+                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.9rem;">
+                    ${conv.messages.map(msg => `
+                        <div style="margin-bottom: 8px; text-align: ${msg.senderId === this.currentUser.id ? 'right' : 'left'};">
+                            <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; display: inline-block; max-width: 80%; word-wrap: break-word;">
+                                ${msg.message}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Input -->
+                <form onsubmit="event.preventDefault(); chatManager.sendMiniMessage(${user.id}, this.querySelector('input').value); this.reset();" style="padding: 10px; border-top: 1px solid var(--glass-border); background: #222;">
+                    <input type="text" placeholder="Escribe..." style="width: 100%; padding: 8px; border-radius: 20px; border: none; background: #333; color: white; outline: none;">
+                </form>
+            </div>
+            `;
+        }
+
+        // If minimized (bubble)
+        return `
+        <div id="${tabId}" onclick="chatManager.toggleTab(${user.id})" style="pointer-events: auto; cursor: pointer; position: relative;">
+            <div style="width: 50px; height: 50px; border-radius: 50%; background: #333; overflow: hidden; border: 2px solid var(--glass-border); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            ${unread ? `<span style="position: absolute; top: 0; right: 0; background: var(--error-red); width: 12px; height: 12px; border-radius: 50%; border: 2px solid #111;"></span>` : ''}
+        </div>
+        `;
+    }
+
+    toggleTab(userId) {
+        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        if (this.activeConversation && this.activeConversation.otherUser.id === userId) {
+            this.activeConversation = null; // Collapse
+        } else {
+            this.activeConversation = conv; // Expand
+            // Fetch latest history to sync
+            this.loadHistory(userId).then(msgs => {
+                if (this.activeConversation) {
+                    this.activeConversation.messages = msgs;
+                    this.renderWidgetTabs();
+                    // Scroll to bottom
+                    const area = this.widgetContainer.querySelector('.mini-messages-area');
+                    if (area) area.scrollTop = area.scrollHeight;
+                }
+            });
+        }
+        this.renderWidgetTabs();
+    }
+
+    async sendMiniMessage(userId, text) {
+        if (!text.trim()) return;
+        await this.sendMessage(userId, text);
+        // Optimistic append handled by re-fetching or waiting for socket event
     }
 }
