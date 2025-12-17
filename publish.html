@@ -379,71 +379,54 @@
             submitBtn.textContent = 'Publicando...';
 
             try {
-                // Upload images first
-                const imageUrls = [];
-
-                if (selectedFiles.length > 0) {
-                    for (let file of selectedFiles) {
-                        try {
-                            const formData = new FormData();
-                            formData.append('image', file);
-
-                            console.log('Uploading file:', file.name);
-                            const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${authToken}`
-                                },
-                                body: formData
-                            });
-
-                            if (!uploadResponse.ok) {
-                                const errText = await uploadResponse.text();
-                                console.error('Upload failed:', errText);
-                                throw new Error(`Error subiendo imagen: ${uploadResponse.status}`);
-                            }
-
-                            const uploadData = await uploadResponse.json();
-                            console.log('Upload success:', uploadData);
-
-                            if (uploadData.url) {
-                                imageUrls.push({ url: uploadData.url, isPrimary: imageUrls.length === 0 });
-                            } else {
-                                console.warn('No URL in upload response', uploadData);
-                            }
-                        } catch (imgError) {
-                            console.error('Image upload error:', imgError);
-                            alert(`Error subiendo imagen ${file.name}: ${imgError.message}`);
-                            // Continue with other images? or Fail?
-                            // For now let's fail to ensure user knows
-                            throw imgError;
-                        }
-                    }
+                const authToken = localStorage.getItem('authToken');
+                if (!authToken) {
+                    throw new Error('No autenticado. Por favor inicia sesión.');
                 }
 
-                // Create computer listing
-                const computerData = {
-                    name: document.getElementById('computerName').value,
-                    description: document.getElementById('computerDescription').value,
-                    category: document.getElementById('computerCategory').value,
-                    cpu: document.getElementById('computerCPU').value,
-                    gpu: document.getElementById('computerGPU').value,
-                    ram: parseInt(document.getElementById('computerRAM').value),
-                    storage: parseInt(document.getElementById('computerStorage').value),
-                    pricePerHour: parseFloat(document.getElementById('computerPrice').value),
-                    images: imageUrls,
-                    owner: currentUser._id || currentUser.id  // CRITICAL: Add owner field
-                };
+                // Create FormData with all computer data + images
+                const formData = new FormData();
 
-                const response = await apiRequest('/computers', {
-                    method: 'POST',
-                    body: JSON.stringify(computerData)
+                // Add text fields
+                formData.append('name', document.getElementById('computerName').value);
+                formData.append('description', document.getElementById('computerDescription').value);
+                formData.append('category', document.getElementById('computerCategory').value);
+                formData.append('cpu', document.getElementById('computerCPU').value);
+                formData.append('gpu', document.getElementById('computerGPU').value);
+                formData.append('ram', parseInt(document.getElementById('computerRAM').value));
+                formData.append('storage', parseInt(document.getElementById('computerStorage').value));
+                formData.append('pricePerHour', parseFloat(document.getElementById('computerPrice').value));
+
+                // Add images
+                selectedFiles.forEach((file) => {
+                    formData.append('images', file);
                 });
 
-                alert('¡Computadora publicada exitosamente!');
+                console.log('Submitting computer with', selectedFiles.length, 'images');
+
+                // Send to backend
+                const response = await fetch(`${API_BASE_URL}/computers`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                        // Don't set Content-Type - browser will set it with boundary for multipart
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+                    throw new Error(errorData.error || `Error ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Computer created:', data);
+
+                alert('¡Computadora publicada exitosamente! Un administrador la revisará pronto.');
                 window.location.href = 'profile.html';
 
             } catch (error) {
+                console.error('Publish error:', error);
                 alert('Error al publicar: ' + error.message);
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Publicar Computadora';
