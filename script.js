@@ -738,9 +738,10 @@ function loadUserProfile() {
         memberSinceEl.textContent = `Miembro desde ${date}`;
     }
 
-    if (currentUser.avatar) {
+    const avatarUrl = currentUser.avatar || currentUser.picture || currentUser.image || currentUser.photoUrl;
+    if (avatarUrl) {
         if (avatarEl) {
-            avatarEl.src = currentUser.avatar;
+            avatarEl.src = avatarUrl;
             avatarEl.style.display = 'block';
         }
         if (defaultIconEl) defaultIconEl.style.display = 'none';
