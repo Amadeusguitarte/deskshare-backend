@@ -792,6 +792,7 @@ function loadUserProfile() {
 
     if (avatarEl && avatarUrl) {
         avatarEl.src = avatarUrl;
+        avatarEl.style.display = 'block';
         // If image loads successfully, hide the icon
         avatarEl.onload = () => {
             if (defaultIconEl) defaultIconEl.style.display = 'none';
