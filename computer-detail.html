@@ -34,6 +34,7 @@
     <section style="padding-top: 140px; padding-bottom: 3rem;">
         <div class="container">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 3rem;">
+
                 <!-- Left Column: Images and Specs -->
                 <div>
                     <!-- Main Image -->
@@ -46,152 +47,148 @@
                     <!-- Thumbnail Gallery -->
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;"
                         id="thumbnailRow">
-                    </div>
-                </div>
-
-                <!-- Detailed Specifications -->
-                <div class="glass-card" style="margin-top: 2rem;">
-                    <h3 style="margin-bottom: 1.5rem;">Especificaciones Completas</h3>
-
-                    <div style="display: grid; gap: 1rem;">
-                        <div class="spec-row">
-                            <span class="spec-label">Procesador</span>
-                            <span class="spec-value" id="specCpu">-</span>
-                        </div>
-                        <div class="spec-row">
-                            <span class="spec-label">Tarjeta Gráfica</span>
-                            <span class="spec-value" id="specGpu">-</span>
-                        </div>
-                        <div class="spec-row">
-                            <span class="spec-label">Memoria RAM</span>
-                            <span class="spec-value" id="specRam">-</span>
-                        </div>
-                        <div class="spec-row">
-                            <span class="spec-label">Almacenamiento</span>
-                            <span class="spec-value" id="specStorage">-</span>
-                        </div>
-                        <div class="spec-row">
-                            <span class="spec-label">Sistema Operativo</span>
-                            <span class="spec-value" id="specOs">-</span>
-                        </div>
-                        <div class="spec-row">
-                            <span class="spec-label">Internet</span>
-                            <span class="spec-value" id="specInternet">-</span>
-                        </div>
+                        <!-- Thumbs will be injected by JS if needed -->
                     </div>
 
-                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);"
-                        id="softwareSection">
-                        <h4 style="margin-bottom: 1rem;">Software Instalado</h4>
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="softwareList">
-                            <!-- Dynamic software badges -->
-                        </div>
-                    </div>
-                </div>
-            </div> <!-- End Left Column -->
-
-            <!-- Right Column: Info and Chat -->
-            <div>
-                <!-- Computer Info -->
-                <div class="glass-card" style="margin-bottom: 2rem;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                        <div>
-                            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;" id="computerTitle">Cargando...</h1>
-                            <div class="rating" style="font-size: 1.1rem; margin-bottom: 0.5rem;">
-                                ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(0
-                                    reseñas)</span>
+                    <!-- Detailed Specifications (Moved to Left Col) -->
+                    <div class="glass-card">
+                        <h3 style="margin-bottom: 1.5rem;">Especificaciones Completas</h3>
+                        <div style="display: grid; gap: 1rem;">
+                            <div class="spec-row">
+                                <span class="spec-label">Procesador</span>
+                                <span class="spec-value" id="specCpu">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Tarjeta Gráfica</span>
+                                <span class="spec-value" id="specGpu">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Memoria RAM</span>
+                                <span class="spec-value" id="specRam">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Almacenamiento</span>
+                                <span class="spec-value" id="specStorage">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Sistema Operativo</span>
+                                <span class="spec-value" id="specOs">-</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Internet</span>
+                                <span class="spec-value" id="specInternet">-</span>
                             </div>
                         </div>
-                        <div style="text-align: right;">
-                            <div class="price" style="font-size: 2.5rem;" id="computerPrice">$-</div>
-                            <div class="price-unit">por hora</div>
-                        </div>
-                    </div>
 
-                    <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem;"
-                        id="computerDescription">
-                        ...
-                    </p>
-
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-                        <div
-                            style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
-                                Disponibilidad</div>
-                            <div style="font-weight: 600; color: var(--accent-purple);">Inmediata</div>
-                        </div>
-                        <div
-                            style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
-                                Tiempo Mínimo</div>
-                            <div style="font-weight: 600; color: var(--accent-purple);">1 hora</div>
-                        </div>
-                    </div>
-
-                    <!-- Host Info -->
-                    <div
-                        style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-                        <img src="assets/default-avatar.png" alt="Host" id="hostAvatar"
-                            style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-purple);">
-                        <div>
-                            <h4 style="margin-bottom: 0.3rem;" id="hostName">Cargando anfitrión...</h4>
-                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;" id="hostMemberSince">
-                                ...</p>
-                            <div class="rating" style="font-size: 0.9rem;">
-                                ★★★★★ <span style="margin-left: 0.3rem;">(0 valoraciones)</span>
+                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border);"
+                            id="softwareSection">
+                            <h4 style="margin-bottom: 1rem;">Software Instalado</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="softwareList">
+                                <!-- Dynamic software badges -->
                             </div>
                         </div>
                     </div>
+                </div> <!-- END LEFT COLUMN -->
 
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-primary" style="flex: 1;" onclick="initiateConnection()">Solicitar
-                            Acceso</button>
-                        <button class="btn btn-secondary" onclick="scrollToChat()">Negociar Precio</button>
-                    </div>
-                </div>
+                <!-- Right Column: Info and Chat -->
+                <div>
+                    <!-- Computer Info -->
+                    <div class="glass-card" style="margin-bottom: 2rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div>
+                                <h1 style="font-size: 2rem; margin-bottom: 0.5rem;" id="computerTitle">Cargando...</h1>
+                                <div class="rating" style="font-size: 1.1rem; margin-bottom: 0.5rem;">
+                                    ★★★★★ <span style="margin-left: 0.5rem; color: var(--text-secondary);">(0
+                                        reseñas)</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="price" style="font-size: 2.5rem;" id="computerPrice">$-</div>
+                                <div class="price-unit">por hora</div>
+                            </div>
+                        </div>
 
-                <!-- Chat Interface -->
-                <div class="glass-card" id="chatSection">
-                    <h3 style="margin-bottom: 1rem;">Conversa con el Anfitrión</h3>
+                        <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 1.5rem;"
+                            id="computerDescription">
+                            ...
+                        </p>
 
-                    <div class="chat-container">
-                        <div class="chat-header">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <img src="assets/default-avatar.png" alt="Host" id="chatHostAvatar"
-                                    style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                                <div>
-                                    <h4 id="hostName" style="margin: 0; font-size: 1rem;">Cargando...</h4>
-                                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">En línea
-                                    </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                            <div
+                                style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
+                                    Disponibilidad</div>
+                                <div style="font-weight: 600; color: var(--accent-purple);">Inmediata</div>
+                            </div>
+                            <div
+                                style="flex: 1; min-width: 150px; background: rgba(138, 43, 226, 0.1); padding: 1rem; border-radius: var(--radius-md); border: 1px solid rgba(138, 43, 226, 0.3);">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
+                                    Tiempo Mínimo</div>
+                                <div style="font-weight: 600; color: var(--accent-purple);">1 hora</div>
+                            </div>
+                        </div>
+
+                        <!-- Host Info -->
+                        <div
+                            style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                            <img src="assets/default-avatar.png" alt="Host" id="hostAvatar"
+                                style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-purple);">
+                            <div>
+                                <h4 style="margin-bottom: 0.3rem;" id="hostName">Cargando anfitrión...</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;"
+                                    id="hostMemberSince">...</p>
+                                <div class="rating" style="font-size: 0.9rem;">
+                                    ★★★★★ <span style="margin-left: 0.3rem;">(0 valoraciones)</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="message message-received" style="font-style: italic; opacity: 0.7;">
-                                <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
-                            </div>
-                        </div>
-
-                        <div class="chat-input-container">
-                            <input type="text" class="chat-input" id="messageInput" placeholder="Escribe un mensaje..."
-                                onkeypress="handleChatKeyPress(event)">
-                            <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn btn-primary" style="flex: 1;" onclick="initiateConnection()">Solicitar
+                                Acceso</button>
+                            <button class="btn btn-secondary" onclick="scrollToChat()">Negociar Precio</button>
                         </div>
                     </div>
+
+                    <!-- Chat Interface -->
+                    <div class="glass-card" id="chatSection">
+                        <h3 style="margin-bottom: 1rem;">Conversa con el Anfitrión</h3>
+                        <div class="chat-container">
+                            <div class="chat-header">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <img src="assets/default-avatar.png" alt="Host" id="chatHostAvatar"
+                                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                                    <div>
+                                        <h4 id="hostName" style="margin: 0; font-size: 1rem;">Cargando...</h4>
+                                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">En línea
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="message message-received" style="font-style: italic; opacity: 0.7;">
+                                    <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
+                                </div>
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" class="chat-input" id="messageInput"
+                                    placeholder="Escribe un mensaje..." onkeypress="handleChatKeyPress(event)">
+                                <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- END RIGHT COLUMN -->
+            </div> <!-- END GRID ROW -->
+
+            <!-- Reviews Section -->
+            <div class="glass-card">
+                <h3 style="margin-bottom: 2rem;">Reseñas de Usuarios</h3>
+                <div id="reviewsContainer">
+                    <p style="color: var(--text-secondary);">No hay reseñas aún.</p>
                 </div>
             </div>
-        </div>
 
-        <!-- Reviews Section -->
-        <div class="glass-card">
-            <h3 style="margin-bottom: 2rem;">Reseñas de Usuarios</h3>
-
-            <div id="reviewsContainer">
-                <p style="color: var(--text-secondary);">No hay reseñas aún.</p>
-            </div>
-        </div>
         </div>
     </section>
 
