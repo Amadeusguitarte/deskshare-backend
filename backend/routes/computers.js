@@ -195,7 +195,7 @@ router.post(
             }
 
             const computerData = {
-                userId: req.user.userId,
+                userId: req.user.userId || req.user.id,  // Fallback for old tokens
                 name: req.body.name,
                 description: req.body.description,
                 category: req.body.category,
