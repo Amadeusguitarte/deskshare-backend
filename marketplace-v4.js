@@ -1,15 +1,11 @@
 // ========================================
-// Marketplace Dynamic Functionality V3
-// Using 'Profile' Card Layout (Vertical + Glow)
+// Marketplace V4 - Matches Featured Computers Design
 // ========================================
 
 let allComputers = [];
-let currentFilters = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('V3 SCRIPT LOADED - GRID LAYOUT');
     await loadMarketplaceComputers();
-    setupFilters();
 });
 
 async function loadMarketplaceComputers(filters = {}) {
@@ -36,7 +32,6 @@ function renderComputers(computers) {
     const grid = document.getElementById('computerGrid');
     if (!grid) return;
 
-    // Update count - FIX: Only update the number, not the text
     const countElement = document.getElementById('computerCount');
     if (countElement) {
         countElement.textContent = computers.length;
@@ -47,122 +42,51 @@ function renderComputers(computers) {
         return;
     }
 
+    // MATCHING THE DESIGN FROM index.html "Computadoras Destacadas"
     grid.innerHTML = computers.map(computer => {
-        // Image
+        // Image handling
         let imageUrl = 'assets/workstation_professional_1765782988095.png';
         if (computer.images && computer.images.length > 0) {
             imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
         }
 
-        // Status
-        const isAvailable = computer.status === 'active';
-        const status = isAvailable ?
-            '<span style="background: rgba(0, 255, 0, 0.2); color: #00ff00; padding: 0.25rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.75rem; border: 1px solid rgba(0, 255, 0, 0.3); font-weight: 600;">● Disponible</span>' :
-            '<span style="background: rgba(255, 165, 0, 0.2); color: #ffa500; padding: 0.25rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.75rem; border: 1px solid rgba(255, 165, 0, 0.3); font-weight: 600;">● Ocupado</span>';
+        // Generate spec badges (LIKE THE FEATURED CARDS)
+        const specBadges = [
+            computer.cpu,
+            computer.gpu,
+            computer.ram ? computer.ram + 'GB RAM' : null,
+            computer.storage
+        ].filter(Boolean).map(spec =>
+            `<span class="spec-badge">${spec}</span>`
+        ).join('');
 
-        // Reviews
-        const rating = computer.user?.rating || 5.0;
-        const reviewCount = computer.user?.reviewsCount || 0;
+        // Rating (use existing or default to 5 stars with 0 reviews)
+        const rating = computer.rating || 5;
+        const reviewCount = computer.reviewCount || 0;
+        const stars = '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '☆').repeat(5 - Math.floor(rating));
 
-        // FINAL DESIGN REFINEMENT - Clickable Card + Rating at Bottom Right
         return `
-            <div class="computer-card glass-card" 
-                 onclick="window.location.href='computer-detail.html?id=${computer.id}'"
-                 style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important; cursor: pointer;">
-                <div style="position: relative;">
-                    <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
-                        style="width: 100%; height: 220px; object-fit: cover; display: block;">
-                     <div style="position: absolute; top: 12px; right: 12px;">
-                       ${status}
-                    </div>
+        <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
+            <img src="${imageUrl}" alt="${computer.name}" class="computer-image">
+            <div class="computer-info">
+                <h3 class="computer-title">${computer.name}</h3>
+                <div class="computer-specs">
+                    ${specBadges}
                 </div>
-                
-                <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
-                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 700; color: white;">${computer.name}</h3>
-                    
-                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        ${computer.description || 'Sin descripción disponible.'}
-                    </p>
-
-                    <div style="height: 1px; background: var(--glass-border); margin-bottom: 1rem; width: 100%;"></div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
-                        <div>
-                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">Procesador</span>
-                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.cpu || 'N/A'}</span>
-                        </div>
-                        <div>
-                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">Gráfica</span>
-                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.gpu || 'N/A'}</span>
-                        </div>
-                         <div>
-                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">RAM</span>
-                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary);">${computer.ram ? computer.ram + 'GB' : 'N/A'}</span>
-                        </div>
-                        <div>
-                             <span style="font-size: 0.75rem; color: var(--accent-purple); display: block; margin-bottom: 2px;">Software</span>
-                             <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; display: block;" title="${computer.softwareInstalled}">${computer.softwareInstalled || 'N/A'}</span>
-                        </div>
+                <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0.5rem 0;">
+                    ${computer.description || 'Equipo de alto rendimiento disponible'}
+                </p>
+                <div class="computer-price">
+                    <div>
+                        <span class="price">$${computer.pricePerHour}</span>
+                        <span class="price-unit">/hora</span>
                     </div>
-
-                    <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                        <div class="computer-price">
-                            <span class="price" style="font-size: 1.5rem; font-weight: 700; color: white;">$${computer.pricePerHour}</span>
-                            <span class="price-unit" style="font-size: 0.9rem; color: var(--text-muted);">/hora</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; gap: 0.3rem; color: var(--accent-purple);">
-                             <span>★</span> 
-                             <span style="font-weight: 600;">${rating}</span>
-                             <span style="color: var(--text-muted); font-size: 0.85rem;">(${reviewCount})</span>
-                        </div>
+                    <div class="rating">
+                        ${stars} <span style="margin-left: 0.3rem;">(${reviewCount})</span>
                     </div>
                 </div>
             </div>
+        </div>
         `;
     }).join('');
-}
-
-function setupFilters() {
-    const applyButton = document.getElementById('applyFilters');
-    const resetButton = document.getElementById('resetFilters');
-    const sortSelect = document.getElementById('sortFilter');
-    const searchInput = document.getElementById('searchInput');
-
-    if (resetButton) resetButton.addEventListener('click', resetFilters);
-    if (sortSelect) sortSelect.addEventListener('change', () => applyFilters());
-    if (searchInput) searchInput.addEventListener('keyup', () => applyFilters());
-
-    // Add listeners to all selects
-    document.querySelectorAll('select').forEach(select => {
-        if (select.id !== 'sortFilter') {
-            select.addEventListener('change', () => applyFilters());
-        }
-    });
-}
-
-function gatherFilters() {
-    return {
-        category: document.getElementById('categoryFilter')?.value,
-        minPrice: document.getElementById('minPrice')?.value, // Assuming input
-        maxPrice: document.getElementById('maxPrice')?.value, // Assuming input
-        gpu: document.getElementById('gpuFilter')?.value,
-        ram: document.getElementById('ramFilter')?.value,
-        sort: document.getElementById('sortFilter')?.value
-    };
-}
-
-function applyFilters() {
-    let filters = gatherFilters();
-    Object.keys(filters).forEach(key => {
-        if (filters[key] === 'all' || filters[key] === '') delete filters[key];
-    });
-    currentFilters = filters;
-    loadMarketplaceComputers(filters);
-}
-
-function resetFilters() {
-    document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
-    document.querySelectorAll('input').forEach(i => i.value = '');
-    currentFilters = {};
-    loadMarketplaceComputers();
 }
