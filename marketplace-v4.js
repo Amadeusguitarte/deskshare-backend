@@ -92,14 +92,7 @@ function renderComputers(computers) {
 
         return `
         <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
-            <div class="image-wrapper" style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
-                <img src="${imageUrl}" alt="${computer.name}" 
-                     class="computer-image" 
-                     style="width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s ease-in-out;"
-                     onload="this.style.opacity = 1"
-                     onerror="this.style.opacity = 0; this.style.display = 'none'"
-                >
-            </div>
+            ${renderCardImageCarousel(computer)}
             <div class="computer-info">
                 <h3 class="computer-title">${computer.name}</h3>
                 <div class="computer-specs">
@@ -122,4 +115,83 @@ function renderComputers(computers) {
         `;
     }).join('');
 }
+
+function renderCardImageCarousel(computer) {
+    const images = computer.images && computer.images.length > 0 ? computer.images : [];
+
+    // CASE 1: No images or single image -> Use existing static logic
+    if (images.length <= 1) {
+        const { url: imageUrl } = getComputerImage(computer);
+        return `
+        <div class="image-wrapper" style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
+            <img src="${imageUrl}" alt="${computer.name}" 
+                 class="computer-image" 
+                 style="width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s ease-in-out;"
+                 onload="this.style.opacity = 1"
+                 onerror="this.style.opacity = 0; this.style.display = 'none'"
+            >
+        </div>`;
+    }
+
+    // CASE 2: Multiple images -> Carousel
+    const slides = images.map((img, index) => {
+        const rawUrl = img.imageUrl || img.url;
+        // Basic filter for localhost/invalid
+        if (!rawUrl || rawUrl.includes('localhost') || rawUrl.includes('127.0.0.1')) {
+            return FALLBACK_SVG;
+        }
+        return rawUrl;
+    });
+
+    const carouselId = `carousel-${computer.id || computer._id || Math.random().toString(36).substr(2, 9)}`;
+
+    return `
+    <div class="image-wrapper carousel-container" id="${carouselId}" data-current-index="0" data-total="${slides.length}" 
+         style="position: relative; width: 100%; height: 200px; background-color: #222; background-image: url('${FALLBACK_SVG}'); background-size: cover; background-position: center;">
+        
+        ${slides.map((url, idx) => `
+            <img src="${url}" class="carousel-slide" 
+                 style="width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; transition: opacity 0.3s; opacity: ${idx === 0 ? '0' : '0'}; display: ${idx === 0 ? 'block' : 'none'};"
+                 onload="this.parentElement.dataset.currentIndex == ${idx} ? this.style.opacity = 1 : this.style.opacity = 0"
+                 onerror="this.style.display='none'">
+        `).join('')}
+
+        <!-- Arrows -->
+        <button class="carousel-btn prev" onclick="event.stopPropagation(); moveCarousel('${carouselId}', -1)" 
+                style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;">
+            ❮
+        </button>
+        <button class="carousel-btn next" onclick="event.stopPropagation(); moveCarousel('${carouselId}', 1)" 
+                style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;">
+            ❯
+        </button>
+
+        <style>
+            #${carouselId}:hover .carousel-btn { opacity: 1 !important; }
+        </style>
+    </div>
+    `;
+}
+
+window.moveCarousel = function (carouselId, direction) {
+    const container = document.getElementById(carouselId);
+    if (!container) return;
+
+    const total = parseInt(container.dataset.total);
+    let current = parseInt(container.dataset.currentIndex);
+
+    // Hide current
+    const slides = container.querySelectorAll('.carousel-slide');
+    slides[current].style.opacity = '0';
+    setTimeout(() => { slides[current].style.display = 'none'; }, 300);
+
+    // Update index
+    current = (current + direction + total) % total;
+    container.dataset.currentIndex = current;
+
+    // Show new
+    const nextSlide = slides[current];
+    nextSlide.style.display = 'block';
+    setTimeout(() => { nextSlide.style.opacity = '1'; }, 10);
+};
 
