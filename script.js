@@ -140,13 +140,23 @@ function parseJwt(token) {
 // Handle Google OAuth response
 async function handleGoogleResponse(response) {
     try {
+        console.log('=== GOOGLE LOGIN DEBUG START ===');
+        console.log('Raw Google response:', response);
+        console.log('Google credential (JWT):', response.credential);
+
         // Decode Google Token immediately to get picture
         const googleUser = parseJwt(response.credential);
+        console.log('Parsed Google user:', googleUser);
+
         const googlePicture = googleUser.picture;
+        console.log('Extracted picture URL:', googlePicture);
 
         // BACKUP: Save Google picture locally in case backend loses it
         if (googlePicture) {
             localStorage.setItem('googleAvatar', googlePicture);
+            console.log('✅ Saved to localStorage.googleAvatar');
+        } else {
+            console.error('❌ No picture in Google token!');
         }
 
         const data = await apiRequest('/auth/google', {
@@ -154,16 +164,23 @@ async function handleGoogleResponse(response) {
             body: JSON.stringify({ idToken: response.credential })
         });
 
+        console.log('Backend response:', data);
+        console.log('Backend user object:', data.user);
+
         authToken = data.token;
         currentUser = data.user;
 
         // Force Google Picture if backend didn't provide one
         if (!currentUser.avatar && googlePicture) {
             currentUser.avatar = googlePicture;
+            console.log('✅ Forced avatar from Google:', googlePicture);
         }
 
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        console.log('Final currentUser saved to localStorage:', currentUser);
+        console.log('=== GOOGLE LOGIN DEBUG END ===');
 
         initializeSocket();
         window.location.href = 'profile.html';
