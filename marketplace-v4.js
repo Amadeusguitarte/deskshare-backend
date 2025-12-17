@@ -94,3 +94,4 @@ function renderComputers(computers) {
         `;
     }).join('');
 }
+
