@@ -5,6 +5,23 @@
 
 const API_BASE_URL = 'https://deskshare-backend-production.up.railway.app/api';
 
+const FALLBACK_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Crect x='45' y='50' width='110' height='75' rx='4' fill='%23444' stroke='%23666' stroke-width='2'/%3E%3Crect x='52' y='57' width='96' height='61' fill='%23333'/%3E%3Crect x='85' y='125' width='30' height='4' fill='%23444'/%3E%3Crect x='70' y='129' width='60' height='8' rx='2' fill='%23555'/%3E%3Ccircle cx='100' cy='133' r='1.5' fill='%23888'/%3E%3C/svg%3E";
+
+function getComputerImage(computer) {
+    if (!computer.images || !Array.isArray(computer.images) || computer.images.length === 0) {
+        return { url: FALLBACK_SVG, isFallback: true };
+    }
+
+    const firstImage = computer.images[0];
+    const rawUrl = firstImage.imageUrl || firstImage.url;
+
+    if (!rawUrl || typeof rawUrl !== 'string' || !rawUrl.trim().match(/^https?:\/\//)) {
+        return { url: FALLBACK_SVG, isFallback: true };
+    }
+
+    return { url: rawUrl, isFallback: false };
+}
+
 // Check admin auth on load
 window.addEventListener('DOMContentLoaded', () => {
     const adminToken = localStorage.getItem('adminToken');
@@ -75,11 +92,12 @@ function renderComputerList(containerId, computers, isPending) {
         return;
     }
 
-    container.innerHTML = computers.map(computer => `
+    container.innerHTML = computers.map(computer => {
+        const { url: imageUrl, isFallback } = getComputerImage(computer);
+        return `
         <div class="computer-card" data-id="${computer.id}">
             <div class="card-image">
-                <img src="${computer.images[0]?.imageUrl || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}" alt="${computer.name}"
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 200 200\\' fill=\\'none\\'%3E%3Crect width=\\'200\\' height=\\'200\\' fill=\\'%23222\\'/%3E%3Crect x=\\'45\\' y=\\'50\\' width=\\'110\\' height=\\'75\\' rx=\\'4\\' fill=\\'%23444\\' stroke=\\'%23666\\' stroke-width=\\'2\\'/%3E%3Crect x=\\'52\\' y=\\'57\\' width=\\'96\\' height=\\'61\\' fill=\\'%23333\\'/%3E%3Crect x=\\'85\\' y=\\'125\\' width=\\'30\\' height=\\'4\\' fill=\\'%23444\\'/%3E%3Crect x=\\'70\\' y=\\'129\\' width=\\'60\\' height=\\'8\\' rx=\\'2\\' fill=\\'%23555\\'/%3E%3Ccircle cx=\\'100\\' cy=\\'133\\' r=\\'1.5\\' fill=\\'%23888\\'/%3E%3C/svg%3E';">
+                <img src="${imageUrl}" alt="${computer.name}"${!isFallback ? ` onerror="this.src='${FALLBACK_SVG}'"` : ''}>
                 ${isPending ? '<span class="status-badge pending">Pendiente</span>' : '<span class="status-badge approved">Aprobado</span>'}
             </div>
             <div class="card-content">
@@ -105,7 +123,9 @@ function renderComputerList(containerId, computers, isPending) {
                 </div>
             </div>
         </div>
-    `).join('');
+        </div>
+        `;
+    }).join('');
 }
 
 // Approve computer
