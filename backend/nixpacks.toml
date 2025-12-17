@@ -5,8 +5,9 @@ nixPkgs = ["nodejs-18_x"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npx prisma db push --accept-data-loss", "npx prisma generate"]
+cmds = ["npx prisma generate"]
 
 [start]
-cmd = "node server.js"
+cmd = "npx prisma db push --accept-data-loss && node server.js"
+
 
