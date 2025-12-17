@@ -113,7 +113,12 @@ router.get('/', async (req, res, next) => {
 // ========================================
 router.get('/my', auth, async (req, res, next) => {
     try {
-        const userId = req.user.userId || req.user.id;
+        const rawUserId = req.user.userId || req.user.id;
+        const userId = parseInt(rawUserId, 10);
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
 
         const computers = await prisma.computer.findMany({
             where: {
