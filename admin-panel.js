@@ -114,6 +114,9 @@ function renderComputerList(containerId, computers, isPending) {
             </div>
             <div class="card-content">
                 <h3>${computer.name}</h3>
+                <p style="font-size: 0.9rem; color: #888; margin: 0.5rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    ${computer.description || 'Sin descripción disponible.'}
+                </p>
                 <div class="computer-specs">
                     <span title="CPU"><i>💻</i> ${computer.cpu || 'N/A'}</span>
                     <span title="GPU"><i>🎮</i> ${computer.gpu || 'N/A'}</span>
