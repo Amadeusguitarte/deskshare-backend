@@ -770,16 +770,7 @@ function loadUserProfile() {
         memberSinceEl.textContent = `Miembro desde: ${date}`;
     }
 
-    const avatarUrl = currentUser.avatar || currentUser.picture || currentUser.image || currentUser.photoUrl;
-
-    console.log('🔍 DEBUG Avatar:', {
-        hasAvatar: !!avatarUrl,
-        avatar: currentUser.avatar,
-        picture: currentUser.picture,
-        image: currentUser.image,
-        photoUrl: currentUser.photoUrl,
-        fullUser: currentUser
-    });
+    const avatarUrl = currentUser.avatar || currentUser.picture || currentUser.image || currentUser.photoUrl || localStorage.getItem('googleAvatar');
 
     if (avatarUrl) {
         if (avatarEl) {
@@ -787,19 +778,6 @@ function loadUserProfile() {
             avatarEl.style.display = 'block';
         }
         if (defaultIconEl) defaultIconEl.style.display = 'none';
-    } else {
-        // Show helpful message if no avatar after Google login
-        console.warn('⚠️ No avatar found. User may need to re-login.');
-        // Optionally add a subtle UI hint
-        if (nameEl && currentUser.name) {
-            // Add a small indicator that re-login might help
-            const hintEl = document.createElement('small');
-            hintEl.style.cssText = 'display: block; color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.3rem;';
-            hintEl.textContent = '💡 ¿No ves tu foto? Intenta cerrar sesión y volver a entrar';
-            if (!nameEl.nextElementSibling?.textContent?.includes('foto')) {
-                nameEl.parentElement.appendChild(hintEl);
-            }
-        }
     }
 }
 
