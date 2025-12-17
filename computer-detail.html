@@ -178,7 +178,7 @@
                             <div class="chat-input-container">
                                 <input type="text" class="chat-input" id="messageInput"
                                     placeholder="Escribe un mensaje..." onkeypress="handleChatKeyPress(event)">
-                                <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+                                <button class="btn btn-primary" onclick="window.sendChatMessage()">Enviar</button>
                             </div>
                         </div>
                     </div>
@@ -312,7 +312,7 @@
 
         function handleChatKeyPress(event) {
             if (event.key === 'Enter') {
-                sendMessage();
+                window.sendChatMessage();
             }
         }
     </script>
@@ -320,5 +320,3 @@
 </body>
 
 </html>
-
-
