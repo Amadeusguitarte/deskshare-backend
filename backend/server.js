@@ -20,6 +20,7 @@ const userRoutes = require('./routes/users');
 const chatRoutes = require('./routes/chat');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
+const migrateRoutes = require('./routes/migrate'); // TEMPORARY - DELETE AFTER MIGRATION
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -84,6 +85,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
 
 // 404 handler
 app.use((req, res) => {
