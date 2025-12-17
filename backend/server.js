@@ -87,9 +87,17 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
 
-// 404 handler
-app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
+// Serve static files from the root directory (Project Root)
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../')));
+
+// 404 handler - For SPA, send index.html, but for now just 404 for API
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'Route not found' });
+    }
+    // Fallback to index.html for unknown non-API routes (SPA support)
+    res.sendFile(path.join(__dirname, '../index.html'));
 });
 
 // Error handler
