@@ -70,8 +70,11 @@ function renderComputers(computers) {
         const stars = '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '☆').repeat(5 - Math.floor(rating));
 
         return `
-        <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
-            <img src="${imageUrl}" alt="${computer.name}" class="computer-image">
+        <div class="computer-card glass-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
+            <div class="computer-image-container" style="position: relative; overflow: hidden;">
+                <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\' fill=\'none\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23222\'/%3E%3Cpath d=\'M60 70h80v40H60z\' fill=\'%23444\'/%3E%3Crect x=\'70\' y=\'80\' width=\'60\' height=\'25\' fill=\'%23666\'/%3E%3Ccircle cx=\'100\' cy=\'135\' r=\'3\' fill=\'%23888\'/%3E%3Crect x=\'50\' y=\'110\' width=\'100\' height=\'3\' fill=\'%23444\'/%3E%3Crect x=\'85\' y=\'113\' width=\'30\' height=\'20\' fill=\'%23333\'/%3E%3C/svg%3E';">
+            </div>
             <div class="computer-info">
                 <h3 class="computer-title">${computer.name}</h3>
                 <div class="computer-specs">
