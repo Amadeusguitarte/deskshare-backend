@@ -258,22 +258,39 @@ async function sendChatMessage() {
     if (!text) return;
 
     if (!window.chatManager) {
-        alert('Chat no inicializado');
+        console.error('ChatManager not found');
+        alert('El sistema de chat no está disponible en este momento via Widget. Redirigiendo...');
+        window.location.href = 'messages.html';
         return;
     }
 
     // Use ChatManager to send
     input.value = ''; // Optimistic clear
 
-    // Send to owner
-    await window.chatManager.sendMessage(currentComputer.user.id, text, currentComputer.id);
+    try {
+        const ownerId = currentComputer.user.id;
 
-    // Optimistic display
-    displayChatMessage({
-        senderId: currentUser.id,
-        message: text,
-        createdAt: new Date().toISOString()
-    });
+        // 1. Send to API
+        await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
+
+        // 2. Open Global Widget (This is the key fix)
+        if (typeof window.chatManager.openChat === 'function') {
+            await window.chatManager.openChat(ownerId);
+        } else {
+            console.warn('chatManager.openChat is not a function');
+        }
+
+        // 3. Optimistic display in local container (if exists)
+        displayChatMessage({
+            senderId: currentUser.id,
+            message: text,
+            createdAt: new Date().toISOString()
+        });
+
+    } catch (err) {
+        console.error('Error sending message:', err);
+        alert('Error al enviar el mensaje.');
+    }
 }
 
 function scrollChatToBottom() {
