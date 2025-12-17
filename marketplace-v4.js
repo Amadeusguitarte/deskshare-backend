@@ -44,13 +44,17 @@ function renderComputers(computers) {
 
     // MATCHING THE DESIGN FROM index.html "Computadoras Destacadas"
     grid.innerHTML = computers.map(computer => {
-        // Image handling with SVG fallback
-        let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Cpath d='M60 70h80v40H60z' fill='%23444'/%3E%3Crect x='70' y='80' width='60' height='25' fill='%23666'/%3E%3Ccircle cx='100' cy='135' r='3' fill='%23888'/%3E%3Crect x='50' y='110' width='100' height='3' fill='%23444'/%3E%3Crect x='85' y='113' width='30' height='20' fill='%23333'/%3E%3C/svg%3E";
+        // Image handling with instant SVG fallback for missing images
+        const FALLBACK_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Crect x='45' y='50' width='110' height='75' rx='4' fill='%23444' stroke='%23666' stroke-width='2'/%3E%3Crect x='52' y='57' width='96' height='61' fill='%23333'/%3E%3Crect x='85' y='125' width='30' height='4' fill='%23444'/%3E%3Crect x='70' y='129' width='60' height='8' rx='2' fill='%23555'/%3E%3Ccircle cx='100' cy='133' r='1.5' fill='%23888'/%3E%3C/svg%3E";
+
+        let imageUrl = FALLBACK_SVG;
+        let hasRealImage = false;
 
         if (computer.images && Array.isArray(computer.images) && computer.images.length > 0) {
             const firstImage = computer.images[0];
             if (firstImage && (firstImage.imageUrl || firstImage.url)) {
                 imageUrl = firstImage.imageUrl || firstImage.url;
+                hasRealImage = true;
             }
         }
 
@@ -71,8 +75,7 @@ function renderComputers(computers) {
 
         return `
         <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
-            <img src="${imageUrl}" alt="${computer.name}" class="computer-image"
-                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\' fill=\'none\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23222\'/%3E%3Crect x=\'45\' y=\'50\' width=\'110\' height=\'75\' rx=\'4\' fill=\'%23444\' stroke=\'%23666\' stroke-width=\'2\'/%3E%3Crect x=\'52\' y=\'57\' width=\'96\' height=\'61\' fill=\'%23333\'/%3E%3Crect x=\'85\' y=\'125\' width=\'30\' height=\'4\' fill=\'%23444\'/%3E%3Crect x=\'70\' y=\'129\' width=\'60\' height=\'8\' rx=\'2\' fill=\'%23555\'/%3E%3Ccircle cx=\'100\' cy=\'133\' r=\'1.5\' fill=\'%23888\'/%3E%3C/svg%3E';">
+            <img src="${imageUrl}" alt="${computer.name}" class="computer-image"${hasRealImage ? ` onerror="this.src='${FALLBACK_SVG}';"` : ''}>
             <div class="computer-info">
                 <h3 class="computer-title">${computer.name}</h3>
                 <div class="computer-specs">
