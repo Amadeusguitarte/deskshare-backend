@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mensajes - DeskShare</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+    <div class="blob-c"></div>
+
+    <!-- Navigation -->
+    <nav class="glass-nav">
+        <div class="nav-content">
+            <div class="logo">DeskShare</div>
+            <div class="nav-links">
+                <a href="index.html">Inicio</a>
+                <a href="marketplace.html">Explorar</a>
+                <a href="how-it-works.html">Cómo Funciona</a>
+                <a href="profile.html">Mi Perfil</a>
+                <a href="messages.html" class="active">Mensajes <span id="navUnreadBadge"
+                        style="display:none; background: var(--error-red); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span></a>
+            </div>
+            <div class="auth-buttons" id="authButtons">
+                <a href="login.html" class="btn btn-secondary">Iniciar Sesión</a>
+                <a href="register.html" class="btn btn-primary">Registrarse</a>
+            </div>
+            <div class="user-menu" id="userMenu" style="display: none;">
+                <div class="user-avatar" id="navUserAvatar">
+                    <span id="navUserInitials">PK</span>
+                </div>
+                <div class="dropdown-menu">
+                    <a href="profile.html">Mi Perfil</a>
+                    <a href="messages.html">Mensajes</a>
+                    <a href="publish.html">Publicar PC</a>
+                    <a href="#" id="logoutBtn">Cerrar Sesión</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main style="padding-top: 80px; height: 100vh; box-sizing: border-box;">
+        <div id="messagesPageContainer" style="height: 100%;">
+            <!-- ChatManager will render the full UI here -->
+            <div
+                style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--text-secondary);">
+                <div class="spinner"></div>
+                <span style="margin-left: 1rem;">Cargando mensajes...</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="ui-global.js"></script>
+    <script src="js/chat-manager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check auth
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Init Chat Manager
+            // Assumes API_BASE_URL is defined in config.js or ui-global.js
+            // If not, we define it here or rely on the script
+            const socketUrl = 'https://deskshare-backend-production.up.railway.app';
+            window.chatManager = new ChatManager(currentUser, socketUrl);
+        });
+    </script>
+</body>
+
+</html>
