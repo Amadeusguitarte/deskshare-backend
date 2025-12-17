@@ -30,55 +30,36 @@ async function loadMyComputers() {
 
         console.log('Loaded my computers:', myComputers.length);
 
-        // Show computers directly - no fallback needed since we fetch user's own
-        let computersToShow = myComputers;
-        let showingFallback = false;
+        container.innerHTML = myComputers.map(computer => {
+            // Robust image handling with SVG fallback
+            let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Cpath d='M60 70h80v40H60z' fill='%23444'/%3E%3Crect x='70' y='80' width='60' height='25' fill='%23666'/%3E%3Ccircle cx='100' cy='135' r='3' fill='%23888'/%3E%3Crect x='50' y='110' width='100' height='3' fill='%23444'/%3E%3Crect x='85' y='113' width='30' height='20' fill='%23333'/%3E%3C/svg%3E";
 
-        if (myComputers.length === 0 && allComputers.length > 0) {
-            const computersWithoutOwner = allComputers.filter(c => !c.owner || c.owner === '');
-            if (computersWithoutOwner.length > 0) {
-                computersToShow = computersWithoutOwner;
-                showingFallback = true;
-            }
-        }
-
-        if (computersToShow.length === 0) {
-            // Show computers in grid
-            if (myComputers.length === 0) {
-                container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">No se encontraron computadoras asociadas a tu cuenta actual.</p>';
-                return;
-            }
-
-            container.innerHTML = myComputers.map(computer => {
-                // Robust image handling with SVG fallback
-                let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Cpath d='M60 70h80v40H60z' fill='%23444'/%3E%3Crect x='70' y='80' width='60' height='25' fill='%23666'/%3E%3Ccircle cx='100' cy='135' r='3' fill='%23888'/%3E%3Crect x='50' y='110' width='100' height='3' fill='%23444'/%3E%3Crect x='85' y='113' width='30' height='20' fill='%23333'/%3E%3C/svg%3E";
-
-                // Try to get image from computer data
-                if (computer.images && Array.isArray(computer.images) && computer.images.length > 0) {
-                    const firstImage = computer.images[0];
-                    if (firstImage && (firstImage.imageUrl || firstImage.url)) {
-                        imageUrl = firstImage.imageUrl || firstImage.url;
-                    }
+            // Try to get image from computer data
+            if (computer.images && Array.isArray(computer.images) && computer.images.length > 0) {
+                const firstImage = computer.images[0];
+                if (firstImage && (firstImage.imageUrl || firstImage.url)) {
+                    imageUrl = firstImage.imageUrl || firstImage.url;
                 }
+            }
 
-                const statusColors = {
-                    'active': 'var(--success-green)',
-                    'inactive': 'var(--error-red)',
-                    'maintenance': 'var(--warning-yellow)'
-                };
-                // Map backend status to UI text if needed, or use raw
-                // Assuming backend uses 'active' but UI shows 'Disponible'? 
-                // Let's use raw status or a mapper
-                const statusMap = {
-                    'active': 'Disponible',
-                    'inactive': 'Ocupado',
-                    'maintenance': 'Mantenimiento'
-                };
+            const statusColors = {
+                'active': 'var(--success-green)',
+                'inactive': 'var(--error-red)',
+                'maintenance': 'var(--warning-yellow)'
+            };
+            // Map backend status to UI text if needed, or use raw
+            // Assuming backend uses 'active' but UI shows 'Disponible'? 
+            // Let's use raw status or a mapper
+            const statusMap = {
+                'active': 'Disponible',
+                'inactive': 'Ocupado',
+                'maintenance': 'Mantenimiento'
+            };
 
-                const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
-                const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
+            const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
+            const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
 
-                return `
+            return `
             <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important;">
                 <div style="position: relative;">
                     <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
@@ -133,16 +114,16 @@ async function loadMyComputers() {
                 </div>
             </div>
             `;
-            }).join('');
+        }).join('');
 
-        } catch (error) {
-            console.error('Error loading my computers:', error);
-            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
-        }
+    } catch (error) {
+        console.error('Error loading my computers:', error);
+        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
     }
+}
 
 function manageComputer(id) {
-        // For now, redirect to a manage page or show alert
-        // window.location.href = `manage-computer.html?id=${id}`;
-        alert('Funcionalidad de gestión en desarrollo');
-    }
+    // For now, redirect to a manage page or show alert
+    // window.location.href = `manage-computer.html?id=${id}`;
+    alert('Funcionalidad de gestión en desarrollo');
+}
