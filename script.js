@@ -770,14 +770,31 @@ function loadUserProfile() {
         memberSinceEl.textContent = `Miembro desde: ${date}`;
     }
 
+    // DEBUG: Log avatar sources
+    const avatarSources = {
+        'currentUser.avatar': currentUser.avatar,
+        'currentUser.picture': currentUser.picture,
+        'currentUser.image': currentUser.image,
+        'currentUser.photoUrl': currentUser.photoUrl,
+        'localStorage.googleAvatar': localStorage.getItem('googleAvatar')
+    };
+
+    console.log('🔍 AVATAR DEBUG - All sources:', avatarSources);
+
     const avatarUrl = currentUser.avatar || currentUser.picture || currentUser.image || currentUser.photoUrl || localStorage.getItem('googleAvatar');
 
+    console.log('🔍 AVATAR DEBUG - Final URL:', avatarUrl);
+
     if (avatarUrl) {
+        console.log('✅ Avatar found, setting image src');
         if (avatarEl) {
             avatarEl.src = avatarUrl;
             avatarEl.style.display = 'block';
+            console.log('✅ Avatar element updated');
         }
         if (defaultIconEl) defaultIconEl.style.display = 'none';
+    } else {
+        console.error('❌ NO AVATAR FOUND IN ANY SOURCE');
     }
 }
 
