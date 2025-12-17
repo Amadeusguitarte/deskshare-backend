@@ -787,31 +787,24 @@ function loadUserProfile() {
         memberSinceEl.textContent = `Miembro desde: ${date}`;
     }
 
-    // DEBUG: Log avatar sources
-    const avatarSources = {
-        'currentUser.avatar': currentUser.avatar,
-        'currentUser.picture': currentUser.picture,
-        'currentUser.image': currentUser.image,
-        'currentUser.photoUrl': currentUser.photoUrl,
-        'localStorage.googleAvatar': localStorage.getItem('googleAvatar')
-    };
-
-    console.log('🔍 AVATAR DEBUG - All sources:', avatarSources);
-
+    // Try to load avatar from any available source
     const avatarUrl = currentUser.avatar || currentUser.picture || currentUser.image || currentUser.photoUrl || localStorage.getItem('googleAvatar');
 
-    console.log('🔍 AVATAR DEBUG - Final URL:', avatarUrl);
-
-    if (avatarUrl) {
-        console.log('✅ Avatar found, setting image src');
-        if (avatarEl) {
-            avatarEl.src = avatarUrl;
-            avatarEl.style.display = 'block';
-            console.log('✅ Avatar element updated');
-        }
-        if (defaultIconEl) defaultIconEl.style.display = 'none';
+    if (avatarEl && avatarUrl) {
+        avatarEl.src = avatarUrl;
+        // If image loads successfully, hide the icon
+        avatarEl.onload = () => {
+            if (defaultIconEl) defaultIconEl.style.display = 'none';
+        };
+        // If image fails, show icon and hide img
+        avatarEl.onerror = () => {
+            avatarEl.style.display = 'none';
+            if (defaultIconEl) defaultIconEl.style.display = 'block';
+        };
     } else {
-        console.error('❌ NO AVATAR FOUND IN ANY SOURCE');
+        // No URL available - hide img, show icon
+        if (avatarEl) avatarEl.style.display = 'none';
+        if (defaultIconEl) defaultIconEl.style.display = 'block';
     }
 }
 
