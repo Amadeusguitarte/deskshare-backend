@@ -21,10 +21,14 @@ function getComputerImage(computer) {
         return { url: FALLBACK_SVG, isFallback: true };
     }
 
-    // BLOCK LOCALHOST URLs (Cause of 5s timeout delay)
+    // DEBUG: Log what we are checking
     if (rawUrl.includes('localhost') || rawUrl.includes('127.0.0.1')) {
+        console.warn('Blocking localhost image:', rawUrl);
         return { url: FALLBACK_SVG, isFallback: true };
     }
+
+    // DEBUG: If we get here, we think the URL is good. Log it if it fails later.
+    // console.log('Accepting image URL:', rawUrl);
 
     return { url: rawUrl, isFallback: false };
 }
