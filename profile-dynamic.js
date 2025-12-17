@@ -51,32 +51,38 @@ async function loadMyComputers() {
         }
 
         container.innerHTML = myComputers.map(computer => {
-            // Robust image handling
-            let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
+            // Robust image handling with SVG fallback
+            let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Cpath d='M60 70h80v40H60z' fill='%23444'/%3E%3Crect x='70' y='80' width='60' height='25' fill='%23666'/%3E%3Ccircle cx='100' cy='135' r='3' fill='%23888'/%3E%3Crect x='50' y='110' width='100' height='3' fill='%23444'/%3E%3Crect x='85' y='113' width='30' height='20' fill='%23333'/%3E%3C/svg%3E";
 
-            if (computer.images && computer.images.length > 0) {
-                // Check all possible image url properties
-                imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+            // Try to get image from computer data
+            if (computer.images && Array.isArray(computer.images) && computer.images.length > 0) {
+                const firstImage = computer.images[0];
+                if (firstImage && (firstImage.imageUrl || firstImage.url)) {
+                    imageUrl = firstImage.imageUrl || firstImage.url;
+                }
             }
+            // Check all possible image url properties
+            imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+        }
 
             const statusColors = {
-                'active': 'var(--success-green)',
-                'inactive': 'var(--error-red)',
-                'maintenance': 'var(--warning-yellow)'
-            };
-            // Map backend status to UI text if needed, or use raw
-            // Assuming backend uses 'active' but UI shows 'Disponible'? 
-            // Let's use raw status or a mapper
-            const statusMap = {
-                'active': 'Disponible',
-                'inactive': 'Ocupado',
-                'maintenance': 'Mantenimiento'
-            };
+            'active': 'var(--success-green)',
+            'inactive': 'var(--error-red)',
+            'maintenance': 'var(--warning-yellow)'
+        };
+        // Map backend status to UI text if needed, or use raw
+        // Assuming backend uses 'active' but UI shows 'Disponible'? 
+        // Let's use raw status or a mapper
+        const statusMap = {
+            'active': 'Disponible',
+            'inactive': 'Ocupado',
+            'maintenance': 'Mantenimiento'
+        };
 
-            const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
-            const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
+        const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
+        const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
 
-            return `
+        return `
             <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important;">
                 <div style="position: relative;">
                     <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
@@ -131,12 +137,12 @@ async function loadMyComputers() {
                 </div>
             </div>
             `;
-        }).join('');
+    }).join('');
 
-    } catch (error) {
-        console.error('Error loading my computers:', error);
-        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
-    }
+} catch (error) {
+    console.error('Error loading my computers:', error);
+    container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
+}
 }
 
 function manageComputer(id) {
