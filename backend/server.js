@@ -108,6 +108,12 @@ io.on('connection', (socket) => {
         console.log(`Socket ${socket.id} joined room computer-${computerId}`);
     });
 
+    // Join my private user room (for global chat)
+    socket.on('join-user-room', (userId) => {
+        socket.join(`user-${userId}`);
+        console.log(`Socket ${socket.id} joined user room user-${userId}`);
+    });
+
     // Send message
     socket.on('send-message', (data) => {
         io.to(`computer-${data.computerId}`).emit('new-message', data);
