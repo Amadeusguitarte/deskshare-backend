@@ -141,8 +141,9 @@ async function loadMyComputers() {
         }).join('');
 
     } catch (error) {
-        console.error('Error loading my computers:', error);
-        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
+        console.error('PROVILE LOAD ERROR:', error);
+        // Fallback: show the raw error to the user for debugging
+        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras. Por favor intenta más tarde.</p>';
     }
 }
 
