@@ -144,6 +144,7 @@ server.listen(PORT, () => {
 ║  Environment: ${process.env.NODE_ENV || 'development'}           ║
 ║  Port: ${PORT}                              ║
 ║  Socket.io: ✓ Active                      ║
+║  Deployed: ${new Date().toISOString()}    ║
 ╚═══════════════════════════════════════════╝
   `);
 });
