@@ -189,77 +189,91 @@ async function startRemoteSession(bookingId) {
 // Chat Functionality
 // ========================================
 
-function initializeChat(computerId) {
-    if (!socket) {
-        console.error('Socket not initialized');
-        return;
+// ========================================
+// Chat Functionality (Integrated with ChatManager)
+// ========================================
+
+async function initializeChat(computerId) {
+    if (window.chatManager) {
+        // ChatManager handles the global socket connection
+        // We just need to load the specific history for this computer context
+        // OR we can just treat it as a conversation with the owner
+        // For visual consistency, let's load the history into the inline widget
+
+        const ownerId = currentComputer.user.id;
+        const messages = await window.chatManager.loadHistory(ownerId);
+
+        const chatContainer = document.getElementById('chatMessages');
+        if (chatContainer) {
+            chatContainer.innerHTML = ''; // Clear existing
+            messages.forEach(msg => displayChatMessage(msg));
+            scrollChatToBottom();
+        }
+
+        // Listen for new messages via ChatManager's socket?
+        // ChatManager already listens and updates its internal state. 
+        // We can hook into it or listen to the event directly if we have access.
+        // For simplicity, let's attach to the same socket if possible, 
+        // OR better: let ChatManager handle the UI updates if we registered a callback.
+        // BUT strict separation is cleaner. Let's just listen to socket events here too IF needed,
+        // OR rely on ChatManager.
+
+        // Re-using the socket from ChatManager is best
+        if (window.chatManager.socket) {
+            window.chatManager.socket.on('private-message', (msg) => {
+                if (msg.senderId === ownerId || msg.senderId === currentUser.id) {
+                    displayChatMessage(msg);
+                }
+            });
+        }
     }
-
-    // Join computer room
-    socket.emit('join-room', { computerId });
-
-    // Load message history
-    loadChatHistory(computerId);
-
-    // Listen for new messages
-    socket.on('new-message', (message) => {
-        displayChatMessage(message);
-    });
 }
 
-async function loadChatHistory(computerId) {
-    try {
-        const response = await apiRequest(`/chat/${computerId}/messages`);
-        const messages = response.messages || response;
-
-        messages.forEach(message => {
-            displayChatMessage(message, false);
-        });
-
-        scrollChatToBottom();
-
-    } catch (error) {
-        console.error('Error loading chat:', error);
-    }
-}
-
-function displayChatMessage(message, animate = true) {
+function displayChatMessage(message) {
     const chatContainer = document.getElementById('chatMessages');
     if (!chatContainer) return;
 
+    const isMe = message.senderId === currentUser.id;
     const messageEl = document.createElement('div');
-    messageEl.className = message.senderId === currentUser?.id ? 'message-sent' : 'message-received';
+    messageEl.className = isMe ? 'message-sent' : 'message-received';
+    // Match styles from CSS or inline
+    messageEl.style.cssText = isMe ?
+        'align-self: flex-end; background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-right-radius: 2px; margin-bottom: 8px; max-width: 80%;' :
+        'align-self: flex-start; background: rgba(255,255,255,0.1); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-left-radius: 2px; margin-bottom: 8px; max-width: 80%;';
 
     messageEl.innerHTML = `
-        <div class="message-content">${escapeHtml(message.text)}</div>
-        <div class="message-time">${formatMessageTime(message.createdAt)}</div>
+        <div class="message-content">${escapeHtml(message.message || message.text)}</div>
+        <div class="message-time" style="font-size: 0.7em; opacity: 0.7; text-align: right; margin-top: 4px;">${formatMessageTime(message.createdAt)}</div>
     `;
 
     chatContainer.appendChild(messageEl);
-
-    if (animate) {
-        scrollChatToBottom();
-    }
+    scrollChatToBottom();
 }
 
-function sendChatMessage() {
+async function sendChatMessage() {
     const input = document.getElementById('messageInput');
     if (!input) return;
 
     const text = input.value.trim();
     if (!text) return;
 
-    if (!socket || !currentComputer) {
-        alert('Chat no disponible');
+    if (!window.chatManager) {
+        alert('Chat no inicializado');
         return;
     }
 
-    socket.emit('send-message', {
-        computerId: currentComputer.id,
-        text
-    });
+    // Use ChatManager to send
+    input.value = ''; // Optimistic clear
 
-    input.value = '';
+    // Send to owner
+    await window.chatManager.sendMessage(currentComputer.user.id, text, currentComputer.id);
+
+    // Optimistic display
+    displayChatMessage({
+        senderId: currentUser.id,
+        message: text,
+        createdAt: new Date().toISOString()
+    });
 }
 
 function scrollChatToBottom() {

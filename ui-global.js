@@ -55,4 +55,49 @@ if (document.readyState === 'loading') {
 }
 
 // Make functions globally available
+// Make functions globally available
 window.openAddComputerModal = openAddComputerModal;
+
+// ========================================
+// Global Chat Initialization
+// ========================================
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Check Auth
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return;
+
+    // 2. Ensure Socket.io is loaded
+    if (typeof io === 'undefined') {
+        await loadScript('https://cdn.socket.io/4.7.2/socket.io.min.js');
+    }
+
+    // 3. Ensure ChatManager is loaded
+    if (typeof ChatManager === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'js/chat-manager.js';
+        script.onload = () => {
+            initGlobalChat(currentUser);
+        };
+        document.body.appendChild(script);
+    } else {
+        initGlobalChat(currentUser);
+    }
+});
+
+function initGlobalChat(user) {
+    if (window.chatManager) return; // Already init
+
+    const socketUrl = 'https://deskshare-backend-production.up.railway.app';
+    window.chatManager = new ChatManager(user, socketUrl);
+    console.log('Global Chat Widget Initialized');
+}
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
