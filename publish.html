@@ -431,7 +431,8 @@
                     ram: parseInt(document.getElementById('computerRAM').value),
                     storage: parseInt(document.getElementById('computerStorage').value),
                     pricePerHour: parseFloat(document.getElementById('computerPrice').value),
-                    images: imageUrls
+                    images: imageUrls,
+                    owner: currentUser._id || currentUser.id  // CRITICAL: Add owner field
                 };
 
                 const response = await apiRequest('/computers', {
