@@ -681,3 +681,43 @@ updateUIForAuthState();
 console.log('🟣 DeskShare loaded with real backend integration!');
 console.log('🔗 API URL:', API_BASE_URL);
 console.log('👤 Current user:', currentUser);
+    // ... (existing code)
+}
+
+// ========================================
+// UI Helper Functions
+// ========================================
+
+function updateAuthHeader() {
+    const navLinks = document.getElementById('navLinks');
+    if (!navLinks) return;
+
+    const isLoggedIn = !!localStorage.getItem('authToken');
+    const profileLink = Array.from(navLinks.querySelectorAll('a')).find(a => a.textContent.includes('Mi Perfil') || a.href.includes('profile.html'));
+
+    // Find "Publicar PC" link to handle auth check on click
+    const publishLink = Array.from(navLinks.querySelectorAll('a')).find(a => a.textContent.includes('Publicar PC'));
+
+    if (isLoggedIn) {
+        if (profileLink) {
+            profileLink.textContent = 'Mi Perfil';
+            profileLink.href = 'profile.html';
+        }
+    } else {
+        if (profileLink) {
+            profileLink.textContent = 'Iniciar Sesión';
+            profileLink.href = 'login.html';
+        }
+
+        // Optional: Intercept Publish PC to redirect to login if not logged in
+        if (publishLink) {
+            publishLink.onclick = (e) => {
+                e.preventDefault();
+                window.location.href = 'login.html?redirect=publish.html';
+            };
+        }
+    }
+}
+
+// Run auth check on load
+document.addEventListener('DOMContentLoaded', updateAuthHeader);
