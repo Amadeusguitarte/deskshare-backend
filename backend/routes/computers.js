@@ -108,6 +108,32 @@ router.get('/', async (req, res, next) => {
 });
 
 // ========================================
+// GET /api/computers/my
+// Get all computers belonging to authenticated user (including pending)
+// ========================================
+router.get('/my', auth, async (req, res, next) => {
+    try {
+        const userId = req.user.userId || req.user.id;
+
+        const computers = await prisma.computer.findMany({
+            where: {
+                userId: userId
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            include: {
+                images: true
+            }
+        });
+
+        res.json({ computers });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
 // GET /api/computers/:id
 // Get single computer by ID
 // ========================================
