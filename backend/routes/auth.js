@@ -171,4 +171,39 @@ router.get('/me', auth, async (req, res, next) => {
     }
 });
 
+// ========================================
+// POST /api/auth/admin
+// Admin login (uses environment variables)
+// ========================================
+router.post('/admin', async (req, res, next) => {
+    try {
+        const { username, password } = req.body;
+
+        // Check credentials against environment variables
+        if (username === process.env.ADMIN_USERNAME &&
+            password === process.env.ADMIN_PASSWORD) {
+
+            // Generate admin JWT token
+            const token = jwt.sign(
+                { isAdmin: true, username },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            res.json({
+                message: 'Admin login successful',
+                token,
+                user: {
+                    username,
+                    isAdmin: true
+                }
+            });
+        } else {
+            return res.status(401).json({ error: 'Invalid admin credentials' });
+        }
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

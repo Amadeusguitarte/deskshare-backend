@@ -14,6 +14,7 @@ model User {
   passwordHash  String    @map("password_hash")
   name          String?
   avatarUrl     String?   @map("avatar_url")
+  isAdmin       Boolean   @default(false) @map("is_admin")
   createdAt     DateTime  @default(now()) @map("created_at")
   rating        Decimal   @default(0.0) @db.Decimal(3, 2)
   reviewsCount  Int       @default(0) @map("reviews_count")
@@ -43,6 +44,11 @@ model Computer {
   os            String?  @db.VarChar(100)
   internetSpeed String?  @map("internet_speed") @db.VarChar(50)
   status        String   @default("active") @db.VarChar(20)
+  
+  // Approval System
+  isApproved    Boolean  @default(false) @map("is_approved")
+  approvedAt    DateTime? @map("approved_at")
+  approvedBy    String?   @map("approved_by") @db.VarChar(255)
   
   // Remote Access Configuration
   rdpHost       String?  @map("rdp_host")

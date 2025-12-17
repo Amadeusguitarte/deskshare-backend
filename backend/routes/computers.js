@@ -33,7 +33,8 @@ router.get('/', async (req, res, next) => {
 
         // Build where clause
         const where = {
-            status: 'active'
+            status: 'active',
+            isApproved: true  // Only show approved computers
         };
 
         if (category && category !== 'all') {
@@ -208,7 +209,8 @@ router.post(
                 accessMethod: req.body.accessMethod || 'rdp',
                 rdpHost: req.body.rdpHost,
                 rdpPort: req.body.rdpPort ? parseInt(req.body.rdpPort) : 3389,
-                remoteId: req.body.remoteId
+                remoteId: req.body.remoteId,
+                isApproved: false  // Requires admin approval
             };
 
             // Encrypt access password if provided
