@@ -4,7 +4,7 @@
 
 let allComputers = [];
 
-const FALLBACK_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Crect width='200' height='200' fill='%23222'/%3E%3Crect x='45' y='50' width='110' height='75' rx='4' fill='%23444' stroke='%23666' stroke-width='2'/%3E%3Crect x='52' y='57' width='96' height='61' fill='%23333'/%3E%3Crect x='85' y='125' width='30' height='4' fill='%23444'/%3E%3Crect x='70' y='129' width='60' height='8' rx='2' fill='%23555'/%3E%3Ccircle cx='100' cy='133' r='1.5' fill='%23888'/%3E%3C/svg%3E";
+const FALLBACK_SVG = "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 200 200%27 fill=%27none%27%3E%3Crect width=%27200%27 height=%27200%27 fill=%27%23222%27/%3E%3Crect x=%2745%27 y=%2750%27 width=%27110%27 height=%2775%27 rx=%274%27 fill=%27%23444%27 stroke=%27%23666%27 stroke-width=%272%27/%3E%3Crect x=%2752%27 y=%2757%27 width=%2796%27 height=%2761%27 fill=%27%23333%27/%3E%3Crect x=%2785%27 y=%27125%27 width=%2730%27 height=%274%27 fill=%27%23444%27/%3E%3Crect x=%2770%27 y=%27129%27 width=%2760%27 height=%278%27 rx=%272%27 fill=%27%23555%27/%3E%3Ccircle cx=%27100%27 cy=%27133%27 r=%271.5%27 fill=%27%23888%27/%3E%3C/svg%3E";
 
 function getComputerImage(computer) {
     if (!computer.images || !Array.isArray(computer.images) || computer.images.length === 0) {
