@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadMarketplaceComputers(filters = {}) {
+    console.log('🔄 Loading marketplace computers...', filters);
     try {
         const params = new URLSearchParams();
         if (filters.category && filters.category !== 'all') params.append('category', filters.category);
@@ -42,13 +43,35 @@ async function loadMarketplaceComputers(filters = {}) {
         if (filters.ram && filters.ram !== 'all') params.append('minRam', filters.ram);
         if (filters.sort) params.append('sort', filters.sort);
 
-        const response = await apiRequest('/computers?' + params.toString());
+        // Create a timeout promise
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Request timed out (10s)')), 10000);
+        });
+
+        // Race between fetch and timeout
+        const response = await Promise.race([
+            apiRequest('/computers?' + params.toString()),
+            timeout
+        ]);
+
+        console.log('✅ Computers loaded:', response);
         allComputers = response.computers || response;
 
         renderComputers(allComputers);
     } catch (error) {
-        console.error('Error loading computers:', error);
-        document.getElementById('computerGrid').innerHTML = '<p style="text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">Error al cargar computadoras. Intenta de nuevo.</p>';
+        console.error('❌ Error loading computers:', error);
+
+        const grid = document.getElementById('computerGrid');
+        if (grid) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; color: #ff6b6b; padding: 2rem;">
+                    <h3>Error de conexión</h3>
+                    <p>${error.message}</p>
+                    <button onclick="loadMarketplaceComputers()" class="btn btn-primary" style="margin-top: 1rem;">Reintentar</button>
+                    <p style="font-size: 0.8rem; margin-top: 1rem; color: #888;">Si el problema persiste, verifica tu conexión.</p>
+                </div>
+            `;
+        }
     }
 }
 
