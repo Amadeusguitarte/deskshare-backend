@@ -12,6 +12,9 @@ function getComputerImage(computer) {
     }
 
     const firstImage = computer.images[0];
+    if (!firstImage) {
+        return { url: FALLBACK_SVG, isFallback: true };
+    }
     const rawUrl = firstImage.imageUrl || firstImage.url;
 
     if (!rawUrl || typeof rawUrl !== 'string' || !rawUrl.trim().match(/^https?:\/\//)) {
@@ -60,24 +63,25 @@ function renderComputers(computers) {
     }
 
     // MATCHING THE DESIGN FROM index.html "Computadoras Destacadas"
-    const { url: imageUrl, isFallback } = getComputerImage(computer);
+    grid.innerHTML = computers.map(computer => {
+        const { url: imageUrl, isFallback } = getComputerImage(computer);
 
-    // Generate spec badges (LIKE THE FEATURED CARDS)
-    const specBadges = [
-        computer.cpu,
-        computer.gpu,
-        computer.ram ? computer.ram + 'GB RAM' : null,
-        computer.storage
-    ].filter(Boolean).map(spec =>
-        `<span class="spec-badge">${spec}</span>`
-    ).join('');
+        // Generate spec badges (LIKE THE FEATURED CARDS)
+        const specBadges = [
+            computer.cpu,
+            computer.gpu,
+            computer.ram ? computer.ram + 'GB RAM' : null,
+            computer.storage
+        ].filter(Boolean).map(spec =>
+            `<span class="spec-badge">${spec}</span>`
+        ).join('');
 
-    // Rating (use existing or default to 5 stars with 0 reviews)
-    const rating = computer.rating || 5;
-    const reviewCount = computer.reviewCount || 0;
-    const stars = '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '☆').repeat(5 - Math.floor(rating));
+        // Rating (use existing or default to 5 stars with 0 reviews)
+        const rating = computer.rating || 5;
+        const reviewCount = computer.reviewCount || 0;
+        const stars = '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '☆').repeat(5 - Math.floor(rating));
 
-    return `
+        return `
         <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
             <img src="${imageUrl}" alt="${computer.name}" class="computer-image"${!isFallback ? ` onerror="this.src='${FALLBACK_SVG}'"` : ''}>
             <div class="computer-info">
@@ -100,6 +104,6 @@ function renderComputers(computers) {
             </div>
         </div>
         `;
-}).join('');
+    }).join('');
 }
 

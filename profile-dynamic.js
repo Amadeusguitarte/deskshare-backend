@@ -10,6 +10,9 @@ function getComputerImage(computer) {
     }
 
     const firstImage = computer.images[0];
+    if (!firstImage) {
+        return { url: FALLBACK_SVG, isFallback: true };
+    }
     const rawUrl = firstImage.imageUrl || firstImage.url;
 
     if (!rawUrl || typeof rawUrl !== 'string' || !rawUrl.trim().match(/^https?:\/\//)) {
