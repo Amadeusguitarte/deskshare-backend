@@ -54,7 +54,8 @@ router.post('/auth/google', async (req, res, next) => {
                 id: user.id,
                 email: user.email,
                 name: user.name,
-                avatarUrl: user.avatarUrl
+                avatarUrl: user.avatarUrl,
+                avatar: user.avatarUrl  // Frontend expects 'avatar'
             }
         });
 

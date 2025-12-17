@@ -788,7 +788,7 @@ function loadUserProfile() {
     }
 
     // Try to load avatar from any available source
-    const avatarUrl = currentUser.avatar || currentUser.picture || currentUser.image || currentUser.photoUrl || localStorage.getItem('googleAvatar');
+    const avatarUrl = currentUser.avatar || currentUser.avatarUrl || currentUser.picture || currentUser.image || currentUser.photoUrl || localStorage.getItem('googleAvatar');
 
     if (avatarEl && avatarUrl) {
         avatarEl.src = avatarUrl;
