@@ -43,58 +43,39 @@ async function loadMyComputers() {
         }
 
         if (computersToShow.length === 0) {
-            // DIAGNOSTIC INFO FOR USER
-            const currentId = currentUser._id || currentUser.id;
-            const sampleOwners = allComputers.slice(0, 3).map(c => typeof c.owner === 'object' ? (c.owner._id || c.owner.id) : c.owner).join(', ');
-
-            container.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 2rem; background: rgba(255,255,255,0.05); border-radius: 12px;">
-                    <p style="margin-bottom: 1rem; font-size: 1.1rem;">No se encontraron computadoras asociadas a tu cuenta actual.</p>
-                    <div style="font-family: monospace; font-size: 0.8rem; color: #888; text-align: left; display: inline-block; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
-                        <strong>Diagnóstico:</strong><br>
-                        Tu ID de Usuario: ${currentId}<br>
-                        IDs encontrados en sistema: ${sampleOwners || 'Ninguno'}<br>
-                        Total computadoras cargadas: ${allComputers.length}
-                    </div>
-                </div>`;
-            return;
-        }
-
-        // Add disclaimer if showing fallback computers
-        if (showingFallback) {
-            const disclaimer = document.createElement('div');
-            disclaimer.style.cssText = 'grid-column: 1 / -1; background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; color: #ffa500;';
-            disclaimer.innerHTML = '<strong>⚠️ Nota:</strong> Estas computadoras no tienen dueño asignado en la base de datos. Si no son tuyas, contacta al administrador.';
-            container.insertBefore(disclaimer, container.firstChild);
-        }
-
-        container.innerHTML = myComputers.map(computer => {
-            // Robust image handling
-            let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
-
-            if (computer.images && computer.images.length > 0) {
-                // Check all possible image url properties
-                imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+            // Show computers in grid
+            if (myComputers.length === 0) {
+                container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">No se encontraron computadoras asociadas a tu cuenta actual.</p>';
+                return;
             }
 
-            const statusColors = {
-                'active': 'var(--success-green)',
-                'inactive': 'var(--error-red)',
-                'maintenance': 'var(--warning-yellow)'
-            };
-            // Map backend status to UI text if needed, or use raw
-            // Assuming backend uses 'active' but UI shows 'Disponible'? 
-            // Let's use raw status or a mapper
-            const statusMap = {
-                'active': 'Disponible',
-                'inactive': 'Ocupado',
-                'maintenance': 'Mantenimiento'
-            };
+            container.innerHTML = myComputers.map(computer => {
+                // Robust image handling
+                let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
 
-            const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
-            const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
+                if (computer.images && computer.images.length > 0) {
+                    // Check all possible image url properties
+                    imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+                }
 
-            return `
+                const statusColors = {
+                    'active': 'var(--success-green)',
+                    'inactive': 'var(--error-red)',
+                    'maintenance': 'var(--warning-yellow)'
+                };
+                // Map backend status to UI text if needed, or use raw
+                // Assuming backend uses 'active' but UI shows 'Disponible'? 
+                // Let's use raw status or a mapper
+                const statusMap = {
+                    'active': 'Disponible',
+                    'inactive': 'Ocupado',
+                    'maintenance': 'Mantenimiento'
+                };
+
+                const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
+                const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
+
+                return `
             <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important;">
                 <div style="position: relative;">
                     <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
@@ -145,16 +126,16 @@ async function loadMyComputers() {
                 </div>
             </div>
             `;
-        }).join('');
+            }).join('');
 
-    } catch (error) {
-        console.error('Error loading my computers:', error);
-        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
+        } catch (error) {
+            console.error('Error loading my computers:', error);
+            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
+        }
     }
-}
 
 function manageComputer(id) {
-    // For now, redirect to a manage page or show alert
-    // window.location.href = `manage-computer.html?id=${id}`;
-    alert('Funcionalidad de gestión en desarrollo');
-}
+        // For now, redirect to a manage page or show alert
+        // window.location.href = `manage-computer.html?id=${id}`;
+        alert('Funcionalidad de gestión en desarrollo');
+    }
