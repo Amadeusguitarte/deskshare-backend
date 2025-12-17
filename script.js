@@ -719,5 +719,38 @@ function updateAuthHeader() {
     }
 }
 
-// Run auth check on load
-document.addEventListener('DOMContentLoaded', updateAuthHeader);
+// Load User Profile Data
+function loadUserProfile() {
+    // Only run on profile page
+    if (!document.getElementById('profileName')) return;
+
+    if (!currentUser) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const nameEl = document.getElementById('profileName');
+    const memberSinceEl = document.getElementById('memberSince');
+    const avatarEl = document.getElementById('profileAvatar');
+    const defaultIconEl = document.getElementById('profileIcon');
+
+    if (nameEl) nameEl.textContent = currentUser.name || 'Usuario';
+    if (memberSinceEl) {
+        const date = currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : '2024';
+        memberSinceEl.textContent = `Miembro desde ${date}`;
+    }
+
+    if (currentUser.avatar) {
+        if (avatarEl) {
+            avatarEl.src = currentUser.avatar;
+            avatarEl.style.display = 'block';
+        }
+        if (defaultIconEl) defaultIconEl.style.display = 'none';
+    }
+}
+
+// Run auth check and profile load on load
+document.addEventListener('DOMContentLoaded', () => {
+    updateAuthHeader();
+    loadUserProfile();
+});
