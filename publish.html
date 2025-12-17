@@ -438,10 +438,8 @@
                 const data = await response.json();
                 console.log('Computer created:', data);
 
-                // Show success message instead of alert
-                document.getElementById('publishForm').style.display = 'none';
-                document.getElementById('successMessage').style.display = 'block';
-                document.getElementById('successMessage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Redirect to profile
+                window.location.href = 'profile.html';
 
             } catch (error) {
                 console.error('Publish error:', error);
