@@ -13,73 +13,78 @@ async function loadMyComputers() {
     try {
         if (!currentUser) return;
 
-        // Fetch all computers
-        // We filter client-side to ensure we match the backend owner object or ID
-        const response = await apiRequest('/computers');
-        const allComputers = response.computers || response;
-
-        // Filter by current user ID using String conversion to be safe
-        const myComputers = allComputers.filter(comp => {
-            if (!comp.owner) return false;
-
-            // Handle populated owner object or direct ID string
-            const ownerId = typeof comp.owner === 'object' ? (comp.owner._id || comp.owner.id) : comp.owner;
-            const currentUserId = currentUser._id || currentUser.id;
-
-            // Strict string comparison to avoid ObjectId/String mismatches
-            return String(ownerId) === String(currentUserId);
+        // Fetch user's own computers (including pending)
+        const authToken = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/computers/my`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
         });
 
-        // FALLBACK: Show computers without owner if no matches found
-        let computersToShow = myComputers;
-        let showingFallback = false;
-
-        if (myComputers.length === 0 && allComputers.length > 0) {
-            const computersWithoutOwner = allComputers.filter(c => !c.owner || c.owner === '');
-            if (computersWithoutOwner.length > 0) {
-                computersToShow = computersWithoutOwner;
-                showingFallback = true;
-            }
+        if (!response.ok) {
+            throw new Error('Failed to load computers');
         }
 
-        if (computersToShow.length === 0) {
-            // Show computers in grid
-            if (myComputers.length === 0) {
-                container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">No se encontraron computadoras asociadas a tu cuenta actual.</p>';
-                return;
+        const data = await response.json();
+        const myComputers = data.computers || data;
+
+        console.log('Loaded my computers:', myComputers.length);
+    });
+
+    // FALLBACK: Show computers without owner if no matches found
+    let computersToShow = myComputers;
+    let showingFallback = false;
+
+    if (myComputers.length === 0 && allComputers.length > 0) {
+        const computersWithoutOwner = allComputers.filter(c => !c.owner || c.owner === '');
+        if (computersWithoutOwner.length > 0) {
+            computersToShow = computersWithoutOwner;
+            showingFallback = true;
+        }
+    }
+
+    if (computersToShow.length === 0) {
+        // Show computers in grid
+        if (myComputers.length === 0) {
+            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">No se encontraron computadoras asociadas a tu cuenta actual.</p>';
+            return;
+        }
+
+        container.innerHTML = myComputers.map(computer => {
+            // Robust image handling
+            let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
+
+            if (computer.images && computer.images.length > 0) {
+                // Check all possible image url properties
+                imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
             }
 
-            container.innerHTML = myComputers.map(computer => {
-                // Robust image handling
-                let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
+            const statusColors = {
+                'active': 'var(--success-green)',
+                'inactive': 'var(--error-red)',
+                'maintenance': 'var(--warning-yellow)'
+            };
+            // Map backend status to UI text if needed, or use raw
+            // Assuming backend uses 'active' but UI shows 'Disponible'? 
+            // Let's use raw status or a mapper
+            const statusMap = {
+                'active': 'Disponible',
+                'inactive': 'Ocupado',
+                'maintenance': 'Mantenimiento'
+            };
 
-                if (computer.images && computer.images.length > 0) {
-                    // Check all possible image url properties
-                    imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
-                }
+            const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
+            const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
 
-                const statusColors = {
-                    'active': 'var(--success-green)',
-                    'inactive': 'var(--error-red)',
-                    'maintenance': 'var(--warning-yellow)'
-                };
-                // Map backend status to UI text if needed, or use raw
-                // Assuming backend uses 'active' but UI shows 'Disponible'? 
-                // Let's use raw status or a mapper
-                const statusMap = {
-                    'active': 'Disponible',
-                    'inactive': 'Ocupado',
-                    'maintenance': 'Mantenimiento'
-                };
-
-                const displayStatus = statusMap[computer.status] || computer.status || 'Desconocido';
-                const statusColor = statusColors[computer.status] || 'var(--text-secondary)';
-
-                return `
+            return `
             <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden; padding: 0 !important;">
                 <div style="position: relative;">
                     <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
                         style="width: 100%; height: 220px; object-fit: cover; display: block; background: var(--bg-secondary);">
+                     ${computer.isApproved === false ? `
+                     <div style="position: absolute; top: 12px; left: 12px; background: rgba(255, 193, 7, 0.95); padding: 6px 12px; border-radius: 6px; backdrop-filter: blur(4px);">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #000;">⏳ Pendiente de Aprobación</span>
+                     </div>` : ''}
                      <div style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; backdrop-filter: blur(4px);">
                         <span style="width: 8px; height: 8px; background-color: ${statusColor}; border-radius: 50%; display: inline-block; margin-right: 6px;"></span>
                         <span style="font-size: 0.8rem; font-weight: 500; color: white;">${displayStatus}</span>
@@ -126,16 +131,16 @@ async function loadMyComputers() {
                 </div>
             </div>
             `;
-            }).join('');
+        }).join('');
 
-        } catch (error) {
-            console.error('Error loading my computers:', error);
-            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
-        }
+    } catch (error) {
+        console.error('Error loading my computers:', error);
+        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
     }
+}
 
 function manageComputer(id) {
-        // For now, redirect to a manage page or show alert
-        // window.location.href = `manage-computer.html?id=${id}`;
-        alert('Funcionalidad de gestión en desarrollo');
-    }
+    // For now, redirect to a manage page or show alert
+    // window.location.href = `manage-computer.html?id=${id}`;
+    alert('Funcionalidad de gestión en desarrollo');
+}
