@@ -30,7 +30,19 @@ async function loadMyComputers() {
             return String(ownerId) === String(currentUserId);
         });
 
-        if (myComputers.length === 0) {
+        // FALLBACK: Show computers without owner if no matches found
+        let computersToShow = myComputers;
+        let showingFallback = false;
+
+        if (myComputers.length === 0 && allComputers.length > 0) {
+            const computersWithoutOwner = allComputers.filter(c => !c.owner || c.owner === '');
+            if (computersWithoutOwner.length > 0) {
+                computersToShow = computersWithoutOwner;
+                showingFallback = true;
+            }
+        }
+
+        if (computersToShow.length === 0) {
             // DIAGNOSTIC INFO FOR USER
             const currentId = currentUser._id || currentUser.id;
             const sampleOwners = allComputers.slice(0, 3).map(c => typeof c.owner === 'object' ? (c.owner._id || c.owner.id) : c.owner).join(', ');
