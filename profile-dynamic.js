@@ -45,23 +45,18 @@ async function loadMyComputers() {
         if (computersToShow.length === 0) {
             // Show computers in grid
             if (myComputers.length === 0) {
-                container.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">💻</div>
-                    <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem;">Aún no has publicado ninguna computadora</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">Comparte tu PC y comienza a ganar dinero</p>
-                    <a href="publish.html" class="btn btn-primary">+ Publicar Mi Primera PC</a>
-                </div>
-            `;
+                container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary);">No se encontraron computadoras asociadas a tu cuenta actual.</p>';
                 return;
             }
-        }
 
-        container.innerHTML = myComputers.map(computer => {
-            // Robust image handling
-            let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
+            container.innerHTML = myComputers.map(computer => {
+                // Robust image handling
+                let imageUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cg transform='scale(0.3) translate(28,28)'%3E%3Cpath d='M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z'/%3E%3C/g%3E%3C/svg%3E";
 
-            if (computer.images && computer.images.length > 0) {
+                if (computer.images && computer.images.length > 0) {
+                    // Check all possible image url properties
+                    imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+                }
 
                 const statusColors = {
                     'active': 'var(--success-green)',
@@ -133,14 +128,14 @@ async function loadMyComputers() {
             `;
             }).join('');
 
-    } catch (error) {
-        console.error('Error loading my computers:', error);
-        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
+        } catch (error) {
+            console.error('Error loading my computers:', error);
+            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--error-red);">Error al cargar computadoras.</p>';
+        }
     }
-}
 
 function manageComputer(id) {
-    // For now, redirect to a manage page or show alert
-    // window.location.href = `manage-computer.html?id=${id}`;
-    alert('Funcionalidad de gestión en desarrollo');
-}
+        // For now, redirect to a manage page or show alert
+        // window.location.href = `manage-computer.html?id=${id}`;
+        alert('Funcionalidad de gestión en desarrollo');
+    }
