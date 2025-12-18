@@ -55,7 +55,6 @@ if (document.readyState === 'loading') {
 }
 
 // Make functions globally available
-// Make functions globally available
 window.openAddComputerModal = openAddComputerModal;
 
 // ========================================
@@ -77,19 +76,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (initDiv) initDiv.innerText = currentUser.name.substring(0, 2).toUpperCase();
         }
 
-        // 2. Standard Header (Class-based) - Used in index.html, marketplace.html, and now messages.html
-        document.querySelectorAll('.auth-only').forEach(el => el.style.display = 'inline-block'); // or block/flex depending on css, inline-block is safe for LIs
+        // 2. Standard Header (Class-based)
+        document.querySelectorAll('.auth-only').forEach(el => el.style.display = 'inline-block');
         document.querySelectorAll('.guest-only').forEach(el => el.style.display = 'none');
 
-        // Update logout buttons if needed
+        // Hide standalone logout if it exists (since we are moving it to dropdown)
         const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.onclick = (e) => {
-                e.preventDefault();
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('currentUser');
-                window.location.href = 'login.html';
-            };
+        if (logoutBtn && logoutBtn.parentElement.tagName === 'LI') {
+            logoutBtn.parentElement.style.display = 'none';
         }
     }
 
@@ -97,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Ensure Socket.io is loaded
     if (typeof io === 'undefined') {
-        await loadScript('https://cdn.socket.io/4.7.2/socket.io.min.js');
+        await loadScript('/socket.io/socket.io.js');
     }
 
     // 3. Ensure ChatManager is loaded
@@ -119,13 +113,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initGlobalChat(user) {
     if (window.chatManager) return; // Already init
 
-    // 1. Ensure Widget Container Exists (Freelancer Style)
+    // 1. Ensure Widget Container Exists
     let container = document.getElementById('chatWidgetContainer');
     if (!container) {
         container = document.createElement('div');
         container.id = 'chatWidgetContainer';
         container.dataset.listOpen = 'false'; // Default closed
-        // Fixed bottom-right positioning, pointer-events: none allows clicking through empty space
         container.style.cssText = `
             position: fixed;
             bottom: 0px;
@@ -143,7 +136,7 @@ function initGlobalChat(user) {
     window.chatManager = new ChatManager(user, socketUrl);
     console.log('Global Chat Widget Initialized');
 
-    // 2. Refine Header: Message Icon + Personalised Profile
+    // 2. Refine Header: Message Icon + Personalised Profile Dropdown
     const navLinks = document.getElementById('navLinks') || document.querySelector('.nav-links');
     if (navLinks && user) {
         // Find "Mi Perfil" link container (LI)
@@ -153,19 +146,52 @@ function initGlobalChat(user) {
         });
 
         if (profileLi) {
-            // A. Personalise Profile Link (Avatar + Name)
-            const profileLink = profileLi.querySelector('a');
-            if (profileLink && !profileLink.dataset.customized) {
+            // A. Enhance Profile with Dropdown (Avatar + Name + Chevron)
+            if (!profileLi.dataset.customized) {
                 const firstName = user.name.split(' ')[0];
                 const avatarUrl = user.avatarUrl || 'assets/default-avatar.svg';
 
-                profileLink.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                         <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-purple);">
-                        <span style="font-weight: 500;">${firstName}</span>
+                profileLi.style.position = 'relative';
+                // Remove default hover effects that might conflict
+                const originalLink = profileLi.querySelector('a');
+                if (originalLink) originalLink.style.display = 'none';
+
+                profileLi.innerHTML = `
+                    <div onclick="toggleHeaderProfileDropdown()" style="cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px; transition: background 0.2s; color: var(--text-secondary);" onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+                        <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-purple);">
+                        <span style="font-weight: 500; font-size: 0.95rem;">${firstName}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </div>
+
+                    <!-- Profile Dropdown Menu -->
+                    <div id="headerProfileDropdown" style="display: none; position: absolute; top: 50px; right: 0; width: 220px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 10000; overflow: hidden; font-family: 'Inter', sans-serif;">
+                        <!-- Arrow Tip -->
+                        <div style="position: absolute; top: -6px; right: 20px; width: 12px; height: 12px; background: #ffffff; border-left: 1px solid #e0e0e0; border-top: 1px solid #e0e0e0; transform: rotate(45deg);"></div>
+                        
+                        <div style="padding: 16px; border-bottom: 1px solid #f0f0f0;">
+                            <div style="font-weight: 700; color: #333; font-size: 1rem;">${user.name}</div>
+                            <div style="font-size: 0.8rem; color: #10b981; margin-top: 2px;">● Online</div>
+                        </div>
+
+                        <ul style="list-style: none; padding: 8px 0; margin: 0;">
+                            <li>
+                                <a href="profile.html" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #333; text-decoration: none; font-size: 0.95rem; transition: background 0.1s;" onmouseover="this.style.background='#f5f7f9'" onmouseout="this.style.background='transparent'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #666;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    Mi Perfil
+                                </a>
+                            </li>
+                             <li>
+                                <a href="#" onclick="handleLogout(event)" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #dc3545; text-decoration: none; font-size: 0.95rem; transition: background 0.1s;" onmouseover="this.style.background='#fff0f1'" onmouseout="this.style.background='transparent'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                    Cerrar Sesión
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 `;
-                profileLink.dataset.customized = 'true'; // Prevent double-customization
+                profileLi.dataset.customized = 'true';
             }
 
             // B. Inject Message Icon (To the LEFT of Profile)
@@ -174,15 +200,15 @@ function initGlobalChat(user) {
                 li.id = 'navMessageIcon';
                 li.className = 'auth-only'; // Ensure it behaves like other auth items
                 li.style.display = 'inline-block'; // Force display if auth is active
-                li.style.marginRight = '5px';
+                li.style.marginRight = '8px';
                 li.style.position = 'relative'; // For dropdown positioning
 
                 li.innerHTML = `
-                    <a href="#" onclick="event.preventDefault(); toggleHeaderMessageDropdown();" style="position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s; color: #666;" onmouseover="this.style.color='var(--primary-purple)'" onmouseout="this.style.color='#666'">
+                    <a href="#" onclick="event.preventDefault(); toggleHeaderMessageDropdown();" style="position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s; color: inherit; opacity: 0.9;" onmouseover="this.style.color='var(--primary-purple)'; this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.color='inherit'; this.style.background='transparent'">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
-                        <span id="navMsgBadge" style="display: none; position: absolute; top: -2px; right: -2px; background: #ff0000; color: white; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid #fff;">0</span>
+                        <span id="navMsgBadge" style="display: none; position: absolute; top: 0px; right: 0px; background: #ef4444; color: white; font-size: 10px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid var(--bg-secondary);">0</span>
                     </a>
                     
                     <!-- Dropdown Container (Freelancer Style: White, Arrow Tip) -->
@@ -222,7 +248,10 @@ window.toggleHeaderMessageDropdown = function () {
 
     // Close others
     document.querySelectorAll('.dropdown-menu').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('#userMenu .dropdown-menu').forEach(el => el.style.display = 'none');
+    if (window.toggleHeaderProfileDropdown) {
+        const profDropdown = document.getElementById('headerProfileDropdown');
+        if (profDropdown) profDropdown.style.display = 'none';
+    }
 
     dropdown.style.display = isHidden ? 'block' : 'none';
 
@@ -269,14 +298,46 @@ function renderHeaderDropdown(conversations) {
             </div>
         `;
     }).join('');
+}
+
+// Global Helpers for Profile Dropdown
+window.toggleHeaderProfileDropdown = function () {
+    const dropdown = document.getElementById('headerProfileDropdown');
+    if (!dropdown) return;
+    const isHidden = dropdown.style.display === 'none';
+
+    // Close message dropdown
+    const msgDropdown = document.getElementById('headerMessageDropdown');
+    if (msgDropdown) msgDropdown.style.display = 'none';
+
+    dropdown.style.display = isHidden ? 'block' : 'none';
+};
+
+window.handleLogout = function (e) {
+    if (e) e.preventDefault();
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    window.location.href = 'login.html';
 };
 
 // Close dropdown when clicking outside
 document.addEventListener('click', (e) => {
-    const dropdown = document.getElementById('headerMessageDropdown');
-    const icon = document.getElementById('navMessageIcon');
-    if (dropdown && icon && !icon.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.style.display = 'none';
+    // Message Dropdown logic
+    const msgDropdown = document.getElementById('headerMessageDropdown');
+    const msgIcon = document.getElementById('navMessageIcon');
+    if (msgDropdown && msgIcon && !msgIcon.contains(e.target) && !msgDropdown.contains(e.target)) {
+        msgDropdown.style.display = 'none';
+    }
+
+    // Profile Dropdown logic
+    const profDropdown = document.getElementById('headerProfileDropdown');
+    // Check if the click was ON the trigger. If so, toggle handled it.
+    // We only want to close if click was OUTSIDE the dropdown AND OUTSIDE any trigger.
+    // The trigger is replaced by innerHTML on the LI, so we check if strict containment matches.
+    if (profDropdown && profDropdown.style.display === 'block') {
+        if (!profDropdown.contains(e.target) && !e.target.closest('[onclick="toggleHeaderProfileDropdown()"]')) {
+            profDropdown.style.display = 'none';
+        }
     }
 });
 
