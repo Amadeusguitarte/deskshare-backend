@@ -86,45 +86,68 @@ class ChatManager {
                 }
             } else {
                 // Widget Update: Check ALL open tabs, not just activeConversation
-                const relevantUserId = (msg.senderId === this.currentUser.id) ? msg.receiverId : msg.senderId;
+                const currentUserId = parseInt(this.currentUser.id);
+                const senderId = parseInt(msg.senderId);
+                const receiverId = parseInt(msg.receiverId);
+                const relevantUserId = (senderId === currentUserId) ? receiverId : senderId;
+
+                // Ensure openConversationIds are numbers
+                this.openConversationIds = this.openConversationIds.map(id => parseInt(id));
 
                 // AUTO-OPEN / FACEBOOK STYLE: 
                 // If it's an incoming message and the tab is NOT open, open it automatically.
-                if (msg.senderId !== this.currentUser.id && !this.openConversationIds.includes(relevantUserId)) {
+                if (senderId !== currentUserId && !this.openConversationIds.includes(relevantUserId)) {
                     this.openConversationIds.push(relevantUserId);
-                    // Optional: Add a 'flash' flag or class logic later if needed
+                    console.log(`Auto-opening chat for user ${relevantUserId}`);
                 }
 
                 // Always re-render the list/tabs first to show badge/summary updates
                 this.renderWidgetTabs();
 
                 if (this.openConversationIds.includes(relevantUserId)) {
-                    // If this chat is open (which it now IS if it was incoming), fetch full history
-                    this.loadHistory(relevantUserId).then(msgs => {
-                        const conv = this.conversations.find(c => c.otherUser.id === relevantUserId);
-                        if (conv) {
-                            conv.messages = msgs;
-                            // Re-render again with full messages
-                            this.renderWidgetTabs();
+                    // Update conversation immediately if found
+                    const conv = this.conversations.find(c => parseInt(c.otherUser.id) === relevantUserId);
+                    if (conv) {
+                        conv.messages.push(msg); // Optimistic append to avoid full refetch delay
+                        this.renderWidgetTabs(); // Re-render with new message
 
-                            // Scroll to bottom
+                        // Also fetch full history to be safe
+                        this.loadHistory(relevantUserId).then(msgs => {
+                            conv.messages = msgs;
+                            this.renderWidgetTabs();
+                            this.scrollToBottom(relevantUserId);
+                        });
+
+                        // Scroll to bottom immediately
+                        this.scrollToBottom(relevantUserId);
+
+                        // Visual Flash Effect
+                        if (senderId !== currentUserId) {
                             setTimeout(() => {
                                 const tab = document.getElementById(`chat-tab-${relevantUserId}`);
                                 if (tab) {
-                                    const area = tab.querySelector('.mini-messages-area');
-                                    if (area) area.scrollTop = area.scrollHeight;
-
-                                    // Visual Flash Effect for new messages (User requested "titilando")
-                                    if (msg.senderId !== this.currentUser.id) {
-                                        tab.querySelector('.chat-tab-header').style.animation = 'highlightPulse 0.5s 2';
-                                    }
+                                    const header = tab.querySelector('div[onclick^="chatManager.closeTab"]'); // Target header div
+                                    if (header) header.style.animation = 'highlightPulse 0.5s 4'; // Flash 4 times
                                 }
-                            }, 50);
+                            }, 100);
                         }
-                    });
+                    } else {
+                        // If conversation doesn't exist yet (first message), reload all conversations
+                        this.loadConversations().then(() => this.renderWidgetTabs());
+                    }
                 }
             }
         });
+    }
+
+    scrollToBottom(userId) {
+        setTimeout(() => {
+            const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages'); // Handle widget or full page
+            if (tab) {
+                const area = userId ? tab.querySelector('.mini-messages-area') : tab;
+                if (area) area.scrollTop = area.scrollHeight;
+            }
+        }, 50);
     }
 
     async loadConversations() {
