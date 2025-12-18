@@ -4,7 +4,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-router.post('/run-migrations', async (req, res) => {
+router.get('/run-migrations', async (req, res) => {
     try {
         // Add missing columns to users table
         await prisma.$executeRawUnsafe(`
