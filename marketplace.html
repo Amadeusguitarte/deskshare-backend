@@ -283,33 +283,24 @@
     </footer>
 
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <script src="script.js"></script>
-    <script>
-        function filterComputers() {
-            // This would normally call loadComputers() with filters
-            // The main script.js already has this logic in gatherFilters()
-            const filters = gatherFilters();
-            loadMarketplaceComputers(filters);
-        }
+    function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('categoryFilter').value = 'all';
+    document.getElementById('priceFilter').value = 'all';
+    document.getElementById('gpuFilter').value = 'all';
+    document.getElementById('ramFilter').value = 'all';
+    if (document.getElementById('sortFilter')) document.getElementById('sortFilter').value = 'featured';
+    loadMarketplaceComputers();
+    }
 
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('categoryFilter').value = 'all';
-            document.getElementById('priceFilter').value = 'all';
-            document.getElementById('gpuFilter').value = 'all';
-            document.getElementById('ramFilter').value = 'all';
-            if (document.getElementById('sortFilter')) document.getElementById('sortFilter').value = 'featured';
-            loadMarketplaceComputers();
-        }
+    function sortComputers() {
+    const sortBy = document.getElementById('sortFilter').value || 'featured';
+    // Logic handled inside loadMarketplaceComputers now (via gathered filters)
 
-        function sortComputers() {
-            const sortBy = document.getElementById('sortFilter').value || 'featured';
-            // Logic handled inside loadMarketplaceComputers now (via gathered filters)
-
-            const filters = gatherFilters();
-            // Map specific sort options if needed, but the API handles the params
-            loadMarketplaceComputers(filters);
-        }
+    const filters = gatherFilters();
+    // Map specific sort options if needed, but the API handles the params
+    loadMarketplaceComputers(filters);
+    }
     </script>
     <script src="marketplace-v4.js?v=2"></script>
     <script src="ui-global.js?v=2"></script>

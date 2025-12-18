@@ -19,19 +19,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.guest-only').forEach(el => el.style.display = 'inline-block');
     }
 
-    // 3. Ensure ChatManager is loaded
-    if (typeof ChatManager === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'js/chat-manager.js';
-        script.onload = () => {
-            initGlobalChat(currentUser);
-        };
-        script.onerror = () => {
-            console.error('Failed to load chat-manager.js');
-        };
-        document.body.appendChild(script);
-    } else {
+    // 3. Ensure ChatManager is initialized (Assumes script is loaded via HTML)
+    if (typeof ChatManager !== 'undefined') {
         initGlobalChat(currentUser);
+    } else {
+        // Fallback with cache buster if not found (though HTML should have it)
+        const script = document.createElement('script');
+        script.src = 'js/chat-manager.js?v=' + new Date().getTime();
+        script.onload = () => initGlobalChat(currentUser);
+        document.body.appendChild(script);
     }
 });
 
