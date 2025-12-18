@@ -205,6 +205,14 @@ async function initializeChat(computerId) {
 
         const chatContainer = document.getElementById('chatMessages');
         if (chatContainer) {
+            // New Interaction: Clicking the right column chat opens the bottom widget
+            chatContainer.style.cursor = 'pointer';
+            chatContainer.onclick = function () {
+                if (window.chatManager) {
+                    window.chatManager.openChat(ownerId);
+                }
+            };
+
             if (messages.length > 0) {
                 chatContainer.innerHTML = ''; // Clear placeholder
                 messages.forEach(msg => displayChatMessage(msg));

@@ -114,25 +114,47 @@ function initGlobalChat(user) {
     window.chatManager = new ChatManager(user, socketUrl);
     console.log('Global Chat Widget Initialized');
 
-    // 2. Inject Message Icon into Header (Freelancer Style)
+    // 2. Refine Header: Message Icon + Personalised Profile
     const navLinks = document.querySelector('.nav-links');
-    if (navLinks && !document.getElementById('navMessageIcon')) {
-        const li = document.createElement('li');
-        li.id = 'navMessageIcon';
-        li.style.marginLeft = '10px'; // Extra spacing
-        li.innerHTML = `
-            <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin-right: 15px; display: inline-block; vertical-align: middle;"></div>
-            <a href="#" onclick="event.preventDefault(); toggleGlobalChatList();" style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <span id="navMsgBadge" style="display: none; position: absolute; top: 4px; right: 4px; background: #ef4444; color: white; font-size: 9px; font-weight: bold; width: 14px; height: 14px; border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg-primary);">0</span>
-            </a>
-        `;
-        // Insert before the last item (usually specific action or profile)
-        // Or just append if easier. Let's insert before "Mi Perfil" or similar if possible.
-        // For robustness, just prepend or append. Let's prepend to be visible.
-        navLinks.insertBefore(li, navLinks.lastElementChild);
+    if (navLinks) {
+        // Find "Mi Perfil" link
+        const profileLink = Array.from(navLinks.querySelectorAll('a')).find(a => a.href.includes('profile.html'));
+        let profileLi = profileLink ? profileLink.parentElement : navLinks.lastElementChild;
+
+        // A. Personalise Profile Link (Freelancer Style)
+        if (profileLink && user) {
+            const firstName = user.name.split(' ')[0];
+            const avatarUrl = user.avatarUrl || 'assets/default-avatar.svg';
+
+            profileLink.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-purple);">
+                    <span style="font-weight: 600; font-size: 0.95rem;">${firstName}</span>
+                </div>
+            `;
+            // Remove "btn" classes if present to make it look like a clear user menu
+            profileLink.className = '';
+            profileLink.style.display = 'flex';
+            profileLink.style.alignItems = 'center';
+        }
+
+        // B. Inject Message Icon (To the LEFT of Profile)
+        if (!document.getElementById('navMessageIcon')) {
+            const li = document.createElement('li');
+            li.id = 'navMessageIcon';
+            li.style.marginRight = '15px';
+            li.innerHTML = `
+                <a href="#" onclick="event.preventDefault(); toggleGlobalChatList();" style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span id="navMsgBadge" style="display: none; position: absolute; top: 4px; right: 4px; background: #ef4444; color: white; font-size: 9px; font-weight: bold; width: 14px; height: 14px; border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg-primary);">0</span>
+                </a>
+                <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin-left: 10px; display: inline-block; vertical-align: middle;"></div>
+            `;
+
+            navLinks.insertBefore(li, profileLi);
+        }
     }
 }
 
