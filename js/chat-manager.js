@@ -502,7 +502,6 @@ class ChatManager {
     async sendMiniMessage(userId, text) {
         if (!text.trim()) return;
 
-        // Optimistic UI Update
         const conv = this.conversations.find(c => c.otherUser.id === userId);
         if (conv) {
             const tempMsg = {
@@ -515,19 +514,41 @@ class ChatManager {
             if (!conv.messages) conv.messages = [];
             conv.messages.push(tempMsg);
 
-            this.renderWidgetTabs();
-            // Force scroll
-            setTimeout(() => {
-                const tab = document.getElementById(`chat-tab-${userId}`);
-                if (tab) {
-                    const area = tab.querySelector('.mini-messages-area');
-                    if (area) area.scrollTop = area.scrollHeight;
+            // OPTIMIZED RENDER: Append to DOM instead of Re-Render Widget
+            const tabId = `chat-tab-${userId}`;
+            const tabEl = document.getElementById(tabId);
+
+            if (tabEl) {
+                const msgArea = tabEl.querySelector('.mini-messages-area');
+                if (msgArea) {
+                    const msgHtml = `
+                        <div style="display: flex; justify-content: flex-end;">
+                            <span style="background: var(--accent-purple); color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
+                                ${text} // Use text directly to match temp
+                            </span>
+                        </div>
+                    `;
+                    // Append smoothly
+                    msgArea.insertAdjacentHTML('beforeend', msgHtml);
+                    // Instant scroll to bottom
+                    msgArea.scrollTop = msgArea.scrollHeight;
+                } else {
+                    // Fallback if area not found
+                    this.renderWidgetTabs();
                 }
-            }, 50);
+            } else {
+                // Fallback if tab not found
+                this.renderWidgetTabs();
+            }
         }
 
-        await this.sendMessage(userId, text);
-        // The real message will come via socket 'private-message', checking for dupes there.
+        try {
+            await this.sendMessage(userId, text);
+            // Success: Silent update (socket or future load will sync IDs)
+        } catch (e) {
+            console.error("Failed to send", e);
+            // Optional: Show error state in UI
+        }
     }
     async openChat(userId) {
         // Ensure conversations are loaded
