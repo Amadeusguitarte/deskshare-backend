@@ -389,12 +389,8 @@ class ChatManager {
             if (!text.trim()) return;
 
             input.value = '';
+            // No Optimistic Update. Wait for Socket.
             await this.sendMessage(user.id, text);
-            // Optimistic
-            const msg = { senderId: this.currentUser.id, message: text, createdAt: new Date().toISOString() };
-            this.activeConversation.messages.push(msg);
-            this.renderMessages(this.activeConversation.messages);
-            this.scrollToBottom();
         };
 
         this.renderMessages(messages);
@@ -595,52 +591,14 @@ class ChatManager {
     async sendMiniMessage(userId, text) {
         if (!text.trim()) return;
 
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (conv) {
-            const tempMsg = {
-                id: 'temp-' + Date.now(),
-                senderId: this.currentUser.id,
-                message: text,
-                createdAt: new Date().toISOString(),
-                isRead: false
-            };
-            if (!conv.messages) conv.messages = [];
-            conv.messages.push(tempMsg);
-
-            // OPTIMIZED RENDER: Append to DOM instead of Re-Render Widget
-            const tabId = `chat-tab-${userId}`;
-            const tabEl = document.getElementById(tabId);
-
-            if (tabEl) {
-                const msgArea = tabEl.querySelector('.mini-messages-area');
-                if (msgArea) {
-                    const msgHtml = `
-                        <div style="display: flex; justify-content: flex-end;">
-                            <span style="background: var(--accent-purple); color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
-                                ${text}
-                            </span>
-                        </div>
-                    `;
-                    // Append smoothly
-                    msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                    // Instant scroll to bottom
-                    msgArea.scrollTop = msgArea.scrollHeight;
-                } else {
-                    // Fallback if area not found
-                    this.renderWidgetTabs();
-                }
-            } else {
-                // Fallback if tab not found
-                this.renderWidgetTabs();
-            }
-        }
-
+        // No Optimistic Update - Rely on Socket for Single Truth
+        // This prevents double messages (one optimistic, one from socket)
         try {
             await this.sendMessage(userId, text);
-            // Success: Silent update (socket or future load will sync IDs)
+            // Success: Socket will trigger handleNewMessage to append bubble.
         } catch (e) {
             console.error("Failed to send", e);
-            // Optional: Show error state in UI
+            alert("Error al enviar mensaje. Intenta de nuevo.");
         }
     }
     async openChat(userId) {
