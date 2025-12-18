@@ -28,6 +28,23 @@ router.post('/run-migrations', async (req, res) => {
             ADD COLUMN IF NOT EXISTS approved_by VARCHAR(255)
         `);
 
+        // Create Messages Table
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id SERIAL PRIMARY KEY,
+                sender_id INTEGER NOT NULL,
+                receiver_id INTEGER NOT NULL,
+                computer_id INTEGER,
+                message TEXT NOT NULL,
+                is_read BOOLEAN NOT NULL DEFAULT false,
+                created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                
+                CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+                CONSTRAINT messages_receiver_id_fkey FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+                CONSTRAINT messages_computer_id_fkey FOREIGN KEY (computer_id) REFERENCES computers(id) ON DELETE SET NULL ON UPDATE CASCADE
+            );
+        `);
+
         res.json({
             success: true,
             message: 'Migrations executed successfully'
