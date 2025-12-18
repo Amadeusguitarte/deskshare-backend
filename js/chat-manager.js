@@ -109,7 +109,18 @@ class ChatManager {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            this.conversations = data.conversations || [];
+            // Deduplicate conversations by otherUser.id
+            const rawConvs = data.conversations || [];
+            const uniqueConvs = [];
+            const seenIds = new Set();
+
+            for (const conv of rawConvs) {
+                if (!seenIds.has(conv.otherUser.id)) {
+                    seenIds.add(conv.otherUser.id);
+                    uniqueConvs.push(conv);
+                }
+            }
+            this.conversations = uniqueConvs;
         } catch (error) {
             console.error('Error loading conversations:', error);
         }

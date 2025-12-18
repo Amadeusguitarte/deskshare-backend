@@ -65,20 +65,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Check Auth
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
-    // IMMEDIATE HEADER FIX
+    // IMMEDIATE HEADER FIX (Supports both Custom and Standard layouts)
     if (currentUser) {
+        // 1. Legacy Custom Header (ID-based)
         const authBtns = document.getElementById('authButtons');
         const userMenu = document.getElementById('userMenu');
         if (authBtns) authBtns.style.display = 'none';
         if (userMenu) {
             userMenu.style.display = 'flex';
-            // Init avatar
             const initDiv = document.getElementById('navUserInitials');
-            const avaImg = document.getElementById('navUserAvatar');
             if (initDiv) initDiv.innerText = currentUser.name.substring(0, 2).toUpperCase();
-            // If we have an image element inside navUserAvatar (which is a div in messages.html but an img elsewhere?)
-            // messages.html structure: <div class="user-avatar" id="navUserAvatar">...</div>
-            // ui-global previously assumed it's an img? No, checking structure.
+        }
+
+        // 2. Standard Header (Class-based) - Used in index.html, marketplace.html, and now messages.html
+        document.querySelectorAll('.auth-only').forEach(el => el.style.display = 'inline-block'); // or block/flex depending on css, inline-block is safe for LIs
+        document.querySelectorAll('.guest-only').forEach(el => el.style.display = 'none');
+
+        // Update logout buttons if needed
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.onclick = (e) => {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                window.location.href = 'login.html';
+            };
         }
     }
 
