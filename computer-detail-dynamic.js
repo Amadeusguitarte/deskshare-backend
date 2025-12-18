@@ -205,9 +205,20 @@ async function initializeChat(computerId) {
 
         const chatContainer = document.getElementById('chatMessages');
         if (chatContainer) {
-            chatContainer.innerHTML = ''; // Clear existing
-            messages.forEach(msg => displayChatMessage(msg));
-            scrollChatToBottom();
+            if (messages.length > 0) {
+                chatContainer.innerHTML = ''; // Clear placeholder
+                messages.forEach(msg => displayChatMessage(msg));
+                scrollChatToBottom();
+            } else {
+                // Ensure placeholder is visible (optional, or just leave as is)
+                if (!chatContainer.querySelector('.message-received')) {
+                    chatContainer.innerHTML = `
+                        <div class="message message-received" style="font-style: italic; opacity: 0.7;">
+                            <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
+                        </div>
+                    `;
+                }
+            }
         }
 
         // Listen for new messages via ChatManager's socket?

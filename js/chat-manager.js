@@ -135,11 +135,15 @@ class ChatManager {
                 })
             });
 
-            if (!response.ok) throw new Error('Failed to send');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
+            }
             return await response.json();
         } catch (error) {
             console.error('Send error:', error);
-            alert('Error al enviar mensaje');
+            alert(`Error: ${error.message}`);
+            throw error; // Re-throw so caller knows it failed
         }
     }
 
