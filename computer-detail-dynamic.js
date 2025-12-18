@@ -257,39 +257,48 @@ function displayChatMessage(message) {
         return;
     }
 
-    // 2. Fuzzy Check (Prevent rapid content duplication)
-    const lastMsg = chatContainer.lastElementChild;
-    if (lastMsg) {
-        const lastContent = lastMsg.querySelector('.message-content')?.textContent;
-        const lastClass = lastMsg.className; // 'message-sent' or 'message-received'
-        const currentClass = isMe ? 'message-sent' : 'message-received';
+    // 2. Memory-Based Deduplication (The Ultimate Guard)
+    // Track the last message processed globally to prevent rapid echoes
+    if (!window.lastProcessedMsg) window.lastProcessedMsg = { text: '', time: 0, senderId: '' };
 
-        if (lastContent === (message.message || message.text) && lastClass === currentClass) {
-            // Check if added recently (< 2 seconds)? Or just strictly block consecutive duplicates?
-            // User hates duplicates. Let's block consecutive identical messages for now.
-            // Or better: ensure it's not just a "Hello" "Hello" conversation.
-            // Usually rapid dupes happen instantly.
-            // Let's rely on ID first, but if ID is missing (temp?), fuzzy blocks it.
-            console.warn('Duplicate Content skipped:', message.message);
-            return;
-        }
+    const msgText = (message.message || message.text || '').trim();
+    const now = Date.now();
+
+    // Check if identical message from same sender arrived in last 2 seconds
+    if (window.lastProcessedMsg.text === msgText &&
+        window.lastProcessedMsg.senderId === message.senderId &&
+        (now - window.lastProcessedMsg.time) < 2000) {
+
+        console.warn('Duplicate blocked by Memory Guard:', msgText);
+        return;
     }
 
-    const messageEl = document.createElement('div');
-    if (message.id) messageEl.dataset.msgId = message.id; // Store ID
-    messageEl.className = isMe ? 'message-sent' : 'message-received';
-    // Match styles from CSS or inline
-    messageEl.style.cssText = isMe ?
-        'align-self: flex-end; background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-right-radius: 2px; margin-bottom: 8px; max-width: 80%;' :
-        'align-self: flex-start; background: rgba(255,255,255,0.1); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-left-radius: 2px; margin-bottom: 8px; max-width: 80%;';
+    // Update last processed
+    window.lastProcessedMsg = { text: msgText, time: now, senderId: message.senderId };
 
-    messageEl.innerHTML = `
+    // Fallback: If Fuzzy Check was here, we replaced it. Memory is better.
+    // Usually rapid dupes happen instantly.
+    // Let's rely on ID first, but if ID is missing (temp?), fuzzy blocks it.
+    console.warn('Duplicate Content skipped:', message.message);
+    return;
+}
+    }
+
+const messageEl = document.createElement('div');
+if (message.id) messageEl.dataset.msgId = message.id; // Store ID
+messageEl.className = isMe ? 'message-sent' : 'message-received';
+// Match styles from CSS or inline
+messageEl.style.cssText = isMe ?
+    'align-self: flex-end; background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-right-radius: 2px; margin-bottom: 8px; max-width: 80%;' :
+    'align-self: flex-start; background: rgba(255,255,255,0.1); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-left-radius: 2px; margin-bottom: 8px; max-width: 80%;';
+
+messageEl.innerHTML = `
         <div class="message-content">${escapeHtml(message.message || message.text)}</div>
         <div class="message-time" style="font-size: 0.7em; opacity: 0.7; text-align: right; margin-top: 4px;">${formatMessageTime(message.createdAt)}</div>
     `;
 
-    chatContainer.appendChild(messageEl);
-    scrollChatToBottom();
+chatContainer.appendChild(messageEl);
+scrollChatToBottom();
 }
 
 async function sendChatMessage() {
