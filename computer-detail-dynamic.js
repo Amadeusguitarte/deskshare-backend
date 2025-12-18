@@ -249,9 +249,30 @@ function displayChatMessage(message) {
 
     const isMe = message.senderId === currentUser.id;
 
-    // Deduplication check
+    console.log('Displaying msg:', message);
+
+    // 1. Strict ID Check
     if (message.id && chatContainer.querySelector(`[data-msg-id="${message.id}"]`)) {
-        return; // Exists
+        console.warn('Duplicate ID skipped:', message.id);
+        return;
+    }
+
+    // 2. Fuzzy Check (Prevent rapid content duplication)
+    const lastMsg = chatContainer.lastElementChild;
+    if (lastMsg) {
+        const lastContent = lastMsg.querySelector('.message-content')?.textContent;
+        const lastClass = lastMsg.className; // 'message-sent' or 'message-received'
+        const currentClass = isMe ? 'message-sent' : 'message-received';
+
+        if (lastContent === (message.message || message.text) && lastClass === currentClass) {
+            // Check if added recently (< 2 seconds)? Or just strictly block consecutive duplicates?
+            // User hates duplicates. Let's block consecutive identical messages for now.
+            // Or better: ensure it's not just a "Hello" "Hello" conversation.
+            // Usually rapid dupes happen instantly.
+            // Let's rely on ID first, but if ID is missing (temp?), fuzzy blocks it.
+            console.warn('Duplicate Content skipped:', message.message);
+            return;
+        }
     }
 
     const messageEl = document.createElement('div');
