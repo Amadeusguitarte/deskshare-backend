@@ -36,7 +36,7 @@ router.post('/auth/google', async (req, res, next) => {
                     email,
                     name,
                     avatarUrl: picture,
-                    password: randomPassword
+                    passwordHash: randomPassword
                 }
             });
         }
