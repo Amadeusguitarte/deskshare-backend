@@ -85,18 +85,30 @@ class ChatManager {
                     });
                 }
             } else {
-                // Widget Update
+                // Widget Update: Check ALL open tabs, not just activeConversation
+                const relevantUserId = (msg.senderId === this.currentUser.id) ? msg.receiverId : msg.senderId;
+
+                // Always re-render the list/tabs first to show badge/summary updates
                 this.renderWidgetTabs();
-                // If tab is open, scroll/update it
-                if (this.activeConversation &&
-                    (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
-                    this.loadHistory(this.activeConversation.otherUser.id).then(msgs => {
-                        this.activeConversation.messages = msgs;
-                        this.renderWidgetTabs();
-                        setTimeout(() => {
-                            const area = this.widgetContainer.querySelector('.mini-messages-area');
-                            if (area) area.scrollTop = area.scrollHeight;
-                        }, 50);
+
+                if (this.openConversationIds.includes(relevantUserId)) {
+                    // If this chat is open, fetch full history and consistency update
+                    this.loadHistory(relevantUserId).then(msgs => {
+                        const conv = this.conversations.find(c => c.otherUser.id === relevantUserId);
+                        if (conv) {
+                            conv.messages = msgs;
+                            // Re-render again with full messages
+                            this.renderWidgetTabs();
+
+                            // Scroll to bottom
+                            setTimeout(() => {
+                                const tab = document.getElementById(`chat-tab-${relevantUserId}`);
+                                if (tab) {
+                                    const area = tab.querySelector('.mini-messages-area');
+                                    if (area) area.scrollTop = area.scrollHeight;
+                                }
+                            }, 50);
+                        }
                     });
                 }
             }
