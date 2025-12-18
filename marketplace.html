@@ -283,24 +283,26 @@
     </footer>
 
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('categoryFilter').value = 'all';
-    document.getElementById('priceFilter').value = 'all';
-    document.getElementById('gpuFilter').value = 'all';
-    document.getElementById('ramFilter').value = 'all';
-    if (document.getElementById('sortFilter')) document.getElementById('sortFilter').value = 'featured';
-    loadMarketplaceComputers();
-    }
+    <script src="js/chat-manager.js?v=105"></script>
+    <script src="script.js?v=105"></script>
+    <script src="marketplace-v4.js?v=105"></script>
+    <script src="ui-global.js?v=105"></script>
 
-    function sortComputers() {
-    const sortBy = document.getElementById('sortFilter').value || 'featured';
-    // Logic handled inside loadMarketplaceComputers now (via gathered filters)
+    <script>
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = 'all';
+            document.getElementById('priceFilter').value = 'all';
+            document.getElementById('gpuFilter').value = 'all';
+            document.getElementById('ramFilter').value = 'all';
+            if (document.getElementById('sortFilter')) document.getElementById('sortFilter').value = 'featured';
+            loadMarketplaceComputers();
+        }
 
-    const filters = gatherFilters();
-    // Map specific sort options if needed, but the API handles the params
-    loadMarketplaceComputers(filters);
-    }
+        function sortComputers() {
+            const filters = gatherFilters();
+            loadMarketplaceComputers(filters);
+        }
     </script>
     <script src="js/chat-manager.js?v=105"></script>
     <script src="marketplace-v4.js?v=105"></script>
