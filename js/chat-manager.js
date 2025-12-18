@@ -224,21 +224,20 @@ class ChatManager {
         this.renderConversationsList();
     }
 
-    renderConversationsList() {
-        const list = document.getElementById('conversationsList');
-        if (!list) return;
+    const list = document.getElementById('conversationsList');
+    if(!list) return;
 
-        if (this.conversations.length === 0) {
-            list.innerHTML = '<p style="text-align:center; opacity:0.6; padding: 1rem;">No tienes mensajes aún.</p>';
-            return;
-        }
+    if(this.conversations.length === 0) {
+    list.innerHTML = '<p style="text-align:center; opacity:0.6; padding: 1rem;">No tienes mensajes aún.</p>';
+    return;
+}
 
-        list.innerHTML = this.conversations.map(conv => {
-            const user = conv.otherUser;
-            const lastMsg = conv.messages[conv.messages.length - 1];
-            const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+list.innerHTML = this.conversations.map(conv => {
+    const user = conv.otherUser;
+    const lastMsg = conv.messages[0] || conv.lastMessage;
+    const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-            return `
+    return `
             <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'active' : ''}" 
                  onclick="chatManager.selectConversation(${user.id})"
                  style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
@@ -257,23 +256,23 @@ class ChatManager {
                 </div>
             </div>
             `;
-        }).join('');
+}).join('');
     }
 
     async selectConversation(userId) {
-        let conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (!conv) return;
+    let conv = this.conversations.find(c => c.otherUser.id === userId);
+    if (!conv) return;
 
-        this.activeConversation = conv;
-        this.renderConversationsList();
+    this.activeConversation = conv;
+    this.renderConversationsList();
 
-        const messages = await this.loadHistory(userId);
-        this.activeConversation.messages = messages;
+    const messages = await this.loadHistory(userId);
+    this.activeConversation.messages = messages;
 
-        // Update Header
-        const user = conv.otherUser;
-        const header = document.getElementById('chatHeader');
-        header.innerHTML = `
+    // Update Header
+    const user = conv.otherUser;
+    const header = document.getElementById('chatHeader');
+    header.innerHTML = `
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
@@ -286,33 +285,33 @@ class ChatManager {
             </div>
         `;
 
-        document.getElementById('inputArea').style.display = 'block';
+    document.getElementById('inputArea').style.display = 'block';
 
-        const form = document.getElementById('messageForm');
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('messageInput');
-            const text = input.value;
-            if (!text.trim()) return;
+    const form = document.getElementById('messageForm');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('messageInput');
+        const text = input.value;
+        if (!text.trim()) return;
 
-            input.value = '';
-            await this.sendMessage(user.id, text);
-            // Optimistic
-            const msg = { senderId: this.currentUser.id, message: text, createdAt: new Date().toISOString() };
-            this.activeConversation.messages.push(msg);
-            this.renderMessages(this.activeConversation.messages);
-            this.scrollToBottom();
-        };
-
-        this.renderMessages(messages);
+        input.value = '';
+        await this.sendMessage(user.id, text);
+        // Optimistic
+        const msg = { senderId: this.currentUser.id, message: text, createdAt: new Date().toISOString() };
+        this.activeConversation.messages.push(msg);
+        this.renderMessages(this.activeConversation.messages);
         this.scrollToBottom();
-    }
+    };
 
-    renderMessages(messages) {
-        const area = document.getElementById('messagesArea');
-        area.innerHTML = messages.map(msg => {
-            const isMe = msg.senderId === this.currentUser.id;
-            return `
+    this.renderMessages(messages);
+    this.scrollToBottom();
+}
+
+renderMessages(messages) {
+    const area = document.getElementById('messagesArea');
+    area.innerHTML = messages.map(msg => {
+        const isMe = msg.senderId === this.currentUser.id;
+        return `
             <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                 <div style="max-width: 70%; padding: 0.8rem 1rem; border-radius: 12px; background: ${isMe ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}; color: white; border-bottom-${isMe ? 'right' : 'left'}-radius: 2px;">
                     <p style="margin: 0; line-height: 1.4;">${msg.message}</p>
@@ -323,36 +322,36 @@ class ChatManager {
                 </div>
             </div>
             `;
-        }).join('');
+    }).join('');
+}
+
+scrollToBottom() {
+    const area = document.getElementById('messagesArea');
+    if (area) area.scrollTop = area.scrollHeight;
+}
+
+// ===========================================
+// View Logic - Global Widget
+// ===========================================
+renderWidget() {
+    if (!this.widgetContainer) {
+        this.widgetContainer = document.createElement('div');
+        this.widgetContainer.id = 'chatWidgetContainer';
+        this.widgetContainer.style.cssText = 'position: fixed; bottom: 0; right: 20px; display: flex; align-items: flex-end; gap: 10px; z-index: 9999; pointer-events: none;';
+        document.body.appendChild(this.widgetContainer);
     }
 
-    scrollToBottom() {
-        const area = document.getElementById('messagesArea');
-        if (area) area.scrollTop = area.scrollHeight;
-    }
+    this.renderWidgetTabs();
+}
 
-    // ===========================================
-    // View Logic - Global Widget
-    // ===========================================
-    renderWidget() {
-        if (!this.widgetContainer) {
-            this.widgetContainer = document.createElement('div');
-            this.widgetContainer.id = 'chatWidgetContainer';
-            this.widgetContainer.style.cssText = 'position: fixed; bottom: 0; right: 20px; display: flex; align-items: flex-end; gap: 10px; z-index: 9999; pointer-events: none;';
-            document.body.appendChild(this.widgetContainer);
-        }
+renderWidgetTabs() {
+    if (!this.widgetContainer) return;
 
-        this.renderWidgetTabs();
-    }
+    // 1. Persistent "Messages" Bar (Freelancer Style)
+    // Shows as a small black bar at the bottom right, expanding on click
+    const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
 
-    renderWidgetTabs() {
-        if (!this.widgetContainer) return;
-
-        // 1. Persistent "Messages" Bar (Freelancer Style)
-        // Shows as a small black bar at the bottom right, expanding on click
-        const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
-
-        const persistentBar = `
+    const persistentBar = `
             <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'};">
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <span style="font-weight: 600; color: white;">Mensajes</span>
@@ -365,7 +364,7 @@ class ChatManager {
                             <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
-                                <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${conv.messages[conv.messages.length - 1]?.message || ''}</div>
+                                <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.messages[0]?.message || conv.lastMessage?.message || '')}</div>
                             </div>
                         </div>
                     `).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>'}
@@ -377,27 +376,27 @@ class ChatManager {
             </div>
         `;
 
-        // 2. Active Chat Tabs (next to the bar)
-        // Show active conversation and maybe 1 other
-        let chatsToShow = [];
-        if (this.activeConversation) {
-            chatsToShow = [this.activeConversation];
-        }
-
-        const tabsHtml = chatsToShow.map(conv => this.renderChatTab(conv)).join('');
-
-        // Combine: Tabs (Left) + Persistent Bar (Right)
-        this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+    // 2. Active Chat Tabs (next to the bar)
+    // Show active conversation and maybe 1 other
+    let chatsToShow = [];
+    if (this.activeConversation) {
+        chatsToShow = [this.activeConversation];
     }
 
-    renderChatTab(conv) {
-        const user = conv.otherUser;
-        const isExpanded = this.activeConversation && this.activeConversation.otherUser.id === user.id;
-        const unread = conv.unreadCount > 0;
-        const tabId = `chat-tab-${user.id}`;
+    const tabsHtml = chatsToShow.map(conv => this.renderChatTab(conv)).join('');
 
-        if (isExpanded) {
-            return `
+    // Combine: Tabs (Left) + Persistent Bar (Right)
+    this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+}
+
+renderChatTab(conv) {
+    const user = conv.otherUser;
+    const isExpanded = this.activeConversation && this.activeConversation.otherUser.id === user.id;
+    const unread = conv.unreadCount > 0;
+    const tabId = `chat-tab-${user.id}`;
+
+    if (isExpanded) {
+        return `
             <div id="${tabId}" class="chat-tab expanded" style="width: 320px; height: 450px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif;">
                 <div onclick="chatManager.toggleTab(${user.id})" style="padding: 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -422,9 +421,9 @@ class ChatManager {
                 </form>
             </div>
             `;
-        }
+    }
 
-        return `
+    return `
         <div id="${tabId}" onclick="chatManager.toggleTab(${user.id})" style="pointer-events: auto; cursor: pointer; position: relative; margin-right: 5px; transition: transform 0.2s;">
             <div style="width: 54px; height: 54px; border-radius: 50%; background: #222; overflow: hidden; border: 2px solid var(--glass-border); box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 100%; height: 100%; object-fit: cover;">
@@ -432,73 +431,73 @@ class ChatManager {
             ${unread ? `<span style="position: absolute; top: 0; right: 0; background: var(--error-red); width: 14px; height: 14px; border-radius: 50%; border: 2px solid #111;"></span>` : ''}
         </div>
         `;
-    }
+}
 
-    toggleTab(userId) {
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (this.activeConversation && this.activeConversation.otherUser.id === userId) {
-            this.activeConversation = null;
-        } else {
-            this.activeConversation = conv;
-            this.loadHistory(userId).then(msgs => {
-                if (this.activeConversation) {
-                    this.activeConversation.messages = msgs;
-                    this.renderWidgetTabs();
-                    setTimeout(() => {
-                        const area = this.widgetContainer.querySelector('.mini-messages-area');
-                        if (area) area.scrollTop = area.scrollHeight;
-                    }, 50);
-                }
-            });
-        }
-        this.renderWidgetTabs();
+toggleTab(userId) {
+    const conv = this.conversations.find(c => c.otherUser.id === userId);
+    if (this.activeConversation && this.activeConversation.otherUser.id === userId) {
+        this.activeConversation = null;
+    } else {
+        this.activeConversation = conv;
+        this.loadHistory(userId).then(msgs => {
+            if (this.activeConversation) {
+                this.activeConversation.messages = msgs;
+                this.renderWidgetTabs();
+                setTimeout(() => {
+                    const area = this.widgetContainer.querySelector('.mini-messages-area');
+                    if (area) area.scrollTop = area.scrollHeight;
+                }, 50);
+            }
+        });
     }
+    this.renderWidgetTabs();
+}
 
     async sendMiniMessage(userId, text) {
-        if (!text.trim()) return;
-        await this.sendMessage(userId, text);
+    if (!text.trim()) return;
+    await this.sendMessage(userId, text);
 
-        // Optimistic
-        if (this.activeConversation) {
-            this.activeConversation.messages.push({
-                senderId: this.currentUser.id,
-                message: text,
-                createdAt: new Date().toISOString()
-            });
-            this.renderWidgetTabs();
-            const area = this.widgetContainer.querySelector('.mini-messages-area');
-            if (area) area.scrollTop = area.scrollHeight;
-        }
+    // Optimistic
+    if (this.activeConversation) {
+        this.activeConversation.messages.push({
+            senderId: this.currentUser.id,
+            message: text,
+            createdAt: new Date().toISOString()
+        });
+        this.renderWidgetTabs();
+        const area = this.widgetContainer.querySelector('.mini-messages-area');
+        if (area) area.scrollTop = area.scrollHeight;
     }
+}
     async openChat(userId) {
-        // Ensure conversations are loaded
-        if (this.conversations.length === 0) {
-            await this.loadConversations();
-        }
+    // Ensure conversations are loaded
+    if (this.conversations.length === 0) {
+        await this.loadConversations();
+    }
 
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (conv) {
+    const conv = this.conversations.find(c => c.otherUser.id === userId);
+    if (conv) {
+        this.toggleTab(userId);
+    } else {
+        // Create new optimistic conversation logic if needed, 
+        // or just rely on sendMessage creating it on backend.
+        // For now, let's try to fetch specific conversation or start fresh UI
+        // But toggleTab handles existing.
+        // If not existing, we might need a "Pending" tab or just force it open
+
+        // Simplified: If not found, create a dummy one for UI
+        // This requires fetching user details which we might pass or fetch
+        // But for "Contact Host", we usually send a message FIRST.
+        // computer-detail-dynamic.js sends message first, so conversation SHOULD exist after reload.
+        // But we don't reload page.
+        // Let's rely on handleNewMessage or force reload conversations
+        await this.loadConversations();
+        const retryConv = this.conversations.find(c => c.otherUser.id === userId);
+        if (retryConv) {
             this.toggleTab(userId);
-        } else {
-            // Create new optimistic conversation logic if needed, 
-            // or just rely on sendMessage creating it on backend.
-            // For now, let's try to fetch specific conversation or start fresh UI
-            // But toggleTab handles existing.
-            // If not existing, we might need a "Pending" tab or just force it open
-
-            // Simplified: If not found, create a dummy one for UI
-            // This requires fetching user details which we might pass or fetch
-            // But for "Contact Host", we usually send a message FIRST.
-            // computer-detail-dynamic.js sends message first, so conversation SHOULD exist after reload.
-            // But we don't reload page.
-            // Let's rely on handleNewMessage or force reload conversations
-            await this.loadConversations();
-            const retryConv = this.conversations.find(c => c.otherUser.id === userId);
-            if (retryConv) {
-                this.toggleTab(userId);
-            }
         }
     }
+}
 }
 
 // Make globally available

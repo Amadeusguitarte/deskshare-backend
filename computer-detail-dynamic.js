@@ -253,7 +253,14 @@ function displayChatMessage(message) {
     if (!chatContainer) return;
 
     const isMe = message.senderId === currentUser.id;
+
+    // Deduplication check
+    if (message.id && chatContainer.querySelector(`[data-msg-id="${message.id}"]`)) {
+        return; // Exists
+    }
+
     const messageEl = document.createElement('div');
+    if (message.id) messageEl.dataset.msgId = message.id; // Store ID
     messageEl.className = isMe ? 'message-sent' : 'message-received';
     // Match styles from CSS or inline
     messageEl.style.cssText = isMe ?
