@@ -245,6 +245,12 @@ class ChatManager {
         // Ensure conversations are loaded
         if (this.conversations.length === 0) await this.loadConversations();
 
+        // Ensure Tab is tracked (Fix for Missing Widget)
+        userId = parseInt(userId);
+        if (!this.openConversationIds.includes(userId)) {
+            this.openConversationIds.push(userId);
+        }
+
         // Find existing or create dummy for new chat
         let conv = this.conversations.find(c => c.otherUser.id === userId);
 

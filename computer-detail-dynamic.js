@@ -257,31 +257,22 @@ function displayChatMessage(message) {
         return;
     }
 
-    // 2. Memory-Based Deduplication (Signature Map)
-    // Stronger than single variable, handles multiple rapid events
-    if (!window.msgSignatures) window.msgSignatures = new Map();
-
+    // 2. DOM-Based Deduplication (The Fallback)
+    // If memory fails (due to script reloads/duplicates), DOM is truth.
     const msgText = (message.message || message.text || '').trim();
-    // Signature: SenderID + Text (Ignore time in signature to catch echoes)
-    const signature = `${message.senderId}:${msgText}`;
-    const now = Date.now();
+    if (!msgText) return;
 
-    // Clean old signatures (> 5 seconds)
-    for (const [key, timestamp] of window.msgSignatures) {
-        if (now - timestamp > 5000) window.msgSignatures.delete(key);
+    // Scan existing DOM elements for identical text (+- same time not needed if we want strict blocking)
+    // We check the LAST few messages to be safe/fast
+    const existingMessages = Array.from(chatContainer.querySelectorAll('.message-content'));
+    const isDuplicate = existingMessages.slice(-5).some(el => {
+        return el.textContent.trim() === msgText;
+    });
+
+    if (isDuplicate) {
+        console.warn('Duplicate blocked by DOM Scan:', msgText);
+        return;
     }
-
-    // Check if signature exists and is recent
-    if (window.msgSignatures.has(signature)) {
-        const lastTime = window.msgSignatures.get(signature);
-        if (now - lastTime < 2000) {
-            console.warn('Duplicate blocked by Signature Map:', signature);
-            return;
-        }
-    }
-
-    // Update signature
-    window.msgSignatures.set(signature, now);
 
 
 
