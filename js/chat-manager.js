@@ -348,18 +348,46 @@ class ChatManager {
     renderWidgetTabs() {
         if (!this.widgetContainer) return;
 
-        // Show active conversation and maybe 2 others
-        let chatsToShow = this.conversations.slice(0, 3);
+        // 1. Persistent "Messages" Bar (Freelancer Style)
+        // Shows as a small black bar at the bottom right, expanding on click
+        const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
 
-        // Ensure active is in the list
-        if (this.activeConversation && !chatsToShow.some(c => c.otherUser.id === this.activeConversation.otherUser.id)) {
-            chatsToShow.pop();
-            chatsToShow.unshift(this.activeConversation);
+        const persistentBar = `
+            <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'};">
+                <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <span style="font-weight: 600; color: white;">Mensajes</span>
+                    <span style="color: #aaa; font-size: 1.2rem;">${isListOpen ? '−' : '+'}</span>
+                </div>
+                
+                <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
+                    ${this.conversations.length > 0 ? this.conversations.map(conv => `
+                        <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
+                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
+                            <div style="flex:1; overflow:hidden;">
+                                <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
+                                <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${conv.messages[conv.messages.length - 1]?.message || ''}</div>
+                            </div>
+                        </div>
+                    `).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>'}
+                </div>
+                
+                <div style="padding: 10px; border-top: 1px solid #333; text-align: center;">
+                   <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
+                </div>
+            </div>
+        `;
+
+        // 2. Active Chat Tabs (next to the bar)
+        // Show active conversation and maybe 1 other
+        let chatsToShow = [];
+        if (this.activeConversation) {
+            chatsToShow = [this.activeConversation];
         }
 
-        this.widgetContainer.innerHTML = chatsToShow.map(conv => {
-            return this.renderChatTab(conv);
-        }).join('');
+        const tabsHtml = chatsToShow.map(conv => this.renderChatTab(conv)).join('');
+
+        // Combine: Tabs (Left) + Persistent Bar (Right)
+        this.widgetContainer.innerHTML = tabsHtml + persistentBar;
     }
 
     renderChatTab(conv) {

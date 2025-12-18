@@ -160,7 +160,7 @@ router.post('/', auth, async (req, res, next) => {
 
         const newMessage = await prisma.message.create({
             data: {
-                senderId: req.user.userId,
+                senderId: req.user.userId || req.user.id,
                 receiverId: parseInt(receiverId),
                 computerId: computerId ? parseInt(computerId) : null,
                 message: message.trim()
