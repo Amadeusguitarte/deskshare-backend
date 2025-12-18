@@ -5,7 +5,8 @@ class ChatManager {
         this.socketUrl = socketUrl;
         this.socket = null;
         this.conversations = [];
-        this.activeConversation = null;
+        // Multi-tab support: Track IDs of open conversations
+        this.openConversationIds = [];
 
         // UI Elements
         this.widgetContainer = null;
@@ -370,13 +371,19 @@ class ChatManager {
         if (!this.widgetContainer) return;
 
         // 1. Persistent "Messages" Bar (Freelancer Style)
-        // Shows as a small black bar at the bottom right, expanding on click
         const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
 
+        // Calculate total unread for badge
+        const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        this.updateGlobalBadge(totalUnread);
+
         const persistentBar = `
-            <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'};">
+            <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;">
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-                    <span style="font-weight: 600; color: white;">Mensajes</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight: 600; color: white;">Mensajes</span>
+                        ${totalUnread > 0 ? `<span style="background:var(--error-red); color:white; font-size:0.7rem; padding: 2px 6px; border-radius:10px;">${totalUnread}</span>` : ''}
+                    </div>
                     <span style="color: #aaa; font-size: 1.2rem;">${isListOpen ? '−' : '+'}</span>
                 </div>
                 
@@ -386,8 +393,9 @@ class ChatManager {
                             <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
-                                <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.messages[0]?.message || conv.lastMessage?.message || '')}</div>
+                                <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
                             </div>
+                            ${(conv.unreadCount > 0) ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
                         </div>
                     `).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>'}
                 </div>
@@ -398,80 +406,97 @@ class ChatManager {
             </div>
         `;
 
-        // 2. Active Chat Tabs (next to the bar)
-        // Show active conversation and maybe 1 other
-        let chatsToShow = [];
-        if (this.activeConversation) {
-            chatsToShow = [this.activeConversation];
-        }
+        // 2. Render Active Tabs
+        // We render ALL IDs in openConversationIds
+        const maxTabs = 3; // Limit visible tabs to prevent crowding
+        const tabsToRender = this.openConversationIds.slice(0, maxTabs);
 
-        const tabsHtml = chatsToShow.map(conv => this.renderChatTab(conv)).join('');
+        const tabsHtml = tabsToRender.map(id => {
+            const conv = this.conversations.find(c => c.otherUser.id === id);
+            return conv ? this.renderChatTab(conv) : '';
+        }).join('');
 
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
     }
 
+    updateGlobalBadge(count) {
+        const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
+        badges.forEach(el => {
+            if (count > 0) {
+                el.innerText = count > 99 ? '99+' : count;
+                el.style.display = 'flex'; // or inline-block depending on css. flex allows centering
+            } else {
+                el.style.display = 'none';
+            }
+        });
+    }
+
     renderChatTab(conv) {
         const user = conv.otherUser;
-        const isExpanded = this.activeConversation && this.activeConversation.otherUser.id === user.id;
-        const unread = conv.unreadCount > 0;
+        // Always expanded in multi-tab mode for now, or we could add minimize capability.
+        // User requested "able to open 2 or 3 tabs", implying full windows.
+        const isExpanded = true;
         const tabId = `chat-tab-${user.id}`;
 
-        if (isExpanded) {
-            return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 320px; height: 450px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif;">
-                <div onclick="chatManager.toggleTab(${user.id})" style="padding: 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
-                        <span style="font-size: 0.95rem; font-weight: 600; color: white;">${user.name}</span>
+        return `
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px;">
+                <div onclick="chatManager.closeTab(${user.id})" style="padding: 10px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                        <span style="font-size: 0.9rem; font-weight: 600; color: white;">${user.name}</span>
                     </div>
-                    <span style="color: #aaa; font-size: 1.2rem;">×</span>
+                    <span style="color: #aaa; font-size: 1.2rem; line-height:0.8;">×</span>
                 </div>
                 
-                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
-                    ${conv.messages.map(msg => `
+                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
+                    ${(conv.messages || []).map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
-                            <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
+                            <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
                                 ${msg.message}
                             </span>
                         </div>
                     `).join('')}
                 </div>
                 
-                <form onsubmit="event.preventDefault(); chatManager.sendMiniMessage(${user.id}, this.querySelector('input').value); this.reset();" style="padding: 12px; border-top: 1px solid var(--glass-border); background: #222;">
-                    <input type="text" placeholder="Envía un mensaje..." style="width: 100%; padding: 10px; border-radius: 20px; border: none; background: #333; color: white; outline: none;">
+                <form onsubmit="event.preventDefault(); chatManager.sendMiniMessage(${user.id}, this.querySelector('input').value); this.querySelector('input').value='';" style="padding: 10px; border-top: 1px solid var(--glass-border); background: #222;">
+                    <input type="text" placeholder="Envía un mensaje..." style="width: 100%; padding: 8px; border-radius: 20px; border: none; background: #333; color: white; outline: none;">
                 </form>
             </div>
-            `;
-        }
-
-        return `
-        <div id="${tabId}" onclick="chatManager.toggleTab(${user.id})" style="pointer-events: auto; cursor: pointer; position: relative; margin-right: 5px; transition: transform 0.2s;">
-            <div style="width: 54px; height: 54px; border-radius: 50%; background: #222; overflow: hidden; border: 2px solid var(--glass-border); box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
-                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 100%; height: 100%; object-fit: cover;">
-            </div>
-            ${unread ? `<span style="position: absolute; top: 0; right: 0; background: var(--error-red); width: 14px; height: 14px; border-radius: 50%; border: 2px solid #111;"></span>` : ''}
-        </div>
         `;
     }
 
     toggleTab(userId) {
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (this.activeConversation && this.activeConversation.otherUser.id === userId) {
-            this.activeConversation = null;
-        } else {
-            this.activeConversation = conv;
-            this.loadHistory(userId).then(msgs => {
-                if (this.activeConversation) {
-                    this.activeConversation.messages = msgs;
-                    this.renderWidgetTabs();
-                    setTimeout(() => {
-                        const area = this.widgetContainer.querySelector('.mini-messages-area');
-                        if (area) area.scrollTop = area.scrollHeight;
-                    }, 50);
-                }
-            });
+        // In multi-tab mode, "toggle" means "open if not open, bring to front/focus if open"
+        // Since we render side-by-side, we just ensure it's in the list.
+        if (!this.openConversationIds.includes(userId)) {
+            this.openConversationIds.push(userId);
         }
+
+        // Refresh history
+        this.loadHistory(userId).then(msgs => {
+            const conv = this.conversations.find(c => c.otherUser.id === userId);
+            if (conv) {
+                conv.messages = msgs;
+                // Since this might be new messages, clear unread count roughly? 
+                // Currently backend handles read status on fetch? Or we need to mark as read manually?
+                // For now, let's just render.
+                this.renderWidgetTabs();
+                setTimeout(() => {
+                    const tab = document.getElementById(`chat-tab-${userId}`);
+                    if (tab) {
+                        const area = tab.querySelector('.mini-messages-area');
+                        if (area) area.scrollTop = area.scrollHeight;
+                    }
+                }, 50);
+            }
+        });
+
+        this.renderWidgetTabs();
+    }
+
+    closeTab(userId) {
+        this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
         this.renderWidgetTabs();
     }
 

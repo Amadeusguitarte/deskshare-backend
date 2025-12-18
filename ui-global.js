@@ -144,58 +144,61 @@ function initGlobalChat(user) {
     console.log('Global Chat Widget Initialized');
 
     // 2. Refine Header: Message Icon + Personalised Profile
-    const navLinks = document.querySelector('.nav-links');
-    if (navLinks) {
-        // Find "Mi Perfil" link
-        const profileLink = Array.from(navLinks.querySelectorAll('a')).find(a => a.href.includes('profile.html'));
-        let profileLi = profileLink ? profileLink.parentElement : navLinks.lastElementChild;
+    const navLinks = document.getElementById('navLinks') || document.querySelector('.nav-links');
+    if (navLinks && user) {
+        // Find "Mi Perfil" link container (LI)
+        let profileLi = Array.from(navLinks.children).find(li => {
+            const a = li.querySelector('a');
+            return a && a.href && a.href.includes('profile.html');
+        });
 
-        // A. Personalise Profile Link (Freelancer Style)
-        if (profileLink && user) {
-            const firstName = user.name.split(' ')[0];
-            const avatarUrl = user.avatarUrl || 'assets/default-avatar.svg';
+        if (profileLi) {
+            // A. Personalise Profile Link (Avatar + Name)
+            const profileLink = profileLi.querySelector('a');
+            if (profileLink && !profileLink.dataset.customized) {
+                const firstName = user.name.split(' ')[0];
+                const avatarUrl = user.avatarUrl || 'assets/default-avatar.svg';
 
-            profileLink.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-purple);">
-                    <span style="font-weight: 600; font-size: 0.95rem;">${firstName}</span>
-                </div>
-            `;
-            profileLink.className = '';
-            profileLink.style.display = 'flex';
-            profileLink.style.alignItems = 'center';
-        }
-
-        // B. Inject Message Icon (To the LEFT of Profile) with Dropdown
-        if (!document.getElementById('navMessageIcon')) {
-            const li = document.createElement('li');
-            li.id = 'navMessageIcon';
-            li.style.marginRight = '15px';
-            li.style.position = 'relative'; // For dropdown positioning
-            li.innerHTML = `
-                <a href="#" onclick="event.preventDefault(); toggleHeaderMessageDropdown();" style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <span id="navMsgBadge" style="display: none; position: absolute; top: 4px; right: 4px; background: #ef4444; color: white; font-size: 9px; font-weight: bold; width: 14px; height: 14px; border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg-primary);">0</span>
-                </a>
-                
-                <!-- Dropdown Container -->
-                <div id="headerMessageDropdown" style="display: none; position: absolute; top: 50px; right: 0; width: 320px; background: #1a1a1a; border: 1px solid var(--glass-border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 10000; overflow: hidden; font-family: 'Outfit', sans-serif;">
-                    <div style="padding: 12px 16px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; background: #222;">
-                        <span style="font-weight: 600; font-size: 0.95rem;">Mensajes Recientes</span>
-                        <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
+                profileLink.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                         <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-purple);">
+                        <span style="font-weight: 500;">${firstName}</span>
                     </div>
-                    <div id="headerDropdownList" style="max-height: 350px; overflow-y: auto;">
-                        <!-- Content injected by JS -->
-                        <div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">Cargando...</div>
+                `;
+                profileLink.dataset.customized = 'true'; // Prevent double-customization
+            }
+
+            // B. Inject Message Icon (To the LEFT of Profile)
+            if (!document.getElementById('navMessageIcon')) {
+                const li = document.createElement('li');
+                li.id = 'navMessageIcon';
+                li.className = 'auth-only'; // Ensure it behaves like other auth items
+                li.style.display = 'inline-block'; // Force display if auth is active
+                li.style.marginRight = '5px';
+
+                li.innerHTML = `
+                    <a href="#" onclick="event.preventDefault(); toggleHeaderMessageDropdown();" style="position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span id="navMsgBadge" style="display: none; position: absolute; top: 0; right: 0; background: #ef4444; color: white; font-size: 10px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid #000;">0</span>
+                    </a>
+                    
+                    <!-- Dropdown Container -->
+                    <div id="headerMessageDropdown" style="display: none; position: absolute; top: 60px; right: 80px; width: 320px; background: #1a1a1a; border: 1px solid var(--glass-border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 10000; overflow: hidden; font-family: 'Outfit', sans-serif;">
+                         <div style="padding: 12px 16px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; background: #222;">
+                            <span style="font-weight: 600; font-size: 0.95rem;">Mensajes</span>
+                            <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
+                        </div>
+                        <div id="headerDropdownList" style="max-height: 350px; overflow-y: auto;">
+                            <!-- Content injected by JS -->
+                            <div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">Cargando...</div>
+                        </div>
                     </div>
-                </div>
+                `;
 
-                <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin-left: 10px; display: inline-block; vertical-align: middle;"></div>
-            `;
-
-            navLinks.insertBefore(li, profileLi);
+                navLinks.insertBefore(li, profileLi);
+            }
         }
     }
 }
@@ -207,6 +210,42 @@ window.toggleHeaderMessageDropdown = function () {
 
     // Close others
     document.querySelectorAll('.dropdown-menu').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('#userMenu .dropdown-menu').forEach(el => el.style.display = 'none');
+
+    dropdown.style.display = isHidden ? 'block' : 'none';
+
+    if (isHidden && window.chatManager) {
+        renderHeaderDropdown(window.chatManager.conversations);
+    }
+};
+
+function renderHeaderDropdown(conversations) {
+    const list = document.getElementById('headerDropdownList');
+    if (!list) return;
+
+    if (!conversations || conversations.length === 0) {
+        list.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay mensajes recientes</div>';
+        return;
+    }
+
+    list.innerHTML = conversations.map(conv => {
+        const user = conv.otherUser;
+        const lastMsg = conv.lastMessage;
+        return `
+            <div onclick="window.location.href='messages.html'" style="padding: 12px 16px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
+                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                <div style="flex: 1; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="font-weight: 600; color: white; font-size: 0.9rem;">${user.name}</span>
+                        ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); width: 8px; height: 8px; border-radius: 50%;"></span>` : ''}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${lastMsg ? (lastMsg.senderId === user.id ? '' : 'Tú: ') + lastMsg.message : 'Nuevo chat'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 
     dropdown.style.display = isHidden ? 'block' : 'none';
 
