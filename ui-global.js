@@ -78,6 +78,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         script.onload = () => {
             initGlobalChat(currentUser);
         };
+        script.onerror = () => {
+            console.error('Failed to load chat-manager.js');
+        };
         document.body.appendChild(script);
     } else {
         initGlobalChat(currentUser);
@@ -86,6 +89,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initGlobalChat(user) {
     if (window.chatManager) return; // Already init
+
+    // 1. Ensure Widget Container Exists (Freelancer Style)
+    let container = document.getElementById('chatWidgetContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'chatWidgetContainer';
+        // Fixed bottom-right positioning, pointer-events: none allows clicking through empty space
+        container.style.cssText = `
+            position: fixed;
+            bottom: 0px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            pointer-events: none;
+        `;
+        document.body.appendChild(container);
+    }
 
     const socketUrl = 'https://deskshare-backend-production.up.railway.app';
     window.chatManager = new ChatManager(user, socketUrl);
