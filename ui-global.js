@@ -95,6 +95,7 @@ function initGlobalChat(user) {
     if (!container) {
         container = document.createElement('div');
         container.id = 'chatWidgetContainer';
+        container.dataset.listOpen = 'false'; // Default closed
         // Fixed bottom-right positioning, pointer-events: none allows clicking through empty space
         container.style.cssText = `
             position: fixed;
@@ -112,7 +113,37 @@ function initGlobalChat(user) {
     const socketUrl = 'https://deskshare-backend-production.up.railway.app';
     window.chatManager = new ChatManager(user, socketUrl);
     console.log('Global Chat Widget Initialized');
+
+    // 2. Inject Message Icon into Header (Freelancer Style)
+    const navLinks = document.querySelector('.nav-links');
+    if (navLinks && !document.getElementById('navMessageIcon')) {
+        const li = document.createElement('li');
+        li.id = 'navMessageIcon';
+        li.innerHTML = `
+            <a href="#" onclick="event.preventDefault(); toggleGlobalChatList();" style="position: relative; display: flex; align-items: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span id="navMsgBadge" style="display: none; position: absolute; top: -5px; right: -8px; background: red; color: white; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center;">0</span>
+            </a>
+        `;
+        // Insert before the last item (usually specific action or profile)
+        // Or just append if easier. Let's insert before "Mi Perfil" or similar if possible.
+        // For robustness, just prepend or append. Let's prepend to be visible.
+        navLinks.insertBefore(li, navLinks.lastElementChild);
+    }
 }
+
+// Global toggle for the list
+window.toggleGlobalChatList = function () {
+    const container = document.getElementById('chatWidgetContainer');
+    const bar = document.getElementById('chat-global-bar');
+    if (container && bar) {
+        const isOpen = container.dataset.listOpen === 'true';
+        container.dataset.listOpen = !isOpen;
+        bar.style.height = !isOpen ? '400px' : '48px';
+    }
+};
 
 function loadScript(src) {
     return new Promise((resolve, reject) => {

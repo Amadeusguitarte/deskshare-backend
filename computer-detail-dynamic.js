@@ -309,12 +309,14 @@ async function sendChatMessage() {
         // Open widget
         await window.chatManager.openChat(ownerId);
 
-        // Optimistic display
+        // Optimistic display removed to prevent duplicates (Socket.io handles it)
+        /*
         displayChatMessage({
             senderId: currentUser.id,
             message: text,
             createdAt: new Date().toISOString()
         });
+        */
 
     } catch (err) {
         console.error('Error sending message:', err);
