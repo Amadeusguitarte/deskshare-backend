@@ -225,8 +225,8 @@ async function initializeChat(computerId) {
                 }
             }
 
-            // Prevent duplicate listeners
-            if (chatContainer.dataset.listenerAttached === 'true') {
+            // Prevent duplicate listeners (Global Guard)
+            if (window.chatManager._detailListenerAttached) {
                 return;
             }
         }
@@ -238,7 +238,7 @@ async function initializeChat(computerId) {
                     displayChatMessage(msg);
                 }
             });
-            if (chatContainer) chatContainer.dataset.listenerAttached = 'true';
+            window.chatManager._detailListenerAttached = true;
         }
     }
 }
