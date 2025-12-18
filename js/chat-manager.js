@@ -524,7 +524,7 @@ class ChatManager {
                     const msgHtml = `
                         <div style="display: flex; justify-content: flex-end;">
                             <span style="background: var(--accent-purple); color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
-                                ${text} // Use text directly to match temp
+                                ${text}
                             </span>
                         </div>
                     `;
