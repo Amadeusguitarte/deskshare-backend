@@ -237,6 +237,12 @@ async function initializeChat(computerId) {
         // BUT strict separation is cleaner. Let's just listen to socket events here too IF needed,
         // OR rely on ChatManager.
 
+        const chatContainer = document.getElementById('chatMessages');
+        // Prevent duplicate listeners
+        if (chatContainer.dataset.listenerAttached === 'true') {
+            return;
+        }
+
         // Re-using the socket from ChatManager is best
         if (window.chatManager.socket) {
             window.chatManager.socket.on('private-message', (msg) => {
@@ -244,6 +250,7 @@ async function initializeChat(computerId) {
                     displayChatMessage(msg);
                 }
             });
+            chatContainer.dataset.listenerAttached = 'true';
         }
     }
 }
