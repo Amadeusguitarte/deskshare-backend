@@ -119,12 +119,14 @@ function initGlobalChat(user) {
     if (navLinks && !document.getElementById('navMessageIcon')) {
         const li = document.createElement('li');
         li.id = 'navMessageIcon';
+        li.style.marginLeft = '10px'; // Extra spacing
         li.innerHTML = `
-            <a href="#" onclick="event.preventDefault(); toggleGlobalChatList();" style="position: relative; display: flex; align-items: center;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin-right: 15px; display: inline-block; vertical-align: middle;"></div>
+            <a href="#" onclick="event.preventDefault(); toggleGlobalChatList();" style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
-                <span id="navMsgBadge" style="display: none; position: absolute; top: -5px; right: -8px; background: red; color: white; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center;">0</span>
+                <span id="navMsgBadge" style="display: none; position: absolute; top: 4px; right: 4px; background: #ef4444; color: white; font-size: 9px; font-weight: bold; width: 14px; height: 14px; border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg-primary);">0</span>
             </a>
         `;
         // Insert before the last item (usually specific action or profile)
