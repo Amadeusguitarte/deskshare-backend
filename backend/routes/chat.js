@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 // ========================================
 router.get('/conversations', auth, async (req, res, next) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user.userId || req.user.id;
 
         // Get all messages where user is sender or receiver
         const messages = await prisma.message.findMany({
@@ -71,7 +71,7 @@ router.get('/conversations', auth, async (req, res, next) => {
 router.get('/:computerId', auth, async (req, res, next) => {
     try {
         const computerId = parseInt(req.params.computerId);
-        const userId = req.user.userId;
+        const userId = req.user.userId || req.user.id;
 
         const messages = await prisma.message.findMany({
             where: {
@@ -112,7 +112,7 @@ router.get('/:computerId', auth, async (req, res, next) => {
 router.get('/history/:userId', auth, async (req, res, next) => {
     try {
         const partnerId = parseInt(req.params.userId);
-        const userId = req.user.userId;
+        const userId = req.user.userId || req.user.id;
 
         const messages = await prisma.message.findMany({
             where: {
