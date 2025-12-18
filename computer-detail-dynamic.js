@@ -265,8 +265,9 @@ function displayChatMessage(message) {
     const now = Date.now();
 
     // Check if identical message from same sender arrived in last 2 seconds
+    // Use String() coercion to avoid Number vs String mismatches
     if (window.lastProcessedMsg.text === msgText &&
-        window.lastProcessedMsg.senderId === message.senderId &&
+        String(window.lastProcessedMsg.senderId) === String(message.senderId) &&
         (now - window.lastProcessedMsg.time) < 2000) {
 
         console.warn('Duplicate blocked by Memory Guard:', msgText);
