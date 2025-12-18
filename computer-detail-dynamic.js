@@ -293,7 +293,8 @@ function displayChatMessage(message) {
     scrollChatToBottom();
 }
 
-async function sendChatMessage() {
+// Make available globally for button click
+window.sendChatMessage = async function () {
     const input = document.getElementById('messageInput');
     if (!input) return;
 
