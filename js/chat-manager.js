@@ -438,4 +438,36 @@ class ChatManager {
             if (area) area.scrollTop = area.scrollHeight;
         }
     }
+    async openChat(userId) {
+        // Ensure conversations are loaded
+        if (this.conversations.length === 0) {
+            await this.loadConversations();
+        }
+
+        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        if (conv) {
+            this.toggleTab(userId);
+        } else {
+            // Create new optimistic conversation logic if needed, 
+            // or just rely on sendMessage creating it on backend.
+            // For now, let's try to fetch specific conversation or start fresh UI
+            // But toggleTab handles existing.
+            // If not existing, we might need a "Pending" tab or just force it open
+
+            // Simplified: If not found, create a dummy one for UI
+            // This requires fetching user details which we might pass or fetch
+            // But for "Contact Host", we usually send a message FIRST.
+            // computer-detail-dynamic.js sends message first, so conversation SHOULD exist after reload.
+            // But we don't reload page.
+            // Let's rely on handleNewMessage or force reload conversations
+            await this.loadConversations();
+            const retryConv = this.conversations.find(c => c.otherUser.id === userId);
+            if (retryConv) {
+                this.toggleTab(userId);
+            }
+        }
+    }
 }
+
+// Make globally available
+window.ChatManager = ChatManager;
