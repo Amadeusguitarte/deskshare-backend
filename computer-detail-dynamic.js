@@ -276,29 +276,23 @@ function displayChatMessage(message) {
     // Update last processed
     window.lastProcessedMsg = { text: msgText, time: now, senderId: message.senderId };
 
-    // Fallback: If Fuzzy Check was here, we replaced it. Memory is better.
-    // Usually rapid dupes happen instantly.
-    // Let's rely on ID first, but if ID is missing (temp?), fuzzy blocks it.
-    console.warn('Duplicate Content skipped:', message.message);
-    return;
-}
-    }
 
-const messageEl = document.createElement('div');
-if (message.id) messageEl.dataset.msgId = message.id; // Store ID
-messageEl.className = isMe ? 'message-sent' : 'message-received';
-// Match styles from CSS or inline
-messageEl.style.cssText = isMe ?
-    'align-self: flex-end; background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-right-radius: 2px; margin-bottom: 8px; max-width: 80%;' :
-    'align-self: flex-start; background: rgba(255,255,255,0.1); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-left-radius: 2px; margin-bottom: 8px; max-width: 80%;';
 
-messageEl.innerHTML = `
+    const messageEl = document.createElement('div');
+    if (message.id) messageEl.dataset.msgId = message.id; // Store ID
+    messageEl.className = isMe ? 'message-sent' : 'message-received';
+    // Match styles from CSS or inline
+    messageEl.style.cssText = isMe ?
+        'align-self: flex-end; background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-right-radius: 2px; margin-bottom: 8px; max-width: 80%;' :
+        'align-self: flex-start; background: rgba(255,255,255,0.1); color: white; padding: 8px 12px; border-radius: 12px; border-bottom-left-radius: 2px; margin-bottom: 8px; max-width: 80%;';
+
+    messageEl.innerHTML = `
         <div class="message-content">${escapeHtml(message.message || message.text)}</div>
         <div class="message-time" style="font-size: 0.7em; opacity: 0.7; text-align: right; margin-top: 4px;">${formatMessageTime(message.createdAt)}</div>
     `;
 
-chatContainer.appendChild(messageEl);
-scrollChatToBottom();
+    chatContainer.appendChild(messageEl);
+    scrollChatToBottom();
 }
 
 async function sendChatMessage() {
