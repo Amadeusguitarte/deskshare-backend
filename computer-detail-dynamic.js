@@ -257,25 +257,31 @@ function displayChatMessage(message) {
         return;
     }
 
-    // 2. Memory-Based Deduplication (The Ultimate Guard)
-    // Track the last message processed globally to prevent rapid echoes
-    if (!window.lastProcessedMsg) window.lastProcessedMsg = { text: '', time: 0, senderId: '' };
+    // 2. Memory-Based Deduplication (Signature Map)
+    // Stronger than single variable, handles multiple rapid events
+    if (!window.msgSignatures) window.msgSignatures = new Map();
 
     const msgText = (message.message || message.text || '').trim();
+    // Signature: SenderID + Text (Ignore time in signature to catch echoes)
+    const signature = `${message.senderId}:${msgText}`;
     const now = Date.now();
 
-    // Check if identical message from same sender arrived in last 2 seconds
-    // Use String() coercion to avoid Number vs String mismatches
-    if (window.lastProcessedMsg.text === msgText &&
-        String(window.lastProcessedMsg.senderId) === String(message.senderId) &&
-        (now - window.lastProcessedMsg.time) < 2000) {
-
-        console.warn('Duplicate blocked by Memory Guard:', msgText);
-        return;
+    // Clean old signatures (> 5 seconds)
+    for (const [key, timestamp] of window.msgSignatures) {
+        if (now - timestamp > 5000) window.msgSignatures.delete(key);
     }
 
-    // Update last processed
-    window.lastProcessedMsg = { text: msgText, time: now, senderId: message.senderId };
+    // Check if signature exists and is recent
+    if (window.msgSignatures.has(signature)) {
+        const lastTime = window.msgSignatures.get(signature);
+        if (now - lastTime < 2000) {
+            console.warn('Duplicate blocked by Signature Map:', signature);
+            return;
+        }
+    }
+
+    // Update signature
+    window.msgSignatures.set(signature, now);
 
 
 
