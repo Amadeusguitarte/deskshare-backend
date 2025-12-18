@@ -54,12 +54,22 @@ class ChatManager {
             this.handleNewMessage(msg);
         });
 
-        this.socket.on('new-message', (msg) => {
-            this.handleNewMessage(msg);
-        });
+        // this.socket.on('new-message', (msg) => {
+        //     this.handleNewMessage(msg);
+        // });
     }
 
     handleNewMessage(msg) {
+        // Deduplication: Check if we already have this message in the history of the relevant conversation
+        if (this.activeConversation &&
+            (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
+            const exists = this.activeConversation.messages.some(m => m.id === msg.id);
+            if (exists) {
+                console.log('Skipping duplicate message:', msg.id);
+                return;
+            }
+        }
+
         // Refresh conversations
         this.loadConversations().then(() => {
             if (this.messagesPageContainer) {

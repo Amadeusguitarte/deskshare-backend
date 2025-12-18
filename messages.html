@@ -14,34 +14,31 @@
     <div class="blob-c"></div>
 
     <!-- Navigation -->
-    <nav class="glass-nav">
-        <div class="nav-content">
-            <div class="logo">DeskShare</div>
-            <div class="nav-links">
-                <a href="index.html">Inicio</a>
-                <a href="marketplace.html">Explorar</a>
-                <a href="how-it-works.html">Cómo Funciona</a>
-                <a href="profile.html">Mi Perfil</a>
-                <a href="messages.html" class="active">Mensajes <span id="navUnreadBadge"
-                        style="display:none; background: var(--error-red); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span></a>
-            </div>
-            <div class="auth-buttons" id="authButtons">
-                <a href="login.html" class="btn btn-secondary">Iniciar Sesión</a>
-                <a href="register.html" class="btn btn-primary">Registrarse</a>
-            </div>
-            <div class="user-menu" id="userMenu" style="display: none;">
-                <div class="user-avatar" id="navUserAvatar">
-                    <span id="navUserInitials">PK</span>
-                </div>
-                <div class="dropdown-menu">
-                    <a href="profile.html">Mi Perfil</a>
-                    <a href="messages.html">Mensajes</a>
-                    <a href="publish.html">Publicar PC</a>
-                    <a href="#" id="logoutBtn">Cerrar Sesión</a>
-                </div>
-            </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">DeskShare</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
+                <li><a href="how-it-works.html">Cómo Funciona</a></li>
+                <!-- Publicar PC button will be handled by ui-global.js setup -->
+                <li><a href="#" class="btn btn-primary">Publicar PC</a></li>
+
+                <!-- Auth placeholders (will be managed by ui-global.js) -->
+                <!-- Note: ui-global.js expects standard links to be present for injection -->
+                <li class="auth-only" style="display: none;"><a href="profile.html">Mi Perfil</a></li>
+                <li class="auth-only" style="display: none;"><a href="#" id="logoutBtn">Cerrar Sesión</a></li>
+
+                <li class="guest-only"><a href="login.html" class="btn btn-secondary" id="loginBtn">Iniciar Sesión</a>
+                </li>
+            </ul>
         </div>
     </nav>
+
+    <!-- Add spacer for fixed navbar -->
+    <div style="height: 80px;"></div>
 
     <!-- Main Content -->
     <main style="padding-top: 80px; height: 100vh; box-sizing: border-box;">
