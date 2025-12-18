@@ -197,9 +197,6 @@ async function initializeChat(computerId) {
     if (window.chatManager) {
         // ChatManager handles the global socket connection
         // We just need to load the specific history for this computer context
-        // OR we can just treat it as a conversation with the owner
-        // For visual consistency, let's load the history into the inline widget
-
         const ownerId = currentComputer.user.id;
         const messages = await window.chatManager.loadHistory(ownerId);
 
@@ -227,20 +224,11 @@ async function initializeChat(computerId) {
                     `;
                 }
             }
-        }
 
-        // Listen for new messages via ChatManager's socket?
-        // ChatManager already listens and updates its internal state. 
-        // We can hook into it or listen to the event directly if we have access.
-        // For simplicity, let's attach to the same socket if possible, 
-        // OR better: let ChatManager handle the UI updates if we registered a callback.
-        // BUT strict separation is cleaner. Let's just listen to socket events here too IF needed,
-        // OR rely on ChatManager.
-
-        const chatContainer = document.getElementById('chatMessages');
-        // Prevent duplicate listeners
-        if (chatContainer.dataset.listenerAttached === 'true') {
-            return;
+            // Prevent duplicate listeners
+            if (chatContainer.dataset.listenerAttached === 'true') {
+                return;
+            }
         }
 
         // Re-using the socket from ChatManager is best
@@ -250,7 +238,7 @@ async function initializeChat(computerId) {
                     displayChatMessage(msg);
                 }
             });
-            chatContainer.dataset.listenerAttached = 'true';
+            if (chatContainer) chatContainer.dataset.listenerAttached = 'true';
         }
     }
 }
