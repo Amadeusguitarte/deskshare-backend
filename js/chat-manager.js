@@ -457,18 +457,7 @@ class ChatManager {
     async sendMiniMessage(userId, text) {
         if (!text.trim()) return;
         await this.sendMessage(userId, text);
-
-        // Optimistic
-        if (this.activeConversation) {
-            this.activeConversation.messages.push({
-                senderId: this.currentUser.id,
-                message: text,
-                createdAt: new Date().toISOString()
-            });
-            this.renderWidgetTabs();
-            const area = this.widgetContainer.querySelector('.mini-messages-area');
-            if (area) area.scrollTop = area.scrollHeight;
-        }
+        // Optimistic update removed to prevent duplicates (socket handles it)
     }
     async openChat(userId) {
         // Ensure conversations are loaded

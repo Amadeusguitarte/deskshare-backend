@@ -64,6 +64,24 @@ window.openAddComputerModal = openAddComputerModal;
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Check Auth
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+    // IMMEDIATE HEADER FIX
+    if (currentUser) {
+        const authBtns = document.getElementById('authButtons');
+        const userMenu = document.getElementById('userMenu');
+        if (authBtns) authBtns.style.display = 'none';
+        if (userMenu) {
+            userMenu.style.display = 'flex';
+            // Init avatar
+            const initDiv = document.getElementById('navUserInitials');
+            const avaImg = document.getElementById('navUserAvatar');
+            if (initDiv) initDiv.innerText = currentUser.name.substring(0, 2).toUpperCase();
+            // If we have an image element inside navUserAvatar (which is a div in messages.html but an img elsewhere?)
+            // messages.html structure: <div class="user-avatar" id="navUserAvatar">...</div>
+            // ui-global previously assumed it's an img? No, checking structure.
+        }
+    }
+
     if (!currentUser) return;
 
     // 2. Ensure Socket.io is loaded
