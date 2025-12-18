@@ -331,6 +331,7 @@ class ChatManager {
     }
 
     renderMessages(messages) {
+        messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         const area = document.getElementById('messagesArea');
         area.innerHTML = messages.map(msg => {
             const isMe = msg.senderId === this.currentUser.id;
@@ -434,10 +435,11 @@ class ChatManager {
 
     renderChatTab(conv) {
         const user = conv.otherUser;
-        // Always expanded in multi-tab mode for now, or we could add minimize capability.
-        // User requested "able to open 2 or 3 tabs", implying full windows.
-        const isExpanded = true;
+        // Always expanded in multi-tab mode for now
         const tabId = `chat-tab-${user.id}`;
+
+        // SORT MESSAGES: Oldest -> Newest
+        const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         return `
             <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px;">
@@ -450,7 +452,7 @@ class ChatManager {
                 </div>
                 
                 <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
-                    ${(conv.messages || []).map(msg => `
+                    ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
                             <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
                                 ${msg.message}
@@ -478,9 +480,6 @@ class ChatManager {
             const conv = this.conversations.find(c => c.otherUser.id === userId);
             if (conv) {
                 conv.messages = msgs;
-                // Since this might be new messages, clear unread count roughly? 
-                // Currently backend handles read status on fetch? Or we need to mark as read manually?
-                // For now, let's just render.
                 this.renderWidgetTabs();
                 setTimeout(() => {
                     const tab = document.getElementById(`chat-tab-${userId}`);
@@ -488,7 +487,7 @@ class ChatManager {
                         const area = tab.querySelector('.mini-messages-area');
                         if (area) area.scrollTop = area.scrollHeight;
                     }
-                }, 50);
+                }, 100);
             }
         });
 
@@ -502,8 +501,33 @@ class ChatManager {
 
     async sendMiniMessage(userId, text) {
         if (!text.trim()) return;
+
+        // Optimistic UI Update
+        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        if (conv) {
+            const tempMsg = {
+                id: 'temp-' + Date.now(),
+                senderId: this.currentUser.id,
+                message: text,
+                createdAt: new Date().toISOString(),
+                isRead: false
+            };
+            if (!conv.messages) conv.messages = [];
+            conv.messages.push(tempMsg);
+
+            this.renderWidgetTabs();
+            // Force scroll
+            setTimeout(() => {
+                const tab = document.getElementById(`chat-tab-${userId}`);
+                if (tab) {
+                    const area = tab.querySelector('.mini-messages-area');
+                    if (area) area.scrollTop = area.scrollHeight;
+                }
+            }, 50);
+        }
+
         await this.sendMessage(userId, text);
-        // Optimistic update removed to prevent duplicates (socket handles it)
+        // The real message will come via socket 'private-message', checking for dupes there.
     }
     async openChat(userId) {
         // Ensure conversations are loaded
