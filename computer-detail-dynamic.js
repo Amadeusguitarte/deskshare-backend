@@ -274,10 +274,31 @@ async function sendChatMessage() {
         await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
 
         // 2. Open Global Widget (This is the key fix)
-        if (typeof window.chatManager.openChat === 'function') {
+        // 2. Open Global Widget (Wait if necessary)
+        const waitForChat = () => new Promise((resolve, reject) => {
+            if (window.chatManager && typeof window.chatManager.openChat === 'function') {
+                return resolve();
+            }
+            console.log('Waiting for ChatManager...');
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                if (window.chatManager && typeof window.chatManager.openChat === 'function') {
+                    clearInterval(interval);
+                    resolve();
+                } else if (attempts > 30) { // 3 seconds timeout
+                    clearInterval(interval);
+                    reject(new Error('ChatManager unavailable'));
+                }
+            }, 100);
+        });
+
+        try {
+            await waitForChat();
             await window.chatManager.openChat(ownerId);
-        } else {
-            console.warn('chatManager.openChat is not a function');
+        } catch (e) {
+            console.error(e);
+            window.location.href = 'messages.html'; // Fallback
         }
 
         // 3. Optimistic display in local container (if exists)
