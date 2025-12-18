@@ -257,51 +257,48 @@ async function sendChatMessage() {
     const text = input.value.trim();
     if (!text) return;
 
-    if (!window.chatManager) {
-        console.error('ChatManager not found');
-        alert('El sistema de chat no está disponible en este momento via Widget. Redirigiendo...');
-        window.location.href = 'messages.html';
-        return;
-    }
-
     // Use ChatManager to send
     input.value = ''; // Optimistic clear
 
-    try {
-        const ownerId = currentComputer.user.id;
-
-        // 1. Send to API
-        await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
-
-        // 2. Open Global Widget (This is the key fix)
-        // 2. Open Global Widget (Wait if necessary)
-        const waitForChat = () => new Promise((resolve, reject) => {
-            if (window.chatManager && typeof window.chatManager.openChat === 'function') {
-                return resolve();
-            }
-            console.log('Waiting for ChatManager...');
-            let attempts = 0;
-            const interval = setInterval(() => {
-                attempts++;
-                if (window.chatManager && typeof window.chatManager.openChat === 'function') {
-                    clearInterval(interval);
-                    resolve();
-                } else if (attempts > 30) { // 3 seconds timeout
-                    clearInterval(interval);
-                    reject(new Error('ChatManager unavailable'));
-                }
-            }, 100);
-        });
-
-        try {
-            await waitForChat();
-            await window.chatManager.openChat(ownerId);
-        } catch (e) {
-            console.error(e);
-            window.location.href = 'messages.html'; // Fallback
+    const waitForChat = () => new Promise((resolve, reject) => {
+        // 1. Ready immediately?
+        if (window.chatManager && typeof window.chatManager.openChat === 'function') {
+            return resolve();
         }
 
-        // 3. Optimistic display in local container (if exists)
+        console.log('ChatManager not ready, waiting...');
+
+        // 2. Try to init if global function exists but manager doesn't
+        if (typeof initGlobalChat === 'function' && !window.chatManager) {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (currentUser) initGlobalChat(currentUser);
+        }
+
+        // 3. Poll for it
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            if (window.chatManager && typeof window.chatManager.openChat === 'function') {
+                clearInterval(interval);
+                resolve();
+            } else if (attempts > 50) { // 5 seconds
+                clearInterval(interval);
+                reject(new Error('ChatManager unavailable after 5s'));
+            }
+        }, 100);
+    });
+
+    try {
+        await waitForChat();
+
+        const ownerId = currentComputer.user.id;
+        // Send message
+        await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
+
+        // Open widget
+        await window.chatManager.openChat(ownerId);
+
+        // Optimistic display
         displayChatMessage({
             senderId: currentUser.id,
             message: text,
@@ -310,9 +307,14 @@ async function sendChatMessage() {
 
     } catch (err) {
         console.error('Error sending message:', err);
-        alert('Error al enviar el mensaje.');
+        // Only redirect if absolutely failed
+        if (confirm('El widget de chat no pudo cargarse. ¿Ir a la página de mensajes?')) {
+            window.location.href = 'messages.html';
+        }
     }
 }
+
+
 
 function scrollChatToBottom() {
     const chatContainer = document.getElementById('chatMessages');
