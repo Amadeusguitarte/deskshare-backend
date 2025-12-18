@@ -90,38 +90,18 @@ class ChatManager {
                     });
                 }
             } else {
-                // WIDGET LOGIC 
-
+                // WIDGET LOGIC (OPTIMIZED)
                 // 1. UPDATE DATA MODEL & HANDLE OPTIMISTIC DUPLICATES
                 const conv = this.conversations.find(c => parseInt(c.otherUser.id) === relevantUserId);
                 let avoidAppend = false;
 
                 if (conv) {
                     if (!conv.messages) conv.messages = [];
-
-                    // CHECK FOR OPTIMISTIC DUPLICATE (Self-sent)
-                    if (senderId === currentUserId) {
-                        // Find a recent temp message with same content
-                        const tempMatch = conv.messages.find(m =>
-                            m.id.toString().startsWith('temp-') &&
-                            m.message === msg.message &&
-                            (new Date(msg.createdAt).getTime() - new Date(m.createdAt).getTime() < 10000) // Within 10 secs
-                        );
-
-                        if (tempMatch) {
-                            console.log('Merge optimistic message:', tempMatch.id, '->', msg.id);
-                            // Merge/Replace
-                            tempMatch.id = msg.id;
-                            tempMatch.createdAt = msg.createdAt;
-                            tempMatch.isRead = msg.isRead;
-                            avoidAppend = true; // DOM already has it
-                        } else {
-                            // Not found as temp? Append it.
-                            if (!conv.messages.some(m => m.id === msg.id)) conv.messages.push(msg);
-                        }
+                    // Check strict duplication (socket echo)
+                    if (!conv.messages.some(m => m.id === msg.id)) {
+                        conv.messages.push(msg);
                     } else {
-                        // Incoming message
-                        if (!conv.messages.some(m => m.id === msg.id)) conv.messages.push(msg);
+                        avoidAppend = true; // Already exists
                     }
                 }
 
@@ -172,48 +152,16 @@ class ChatManager {
 
                 // 3. UPDATE LIST PREVIEW (Sidebar)
                 // We do this manually to avoid full re-render
-                this.updateListPreview(relevantUserId, msg, senderId === currentUserId);
+                // this.updateListPreview(relevantUserId, msg, senderId === currentUserId);
+                // (Previous stable version didn't have updateListPreview method extracted yet, it did full render or badge only?
+                // Wait, the backup content (Step 7050) has `renderWidgetTabs()` logic inside.
+                // It DOES NOT have `updateListPreview` call.
 
-                // Update Data Unread Count (if incoming and not focused/open logic?)
-                // Actually if tab is open, we consider it read locally? 
-                // For now, let's just update the badge global count.
-                if (senderId !== currentUserId && !tabIsOpen) {
-                    // If it WAS closed, unread count increases in backend usually. 
-                    // We just use what `loadConversations` gave us or increment manually?
-                    // `loadConversations` above refreshed `this.conversations`, so counts are fresh from DB.
-                }
-
+                // Update Data Unread Count
                 const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
                 this.updateGlobalBadge(totalUnread);
             }
         });
-    }
-
-    updateListPreview(userId, msg, isMe) {
-        const list = document.getElementById('chat-global-bar');
-        if (!list) return; // List might not be rendered or is closed (but DOM exists if widget init)
-
-        // Find the specific user item
-        // We need a way to ID the rows. I'll add IDs in renderWidgetTabs next step.
-        // For now, let's try to query by text or just re-render the inner list if it's open?
-        // Actually, re-rendering just the inner list is safe and cheap.
-
-        const listArea = list.querySelector('.chat-list-area');
-        if (listArea) {
-            // Re-render list content only
-            listArea.innerHTML = this.conversations.length > 0 ? this.conversations.map(conv => `
-                <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
-                    <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
-                    <div style="flex:1; overflow:hidden;">
-                        <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
-                        <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight: ${conv.unreadCount > 0 ? 'bold' : 'normal'}; color: ${conv.unreadCount > 0 ? 'white' : '#888'};">
-                            ${(conv.lastMessage?.message || conv.messages[conv.messages.length - 1]?.message || '')}
-                        </div>
-                    </div>
-                    ${(conv.unreadCount > 0) ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
-                </div>
-            `).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>';
-        }
     }
 
     scrollToBottom(userId) {
@@ -502,8 +450,8 @@ class ChatManager {
         this.updateGlobalBadge(totalUnread);
 
         const persistentBar = `
-            <div id="chat-global-bar" class="chat-tab" style="width: 300px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '520px' : '48px'}; margin-left: 10px;">
-                <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'520px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+            <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;">
+                <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
                         ${totalUnread > 0 ? `<span style="background:var(--error-red); color:white; font-size:0.7rem; padding: 2px 6px; border-radius:10px;">${totalUnread}</span>` : ''}
@@ -512,24 +460,16 @@ class ChatManager {
                 </div>
                 
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
-                    ${this.conversations.length > 0 ? this.conversations.map(conv => {
-            // Hide unread dot if this specific chat is currently OPEN on screen
-            const isOpen = this.openConversationIds.includes(parseInt(conv.otherUser.id));
-            const showDot = (conv.unreadCount > 0) && !isOpen;
-            const lastMsgText = conv.lastMessage?.message || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].message : '') || '';
-
-            return `
+                    ${this.conversations.length > 0 ? this.conversations.map(conv => `
                         <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
                             <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
-                                <div style="font-size: 0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight: ${showDot ? 'bold' : 'normal'}; color: ${showDot ? 'white' : '#888'};">
-                                    ${lastMsgText}
-                                </div>
+                                <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
                             </div>
-                            ${showDot ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
+                            ${(conv.unreadCount > 0) ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
                         </div>
-                    `}).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>'}
+                    `).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>'}
                 </div>
                 
                 <div style="padding: 10px; border-top: 1px solid #333; text-align: center;">
@@ -573,7 +513,7 @@ class ChatManager {
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 340px; height: 520px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 15px;">
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px;">
                 <div onclick="chatManager.closeTab(${user.id})" style="padding: 10px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
@@ -592,33 +532,33 @@ class ChatManager {
                     `).join('')}
                 </div>
                 
-                <!--FREELANCER STYLE FOOTER-- >
-            <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
-                <!-- Attach Icon -->
-                <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                </button>
-
-                <!-- Input Container -->
-                <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                    <input type="text" placeholder="Escribe un mensaje..."
-                        onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
-                        style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white;">
-
+                <!-- FREELANCER STYLE FOOTER -->
+                <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
+                     <!-- Attach Icon -->
+                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
+                    
+                    <!-- Input Container -->
+                    <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
+                        <input type="text" placeholder="Escribe un mensaje..." 
+                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
+                               style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white;">
+                        
                         <!-- Emoji Icon -->
                         <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
                         </button>
-                </div>
+                    </div>
 
-                <!-- Send Icon -->
-                <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }"
-                    style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
+                    <!-- Send Icon -->
+                    <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }" 
+                            style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
             </div>
-            </div >
-            `;
+        `;
     }
 
     toggleTab(userId) {
@@ -635,7 +575,7 @@ class ChatManager {
                 conv.messages = msgs;
                 this.renderWidgetTabs();
                 setTimeout(() => {
-                    const tab = document.getElementById(`chat - tab - ${userId} `);
+                    const tab = document.getElementById(`chat-tab-${userId}`);
                     if (tab) {
                         const area = tab.querySelector('.mini-messages-area');
                         if (area) area.scrollTop = area.scrollHeight;
@@ -668,19 +608,19 @@ class ChatManager {
             conv.messages.push(tempMsg);
 
             // OPTIMIZED RENDER: Append to DOM instead of Re-Render Widget
-            const tabId = `chat - tab - ${userId} `;
+            const tabId = `chat-tab-${userId}`;
             const tabEl = document.getElementById(tabId);
 
             if (tabEl) {
                 const msgArea = tabEl.querySelector('.mini-messages-area');
                 if (msgArea) {
                     const msgHtml = `
-            < div style = "display: flex; justify-content: flex-end;" >
-                <span style="background: var(--accent-purple); color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
-                    ${text}
-                </span>
-                        </div >
-            `;
+                        <div style="display: flex; justify-content: flex-end;">
+                            <span style="background: var(--accent-purple); color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
+                                ${text}
+                            </span>
+                        </div>
+                    `;
                     // Append smoothly
                     msgArea.insertAdjacentHTML('beforeend', msgHtml);
                     // Instant scroll to bottom
