@@ -4,6 +4,8 @@
 
 let allComputers = [];
 
+const FALLBACK_SVG = "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 200 200%27 fill=%27none%27%3E%3Crect width=%27200%27 height=%27200%27 fill=%27%23222%27/%3E%3Crect x=%2745%27 y=%2750%27 width=%27110%27 height=%2775%27 rx=%274%27 fill=%27%23444%27 stroke=%27%23666%27 stroke-width=%272%27/%3E%3Crect x=%2752%27 y=%2757%27 width=%2796%27 height=%2761%27 fill=%27%23333%27/%3E%3Crect x=%2785%27 y=%27125%27 width=%2730%27 height=%274%27 fill=%27%23444%27/%3E%3Crect x=%2770%27 y=%27129%27 width=%2760%27 height=%278%27 rx=%272%27 fill=%27%23555%27/%3E%3Ccircle cx=%27100%27 cy=%27133%27 r=%271.5%27 fill=%27%23888%27/%3E%3C/svg%3E";
+
 document.addEventListener('DOMContentLoaded', async () => {
     await loadMarketplaceComputers();
 });
@@ -44,10 +46,14 @@ function renderComputers(computers) {
 
     // MATCHING THE DESIGN FROM index.html "Computadoras Destacadas"
     grid.innerHTML = computers.map(computer => {
-        // Image handling
-        let imageUrl = 'assets/workstation_professional_1765782988095.png';
+        // Image handling logic
+        let imageUrl = FALLBACK_SVG;
+
         if (computer.images && computer.images.length > 0) {
-            imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+            const firstImg = computer.images[0].imageUrl || computer.images[0].url;
+            if (firstImg && !firstImg.includes('localhost') && !firstImg.includes('127.0.0.1')) {
+                imageUrl = firstImg;
+            }
         }
 
         // Generate spec badges (LIKE THE FEATURED CARDS)
@@ -67,7 +73,12 @@ function renderComputers(computers) {
 
         return `
         <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
-            <img src="${imageUrl}" alt="${computer.name}" class="computer-image">
+            <img src="${imageUrl}" 
+                 alt="${computer.name}" 
+                 class="computer-image"
+                 style="object-fit: cover; background-color: #222;"
+                 onerror="this.onerror=null; this.src='${FALLBACK_SVG}';"
+            >
             <div class="computer-info">
                 <h3 class="computer-title">${computer.name}</h3>
                 <div class="computer-specs">
