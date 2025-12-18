@@ -325,27 +325,19 @@ async function sendChatMessage() {
         await waitForChat();
 
         const ownerId = currentComputer.user.id;
-        // Send message
-        await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
 
-        // Open widget
+        // 1. Open widget FIRST so user sees something happening
         await window.chatManager.openChat(ownerId);
 
-        // Optimistic display removed to prevent duplicates (Socket.io handles it)
-        /*
-        displayChatMessage({
-            senderId: currentUser.id,
-            message: text,
-            createdAt: new Date().toISOString()
-        });
-        */
+        // 2. Send message
+        await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
+
+        // Note: We rely on Socket.io to update the UI (both widget and inline)
+        // to avoid duplicate messages.
 
     } catch (err) {
         console.error('Error sending message:', err);
-        // Only redirect if absolutely failed
-        if (confirm('El widget de chat no pudo cargarse. ¿Ir a la página de mensajes?')) {
-            window.location.href = 'messages.html';
-        }
+        alert('Error al enviar mensaje: ' + err.message);
     }
 }
 
