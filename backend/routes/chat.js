@@ -180,9 +180,8 @@ router.post('/', auth, async (req, res, next) => {
             }
 
             // 2. Emit to user-specific room (for Global Widget)
-            // Ideally, users should join a room "user-{myId}" on connection
             io.to(`user-${receiverId}`).emit('private-message', newMessage);
-            io.to(`user-${req.user.userId}`).emit('private-message', newMessage); // Also to sender (for multi-tab sync)
+            io.to(`user-${req.user.userId || req.user.id}`).emit('private-message', newMessage); // Also to sender
         }
 
         res.status(201).json({ message: newMessage });
