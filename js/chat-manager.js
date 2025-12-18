@@ -61,23 +61,19 @@ class ChatManager {
     }
 
     handleNewMessage(msg) {
-        // Deduplication: Check if we already have this message in the history of the relevant conversation
+        // Dedup check (keep existing logic)
         if (this.activeConversation &&
             (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
             const exists = this.activeConversation.messages.some(m => m.id === msg.id);
-            if (exists) {
-                console.log('Skipping duplicate message:', msg.id);
-                return;
-            }
+            if (exists) return;
         }
 
-        // Refresh conversations
         this.loadConversations().then(() => {
             if (this.messagesPageContainer) {
+                // ... Full page logic (keep existing) ...
                 this.renderConversationsList();
                 if (this.activeConversation &&
                     (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
-                    // Update current chat view
                     this.loadHistory(this.activeConversation.otherUser.id).then(msgs => {
                         this.activeConversation.messages = msgs;
                         this.renderMessages(msgs);
@@ -85,57 +81,76 @@ class ChatManager {
                     });
                 }
             } else {
-                // Widget Update: Check ALL open tabs, not just activeConversation
+                // WIDGET LOGIC (OPTIMIZED)
                 const currentUserId = parseInt(this.currentUser.id);
                 const senderId = parseInt(msg.senderId);
-                const receiverId = parseInt(msg.receiverId);
-                const relevantUserId = (senderId === currentUserId) ? receiverId : senderId;
+                const relevantUserId = (senderId === currentUserId) ? parseInt(msg.receiverId) : senderId;
 
-                // Ensure openConversationIds are numbers
+                // Ensure IDs are numbers
                 this.openConversationIds = this.openConversationIds.map(id => parseInt(id));
 
-                // AUTO-OPEN / FACEBOOK STYLE: 
-                // If it's an incoming message and the tab is NOT open, open it automatically.
-                if (senderId !== currentUserId && !this.openConversationIds.includes(relevantUserId)) {
+                // 1. Check if Tab Exists in DOM
+                const tabId = `chat-tab-${relevantUserId}`;
+                const tabEl = document.getElementById(tabId);
+                const tabIsOpen = this.openConversationIds.includes(relevantUserId);
+
+                // 2. Handle Auto-Open (Facebook Style)
+                if (senderId !== currentUserId && !tabIsOpen) {
                     this.openConversationIds.push(relevantUserId);
                     console.log(`Auto-opening chat for user ${relevantUserId}`);
+                    // Since it wasn't open, we MUST render to show it
+                    this.renderWidgetTabs();
+                    return; // Render handles content
                 }
 
-                // Always re-render the list/tabs first to show badge/summary updates
-                this.renderWidgetTabs();
-
-                if (this.openConversationIds.includes(relevantUserId)) {
-                    // Update conversation immediately if found
+                // 3. If Tab is open, APPEND message naturally (No Re-Render)
+                if (tabIsOpen && tabEl) {
                     const conv = this.conversations.find(c => parseInt(c.otherUser.id) === relevantUserId);
                     if (conv) {
-                        conv.messages.push(msg); // Optimistic append to avoid full refetch delay
-                        this.renderWidgetTabs(); // Re-render with new message
+                        // Update data model silently
+                        if (!conv.messages) conv.messages = [];
+                        // Check dedup in memory
+                        if (!conv.messages.some(m => m.id === msg.id)) {
+                            conv.messages.push(msg);
+                        }
 
-                        // Also fetch full history to be safe
-                        this.loadHistory(relevantUserId).then(msgs => {
-                            conv.messages = msgs;
-                            this.renderWidgetTabs();
-                            this.scrollToBottom(relevantUserId);
-                        });
+                        // Append to DOM
+                        const msgArea = tabEl.querySelector('.mini-messages-area');
+                        if (msgArea) {
+                            const isMe = senderId === currentUserId;
+                            const msgHtml = `
+                                <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
+                                    <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
+                                        ${msg.message}
+                                    </span>
+                                </div>
+                            `;
+                            msgArea.insertAdjacentHTML('beforeend', msgHtml);
+                            msgArea.scrollTop = msgArea.scrollHeight; // Scroll to bottom naturally
+                        }
 
-                        // Scroll to bottom immediately
-                        this.scrollToBottom(relevantUserId);
-
-                        // Visual Flash Effect
+                        // Pulse Effect if incoming
                         if (senderId !== currentUserId) {
-                            setTimeout(() => {
-                                const tab = document.getElementById(`chat-tab-${relevantUserId}`);
-                                if (tab) {
-                                    const header = tab.querySelector('div[onclick^="chatManager.closeTab"]'); // Target header div
-                                    if (header) header.style.animation = 'highlightPulse 0.5s 4'; // Flash 4 times
-                                }
-                            }, 100);
+                            const header = tabEl.querySelector('div[onclick^="chatManager.closeTab"]');
+                            if (header) {
+                                header.style.animation = 'none';
+                                header.offsetHeight; /* trigger reflow */
+                                header.style.animation = 'highlightPulse 0.5s 4';
+                            }
                         }
                     } else {
-                        // If conversation doesn't exist yet (first message), reload all conversations
-                        this.loadConversations().then(() => this.renderWidgetTabs());
+                        // Conversation not in list somehow, safety net
+                        this.renderWidgetTabs();
                     }
+                } else if (tabIsOpen && !tabEl) {
+                    // ID is in open list but DOM missing? Render.
+                    this.renderWidgetTabs();
                 }
+
+                // Update Badges (Global count)
+                // We can do this without full re-render if we target the badge ID
+                const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+                this.updateGlobalBadge(totalUnread);
             }
         });
     }
