@@ -175,24 +175,36 @@ function initGlobalChat(user) {
                 li.className = 'auth-only'; // Ensure it behaves like other auth items
                 li.style.display = 'inline-block'; // Force display if auth is active
                 li.style.marginRight = '5px';
+                li.style.position = 'relative'; // For dropdown positioning
 
                 li.innerHTML = `
-                    <a href="#" onclick="event.preventDefault(); toggleHeaderMessageDropdown();" style="position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <a href="#" onclick="event.preventDefault(); toggleHeaderMessageDropdown();" style="position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s; color: #666;" onmouseover="this.style.color='var(--primary-purple)'" onmouseout="this.style.color='#666'">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
-                        <span id="navMsgBadge" style="display: none; position: absolute; top: 0; right: 0; background: #ef4444; color: white; font-size: 10px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid #000;">0</span>
+                        <span id="navMsgBadge" style="display: none; position: absolute; top: -2px; right: -2px; background: #ff0000; color: white; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid #fff;">0</span>
                     </a>
                     
-                    <!-- Dropdown Container -->
-                    <div id="headerMessageDropdown" style="display: none; position: absolute; top: 60px; right: 80px; width: 320px; background: #1a1a1a; border: 1px solid var(--glass-border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 10000; overflow: hidden; font-family: 'Outfit', sans-serif;">
-                         <div style="padding: 12px 16px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; background: #222;">
-                            <span style="font-weight: 600; font-size: 0.95rem;">Mensajes</span>
-                            <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
+                    <!-- Dropdown Container (Freelancer Style: White, Arrow Tip) -->
+                    <div id="headerMessageDropdown" style="display: none; position: absolute; top: 50px; right: -10px; width: 360px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 10000; overflow: visible; font-family: 'Inter', sans-serif;">
+                        <!-- Arrow Tip -->
+                        <div style="position: absolute; top: -6px; right: 20px; width: 12px; height: 12px; background: #ffffff; border-left: 1px solid #e0e0e0; border-top: 1px solid #e0e0e0; transform: rotate(45deg);"></div>
+
+                        <!-- Header -->
+                        <div style="padding: 16px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; background: #ffffff; border-radius: 8px 8px 0 0;">
+                            <span style="font-weight: 700; font-size: 0.95rem; color: #333;">Recent Messages</span>
+                            <a href="messages.html" style="font-size: 0.85rem; color: #007bff; text-decoration: none; font-weight: 600;">View All</a>
                         </div>
-                        <div id="headerDropdownList" style="max-height: 350px; overflow-y: auto;">
+
+                        <!-- List -->
+                        <div id="headerDropdownList" style="max-height: 400px; overflow-y: auto; background: #ffffff;">
                             <!-- Content injected by JS -->
-                            <div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">Cargando...</div>
+                            <div style="padding: 30px; text-align: center; color: #999; font-size: 0.9rem;">Loading messages...</div>
+                        </div>
+
+                        <!-- Optional: Search Placeholder (Visual only for now) -->
+                        <div style="padding: 12px; border-top: 1px solid #f0f0f0; background: #fafafa; border-radius: 0 0 8px 8px;">
+                            <input type="text" placeholder="Search messages..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: #fff; color: #333; outline: none;">
                         </div>
                     </div>
                 `;
@@ -224,56 +236,39 @@ function renderHeaderDropdown(conversations) {
     if (!list) return;
 
     if (!conversations || conversations.length === 0) {
-        list.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay mensajes recientes</div>';
+        list.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: #888; font-size: 0.95rem;">You have no messages yet.</div>';
         return;
     }
 
     list.innerHTML = conversations.map(conv => {
         const user = conv.otherUser;
         const lastMsg = conv.lastMessage;
+        const isUnread = conv.unreadCount > 0;
+
+        // Formatting Style: White Theme hover effect
         return `
-            <div onclick="window.location.href='messages.html'" style="padding: 12px 16px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
-                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+            <div onclick="window.location.href='messages.html'" style="padding: 12px 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.1s; background: ${isUnread ? '#f0f7ff' : '#ffffff'};" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='${isUnread ? '#f0f7ff' : '#ffffff'}'">
+                <div style="position: relative;">
+                    <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #eee;">
+                    ${user.isOnline ? '<div style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background: #10b981; border: 2px solid #fff; border-radius: 50%;"></div>' : ''}
+                </div>
                 <div style="flex: 1; overflow: hidden;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-                        <span style="font-weight: 600; color: white; font-size: 0.9rem;">${user.name}</span>
-                        ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); width: 8px; height: 8px; border-radius: 50%;"></span>` : ''}
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px; align-items: center;">
+                        <span style="font-weight: 600; color: #333; font-size: 0.9rem;">${user.name}</span>
+                        <span style="font-size: 0.75rem; color: #999;">
+                             ${new Date(lastMsg?.createdAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </span>
                     </div>
-                    <div style="font-size: 0.8rem; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        ${lastMsg ? (lastMsg.senderId === user.id ? '' : 'Tú: ') + lastMsg.message : 'Nuevo chat'}
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                         <div style="font-size: 0.85rem; color: ${isUnread ? '#333' : '#777'}; font-weight: ${isUnread ? '600' : '400'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
+                            ${lastMsg ? (lastMsg.senderId === user.id ? '' : 'You: ') + lastMsg.message : 'Started a conversation'}
+                        </div>
+                        ${isUnread ? `<span style="background: #dc3545; color: white; border-radius: 10px; padding: 0 6px; font-size: 0.7rem; font-weight: bold; min-width: 18px; text-align: center;">${conv.unreadCount}</span>` : ''}
                     </div>
                 </div>
             </div>
         `;
     }).join('');
-
-    dropdown.style.display = isHidden ? 'block' : 'none';
-
-    if (isHidden && window.chatManager) {
-        // Render content
-        const list = document.getElementById('headerDropdownList');
-        const convs = window.chatManager.conversations || [];
-
-        if (convs.length === 0) {
-            list.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay mensajes</div>';
-        } else {
-            list.innerHTML = convs.map(conv => `
-                <div onclick="window.location.href='messages.html'; /* For now simple redirect */" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; display: flex; gap: 12px; align-items: center; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-                    <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
-                    <div style="flex: 1; overflow: hidden;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="font-weight: 600; font-size: 0.9rem; color: white;">${conv.otherUser.name}</span>
-                            <span style="font-size: 0.75rem; color: #666;">${new Date(conv.lastMessage?.createdAt || Date.now()).toLocaleDateString()}</span>
-                        </div>
-                        <div style="font-size: 0.85rem; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            ${(conv.messages[0]?.message || conv.lastMessage?.message || '')}
-                        </div>
-                    </div>
-                    ${conv.unreadCount > 0 ? `<div style="width: 8px; height: 8px; background: var(--accent-purple); border-radius: 50%;"></div>` : ''}
-                </div>
-            `).join('');
-        }
-    }
 };
 
 // Close dropdown when clicking outside
