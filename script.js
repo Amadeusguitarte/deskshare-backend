@@ -450,41 +450,13 @@ async function sendMessageAPI(receiverId, computerId, message) {
 }
 
 async function loadMessages(computerId) {
-    if (!authToken) return;
-
-    try {
-        const data = await apiRequest(`/chat/${computerId}`);
-        displayMessages(data.messages);
-    } catch (error) {
-        console.error('Failed to load messages:', error);
-    }
+    console.log('Legacy loadMessages disabled in script.js');
+    return;
 }
 
 function displayMessages(messages) {
-    const container = document.getElementById('chatMessages');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    messages.forEach(msg => {
-        const messageDiv = document.createElement('div');
-        const isSent = msg.senderId === currentUser?.id;
-        messageDiv.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
-
-        const time = new Date(msg.createdAt).toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-        messageDiv.innerHTML = `
-      <p style="margin: 0;">${msg.message}</p>
-      <small style="color: rgba(255,255,255,${isSent ? '0.8' : '0.6'}); font-size: 0.75rem; margin-top: 0.3rem; display: block;">${time}</small>
-    `;
-
-        container.appendChild(messageDiv);
-    });
-
-    container.scrollTop = container.scrollHeight;
+    console.log('Legacy displayMessages disabled in script.js');
+    return;
 }
 
 function handleNewMessage(message) {
