@@ -267,7 +267,7 @@ function displayChatMessage(message) {
         return;
     }
 
-    const msgText = (message.message || message.text || '').trim();
+    const msgText = String(message.message || message.text || '').trim();
     if (!msgText) return;
 
     // --- DEDUPLICATION LOGIC ---
