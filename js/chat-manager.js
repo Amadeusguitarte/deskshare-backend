@@ -655,6 +655,13 @@ class ChatManager {
 
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+
+        // CRITICAL: Restore Scroll Positions to Bottom
+        // Since innerHTML nukes the DOM, we must re-apply scroll to bottom for all open tabs immediately.
+        // This prevents the "Starts at Top" bug.
+        this.openConversationIds.forEach(id => {
+            this.scrollToBottom(id);
+        });
     }
 
     updateGlobalBadge(count) {
