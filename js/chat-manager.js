@@ -437,11 +437,17 @@ class ChatManager {
     renderChatTab(conv) {
         const user = conv.otherUser;
         const tabId = `chat-tab-${user.id}`;
+        // Check state to persist minimization
+        const isMin = this.minimizedConversations.has(user.id);
+        const height = isMin ? '50px' : '400px';
+        const borderRadius = isMin ? '8px' : '8px 8px 0 0';
+        const minIcon = isMin ? '' : '−'; // No '+' icon per user request
+
         // SORT MESSAGES: Oldest -> Newest
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                 <!-- HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -452,7 +458,7 @@ class ChatManager {
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">−</span>
+                        <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
                         <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
                 </div>
@@ -516,7 +522,7 @@ class ChatManager {
 
             // Toggle Icon
             const icon = tab.querySelector('.minimize-icon');
-            if (icon) icon.textContent = newMin ? '+' : '−';
+            if (icon) icon.textContent = newMin ? '' : '−';
 
             // Important: When expanding, enforce scroll to bottom
             if (!newMin) {
