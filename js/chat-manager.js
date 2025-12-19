@@ -378,11 +378,13 @@ class ChatManager {
                 // We use a stronger chain of attempts to catch any render timing issues
                 const scrollTarget = () => this.scrollToBottom(userId);
 
-                scrollTarget();
-                setTimeout(scrollTarget, 50);
-                setTimeout(scrollTarget, 150);
-                setTimeout(scrollTarget, 300);
-                setTimeout(scrollTarget, 500); // Final check
+                // Use RequestAnimationFrame to wait for paint
+                requestAnimationFrame(() => {
+                    scrollTarget();
+                    setTimeout(scrollTarget, 50);
+                    setTimeout(scrollTarget, 150);
+                    setTimeout(scrollTarget, 400); // Extended catch
+                });
             }
         }
     }
@@ -409,6 +411,32 @@ class ChatManager {
         if (!this.minimizedConversations.has(userId)) {
             setTimeout(() => this.scrollToBottom(userId), 100);
         }
+    }
+
+    toggleTab(userId) {
+        // In multi-tab mode, "toggle" means "open if not open, bring to front/focus if open"
+        if (!this.openConversationIds.includes(userId)) {
+            this.openConversationIds.push(userId);
+        }
+
+        // Refresh history
+        this.loadHistory(userId).then(msgs => {
+            const conv = this.conversations.find(c => c.otherUser.id === userId);
+            if (conv) {
+                conv.messages = msgs;
+                this.renderWidgetTabs();
+                setTimeout(() => {
+                    const tab = document.getElementById(`chat-tab-${userId}`);
+                    if (tab) {
+                        const area = tab.querySelector('.mini-messages-area');
+                        // Use a large number to ensure we hit the true bottom even if images load later
+                        if (area) area.scrollTop = 999999;
+                    }
+                }, 100);
+            }
+        });
+
+        this.renderWidgetTabs();
     }
 
     // ===========================================
