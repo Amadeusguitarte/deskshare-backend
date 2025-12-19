@@ -68,7 +68,7 @@ class ChatManager {
             if (exists) return; // Strict ID check
         }
 
-        // Check ALL open tabs, not just activeConversation
+        // Widget Update: Check ALL open tabs, not just activeConversation
         const currentUserId = parseInt(this.currentUser.id);
         const senderId = parseInt(msg.senderId);
         const receiverId = parseInt(msg.receiverId);
@@ -77,22 +77,12 @@ class ChatManager {
         // Ensure IDs are numbers
         this.openConversationIds = this.openConversationIds.map(id => parseInt(id));
 
-        // OPTIMIZATION: Do NOT call loadConversations() on every message.
-        // Only load if we don't have the conversation in memory.
-        const existingConv = this.conversations.find(c => parseInt(c.otherUser.id) === relevantUserId);
-
-        const processMessage = async () => {
-            if (!existingConv) {
-                await this.loadConversations();
-            }
-
+        this.loadConversations().then(() => {
             if (this.messagesPageContainer) {
                 // ... Full page logic ...
                 this.renderConversationsList();
                 if (this.activeConversation &&
                     (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
-                    // For active Full Page chat, we might want to reload history or just append. 
-                    // Loading history is safer for full consistency.
                     this.loadHistory(this.activeConversation.otherUser.id).then(msgs => {
                         this.activeConversation.messages = msgs;
                         this.renderMessages(msgs);
@@ -100,18 +90,22 @@ class ChatManager {
                     });
                 }
             } else {
-                // WIDGET LOGIC (OPTIMIZED & STABILIZED)
-                // 1. UPDATE DATA MODEL
+                // WIDGET LOGIC (OPTIMIZED)
+                // 1. UPDATE DATA MODEL & HANDLE OPTIMISTIC DUPLICATES
                 const conv = this.conversations.find(c => parseInt(c.otherUser.id) === relevantUserId);
+                let avoidAppend = false;
+
                 if (conv) {
                     if (!conv.messages) conv.messages = [];
                     // Check strict duplication (socket echo)
                     if (!conv.messages.some(m => m.id === msg.id)) {
                         conv.messages.push(msg);
+                    } else {
+                        avoidAppend = true; // Already exists
                     }
                 }
 
-                // 2. DOM OPERATIONS (Direct Append)
+                // 2. DOM OPERATIONS
                 const tabId = `chat-tab-${relevantUserId}`;
                 const tabEl = document.getElementById(tabId);
                 const tabIsOpen = this.openConversationIds.includes(relevantUserId);
@@ -120,8 +114,6 @@ class ChatManager {
                 if (senderId !== currentUserId && !tabIsOpen) {
                     this.openConversationIds.push(relevantUserId);
                     this.renderWidgetTabs(); // Force render to open
-                    // After render, we need to ensure scroll handles the new content
-                    setTimeout(() => this.scrollToBottom(relevantUserId), 100);
                     return;
                 }
 
@@ -129,12 +121,14 @@ class ChatManager {
                 if (tabIsOpen && tabEl) {
                     const msgArea = tabEl.querySelector('.mini-messages-area');
                     if (msgArea) {
-                        // View Synchronization
-                        constcleanMsg = msg.message.trim();
+                        // View Synchronization: Check if message explicitly exists in DOM
+                        // This bypasses model sync issues and ensures visibility
+                        const cleanMsg = msg.message.trim();
                         const existingTexts = Array.from(msgArea.querySelectorAll('span'))
-                            .slice(-5)
+                            .slice(-5) // Check last 5 messages
                             .map(s => s.textContent.trim());
 
+                        // Strict DOM Append if not present
                         if (!existingTexts.includes(cleanMsg)) {
                             const isMe = senderId === currentUserId;
                             const msgHtml = `
@@ -145,14 +139,14 @@ class ChatManager {
                                 </div>
                             `;
                             msgArea.insertAdjacentHTML('beforeend', msgHtml);
-
-                            // ROBUST SCROLL ENFORCER
-                            // We force scroll multiple times to catch layout reflows
-                            this.forceScrollToBottom(msgArea);
+                            // Robust Scroll: Revert to scrollTop with RAF for stability
+                            requestAnimationFrame(() => {
+                                msgArea.scrollTop = msgArea.scrollHeight;
+                            });
                         }
                     }
 
-                    // Pulse Effect
+                    // Pulse Effect if incoming
                     if (senderId !== currentUserId) {
                         const header = tabEl.querySelector('div[onclick^="chatManager.closeTab"]');
                         if (header) {
@@ -160,60 +154,37 @@ class ChatManager {
                             header.offsetHeight;
                             header.style.animation = 'highlightPulse 0.5s 4';
                         }
+
+                        // Also pulse the header icon
                         const msgIcon = document.querySelector('nav svg.feather-message-square');
                         if (msgIcon) {
                             msgIcon.style.color = 'var(--accent-purple)';
                             setTimeout(() => msgIcon.style.color = '', 2000);
                         }
                     }
-                } else if (tabIsOpen && !tabEl) {
-                    // State says open but DOM missing -> Re-render
+                    // State says open but DOM missing
                     this.renderWidgetTabs();
                 }
 
-                // GLOBAL SYNC
+                // GLOBAL SYNC: Notify other components (Inline Chat)
                 window.dispatchEvent(new CustomEvent('chat:sync', { detail: msg }));
 
-                // 3. UPDATE LIST PREVIEW
+                // 3. UPDATE LIST PREVIEW (Sidebar & Header)
                 this.updateGlobalPreviews(relevantUserId, msg);
 
                 // Update Data Unread Count
                 const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
                 this.updateGlobalBadge(totalUnread);
             }
-        };
-
-        processMessage();
-    }
-
-    forceScrollToBottom(element) {
-        if (!element) return;
-        // Method 1: Immediate
-        element.scrollTop = element.scrollHeight;
-
-        // Method 2: Next Frame
-        requestAnimationFrame(() => {
-            element.scrollTop = element.scrollHeight;
         });
-
-        // Method 3: Safety delay (catch async layout shifts)
-        setTimeout(() => {
-            element.scrollTop = element.scrollHeight;
-        }, 50);
-
-        setTimeout(() => {
-            element.scrollTop = element.scrollHeight;
-        }, 150);
     }
 
     scrollToBottom(userId) {
         setTimeout(() => {
-            const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages');
+            const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages'); // Handle widget or full page
             if (tab) {
                 const area = userId ? tab.querySelector('.mini-messages-area') : tab;
-                if (area) {
-                    this.forceScrollToBottom(area);
-                }
+                if (area) area.scrollTop = area.scrollHeight;
             }
         }, 50);
     }
