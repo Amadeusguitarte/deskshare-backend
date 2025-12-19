@@ -649,13 +649,20 @@ class ChatManager {
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px;">
-                <div onclick="chatManager.closeTab(${user.id})" style="padding: 10px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+        const isMinimized = this.minimizedConversations.has(user.id);
+        const tabHeight = isMinimized ? '48px' : '400px';
+
+        return `
+            < div id = "${tabId}" class="chat-tab expanded" style = "width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease;" >
+                <div onclick="chatManager.toggleMinimize(${user.id})" style="padding: 10px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
                         <span style="font-size: 0.9rem; font-weight: 600; color: white;">${user.name}</span>
                     </div>
-                    <span style="color: #aaa; font-size: 1.2rem; line-height:0.8;">×</span>
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <span style="color: #aaa; font-size: 1.2rem; font-weight: bold; line-height:0.8;" title="Minimizar">${isMinimized ? '+' : '−'}</span>
+                        <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height:0.8; padding: 0 4px;" title="Cerrar">×</span>
+                    </div>
                 </div>
                 
                 <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
@@ -668,33 +675,33 @@ class ChatManager {
                     `).join('')}
                 </div>
                 
-                <!-- FREELANCER STYLE FOOTER -->
-                <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
-                     <!-- Attach Icon -->
-                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                    </button>
-                    
-                    <!-- Input Container -->
-                    <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                        <input type="text" placeholder="Escribe un mensaje..." 
-                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
-                               style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white;">
-                        
+                <!--FREELANCER STYLE FOOTER-- >
+            <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
+                <!-- Attach Icon -->
+                <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                </button>
+
+                <!-- Input Container -->
+                <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
+                    <input type="text" placeholder="Escribe un mensaje..."
+                        onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
+                        style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white;">
+
                         <!-- Emoji Icon -->
                         <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
                         </button>
-                    </div>
-
-                    <!-- Send Icon -->
-                    <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }" 
-                            style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    </button>
                 </div>
+
+                <!-- Send Icon -->
+                <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }"
+                    style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
             </div>
-        `;
+            </div >
+            `;
     }
 
     toggleTab(userId) {
@@ -711,7 +718,7 @@ class ChatManager {
                 conv.messages = msgs;
                 this.renderWidgetTabs();
                 setTimeout(() => {
-                    const tab = document.getElementById(`chat-tab-${userId}`);
+                    const tab = document.getElementById(`chat - tab - ${ userId } `);
                     if (tab) {
                         const area = tab.querySelector('.mini-messages-area');
                         if (area) area.scrollTop = area.scrollHeight;
@@ -778,7 +785,7 @@ class ChatManager {
 
         // 3. Update Sidebar (Widget) - DOM Manipulation
         if (this.widgetContainer) {
-            const item = this.widgetContainer.querySelector(`.sidebar-item[data-user-id="${userId}"]`);
+            const item = this.widgetContainer.querySelector(`.sidebar - item[data - user - id="${userId}"]`);
             if (item) {
                 // Update Text
                 const msgDiv = item.querySelector('.sidebar-last-msg');
