@@ -308,6 +308,7 @@ function displayChatMessage(message) {
     if (message.id) messageEl.dataset.msgId = message.id; // Store ID
     // CRITICAL: Store Deduplication Hash for strict blocking
     messageEl.dataset.dedupHash = dedupSignature;
+    if (message.id) messageEl.dataset.msgId = message.id; // CRITICAL FOR DEDUP
 
     messageEl.className = isMe ? 'message-sent' : 'message-received';
     // Match styles from CSS or inline

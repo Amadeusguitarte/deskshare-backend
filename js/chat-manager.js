@@ -105,16 +105,19 @@ class ChatManager {
                 const conv = this.conversations.find(c => parseInt(c.otherUser.id) === relevantUserId);
                 if (conv) {
                     if (!conv.messages) conv.messages = [];
-                    // Check strict duplication (socket echo)
-                    if (!conv.messages.some(m => m.id === msg.id)) {
-                        conv.messages.push(msg);
+                    // CRITICAL GUARD: If message already exists (e.g. from Optimistic Update), STOP.
+                    // This prevents "Double Append" where both Optimistic and Socket logic add to DOM.
+                    if (conv.messages.some(m => m.id === msg.id)) {
+                        return; // Successfully ignored duplicate
                     }
+                    conv.messages.push(msg);
                 }
 
                 // 2. DOM OPERATIONS (Direct Append)
                 const tabId = `chat-tab-${relevantUserId}`;
                 const tabEl = document.getElementById(tabId);
-                const tabIsOpen = this.openConversationIds.includes(relevantUserId);
+                // STRICT TYPE CHECK: ensure we don't mix "5" and 5
+                const tabIsOpen = this.openConversationIds.map(Number).includes(Number(relevantUserId));
 
                 // Auto-Open (Facebook Style)
                 if (senderId !== currentUserId && !tabIsOpen) {
