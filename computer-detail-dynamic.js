@@ -195,69 +195,107 @@ async function startRemoteSession(bookingId) {
 // Chat Functionality (Integrated with ChatManager)
 // ========================================
 
+// Hijack the global handleNewMessage from script.js to prevent double appending
+// and force everything through our Deduplication Logic
+window.handleNewMessage = function (message) {
+    if (message.computerId === currentComputer?.id || message.computerId == currentComputer?.id) {
+        // Route to our smart display
+        displayChatMessage(message);
+    }
+};
+
+async function waitForChatManagerReady() {
+    return new Promise((resolve) => {
+        if (window.chatManager && typeof window.chatManager.loadHistory === 'function') {
+            return resolve();
+        }
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            if (window.chatManager && typeof window.chatManager.loadHistory === 'function') {
+                clearInterval(interval);
+                resolve();
+            } else if (attempts > 50) { // 5s timeout
+                console.warn('ChatManager timed out');
+                clearInterval(interval);
+                resolve(); // Proceed anyway (might fail but better than hanging)
+            }
+        }, 100);
+    });
+}
+
 async function initializeChat(computerId) {
+    await waitForChatManagerReady();
+
     if (window.chatManager) {
         // ChatManager handles the global socket connection
         // We just need to load the specific history for this computer context
         const ownerId = currentComputer.user.id;
-        const messages = await window.chatManager.loadHistory(ownerId);
+        try {
+            const messages = await window.chatManager.loadHistory(ownerId);
 
-        const chatContainer = document.getElementById('chatMessages');
-        if (chatContainer) {
-            // New Interaction: Clicking the right column chat opens the bottom widget
-            chatContainer.style.cursor = 'pointer';
-            chatContainer.onclick = function () {
-                if (window.chatManager) {
-                    window.chatManager.openChat(ownerId);
+            const chatContainer = document.getElementById('chatMessages');
+            if (chatContainer) {
+                // New Interaction: Clicking the right column chat opens the bottom widget
+                chatContainer.style.cursor = 'pointer';
+                chatContainer.onclick = function () {
+                    if (window.chatManager) {
+                        window.chatManager.openChat(ownerId);
+                    }
+                };
+
+                if (messages.length > 0) {
+                    chatContainer.innerHTML = ''; // Clear placeholder
+                    // Client-side Sort (Oldest -> Newest) to ensure correct order
+                    messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                    console.log(`Loaded ${messages.length} messages for Detail View`);
+
+                    messages.forEach(msg => {
+                        if (msg.id) window.visibleMessageIds.add(String(msg.id)); // Sync History to Set (String forced)
+                        displayChatMessage(msg);
+                    });
+                    scrollChatToBottom();
+                } else {
+                    // Ensure placeholder is visible (optional, or just leave as is)
+                    if (!chatContainer.querySelector('.message-received')) {
+                        chatContainer.innerHTML = `
+                            <div class="message message-received" style="font-style: italic; opacity: 0.7;">
+                                <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
+                            </div>
+                        `;
+                    }
                 }
-            };
 
-            if (messages.length > 0) {
-                chatContainer.innerHTML = ''; // Clear placeholder
-                // Client-side Sort (Oldest -> Newest) to ensure correct order
-                messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                console.log(`Loaded ${messages.length} messages for Detail View`);
+                // Prevent duplicate listeners (Global Guard)
+                if (window.chatManager._detailListenerAttached) {
+                    return;
+                }
+            }
 
-                messages.forEach(msg => {
-                    if (msg.id) window.visibleMessageIds.add(String(msg.id)); // Sync History to Set (String forced)
-                    displayChatMessage(msg);
+            // Re-using the socket from ChatManager is best
+            if (window.chatManager.socket) {
+                // Remove any previous listener to be safe? 
+                // Hard to remove anonymous lambda, but _detailListenerAttached protects us once.
+
+                window.chatManager.socket.on('private-message', (msg) => {
+                    if (msg.senderId === ownerId || msg.senderId === currentUser?.id || msg.receiverId === ownerId) {
+                        displayChatMessage(msg);
+                    }
                 });
-                scrollChatToBottom();
-            } else {
-                // Ensure placeholder is visible (optional, or just leave as is)
-                if (!chatContainer.querySelector('.message-received')) {
-                    chatContainer.innerHTML = `
-                        <div class="message message-received" style="font-style: italic; opacity: 0.7;">
-                            <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
-                        </div>
-                    `;
-                }
+
+                // GLOBAL SYNC: Listen for messages from ChatManager (Widget)
+                // This ensures messages sent via Widget appear here immediately
+                window.addEventListener('chat:sync', (e) => {
+                    const msg = e.detail;
+                    if (msg.senderId === ownerId || msg.senderId === currentUser?.id || msg.receiverId === ownerId) {
+                        displayChatMessage(msg);
+                    }
+                });
+
+                window.chatManager._detailListenerAttached = true;
             }
-
-            // Prevent duplicate listeners (Global Guard)
-            if (window.chatManager._detailListenerAttached) {
-                return;
-            }
-        }
-
-        // Re-using the socket from ChatManager is best
-        if (window.chatManager.socket) {
-            window.chatManager.socket.on('private-message', (msg) => {
-                if (msg.senderId === ownerId || msg.senderId === currentUser.id) {
-                    displayChatMessage(msg);
-                }
-            });
-
-            // GLOBAL SYNC: Listen for messages from ChatManager (Widget)
-            // This ensures messages sent via Widget appear here immediately
-            window.addEventListener('chat:sync', (e) => {
-                const msg = e.detail;
-                if (msg.senderId === ownerId || msg.senderId === currentUser.id || msg.receiverId === ownerId) {
-                    displayChatMessage(msg);
-                }
-            });
-
-            window.chatManager._detailListenerAttached = true;
+        } catch (e) {
+            console.error("Error init chat history", e);
         }
     }
 }
