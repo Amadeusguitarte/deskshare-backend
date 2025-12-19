@@ -119,10 +119,17 @@ class ChatManager {
 
                 // If Tab is open...
                 if (tabIsOpen && tabEl) {
-                    // Only append if it wasn't merged
-                    if (!avoidAppend) {
-                        const msgArea = tabEl.querySelector('.mini-messages-area');
-                        if (msgArea) {
+                    const msgArea = tabEl.querySelector('.mini-messages-area');
+                    if (msgArea) {
+                        // View Synchronization: Check if message explicitly exists in DOM
+                        // This bypasses model sync issues and ensures visibility
+                        const cleanMsg = msg.message.trim();
+                        const existingTexts = Array.from(msgArea.querySelectorAll('span'))
+                            .slice(-5) // Check last 5 messages
+                            .map(s => s.textContent.trim());
+
+                        // Strict DOM Append if not present
+                        if (!existingTexts.includes(cleanMsg)) {
                             const isMe = senderId === currentUserId;
                             const msgHtml = `
                                 <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
