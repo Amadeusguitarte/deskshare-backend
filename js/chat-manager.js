@@ -131,26 +131,21 @@ class ChatManager {
                     if (msgArea) {
                         // View Synchronization
                         // View Synchronization
-                        const cleanMsg = msg.message.trim();
-                        const existingTexts = Array.from(msgArea.querySelectorAll('span'))
-                            .slice(-5)
-                            .map(s => s.textContent.trim());
+                        // STRICT DEDUP REMOVED: We allow identical messages ("2", then "2").
+                        // Protection against Socket Echo is handled by memory map if needed, 
+                        // but here we trust the caller (optimistic) or socket (id check).
+                        const isMe = senderId === currentUserId;
+                        const msgHtml = `
+                            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
+                                <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
+                                    ${msg.message}
+                                </span>
+                            </div>
+                        `;
+                        msgArea.insertAdjacentHTML('beforeend', msgHtml);
 
-                        if (!existingTexts.includes(cleanMsg)) {
-                            const isMe = senderId === currentUserId;
-                            const msgHtml = `
-                                <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
-                                    <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
-                                        ${msg.message}
-                                    </span>
-                                </div>
-                            `;
-                            msgArea.insertAdjacentHTML('beforeend', msgHtml);
-
-                            // ROBUST SCROLL ENFORCER
-                            // We force scroll multiple times to catch layout reflows
-                            this.forceScrollToBottom(msgArea);
-                        }
+                        // forceScrollToBottom handles the scroll
+                        this.forceScrollToBottom(msgArea);
                     }
 
                     // Pulse Effect
