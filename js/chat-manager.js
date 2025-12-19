@@ -674,32 +674,33 @@ class ChatManager {
                     `).join('')}
                 </div>
                 
-                <!--FREELANCER STYLE FOOTER-- >
-            <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
-                <!-- Attach Icon -->
-                <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                </button>
+                
+                <!-- FREELANCER STYLE FOOTER -->
+                <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
+                    <!-- Attach Icon -->
+                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
 
-                <!-- Input Container -->
-                <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                    <input type="text" placeholder="Escribe un mensaje..."
-                        onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
-                        style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white;">
+                    <!-- Input Container -->
+                    <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
+                        <input type="text" placeholder="Escribe un mensaje..."
+                            onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
+                            style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white;">
 
                         <!-- Emoji Icon -->
                         <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
                         </button>
-                </div>
+                    </div>
 
-                <!-- Send Icon -->
-                <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }"
-                    style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
+                    <!-- Send Icon -->
+                    <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }"
+                        style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
             </div>
-            </div >
             `;
     }
 
