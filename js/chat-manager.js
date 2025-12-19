@@ -689,32 +689,57 @@ class ChatManager {
         });
     }
 
+    toggleMinimize(userId) {
+        // 1. Update State
+        if (this.minimizedConversations.has(userId)) {
+            this.minimizedConversations.delete(userId);
+        } else {
+            this.minimizedConversations.add(userId);
+        }
+
+        // 2. Direct DOM Manipulation (No Re-render = No Flash)
+        const tab = document.getElementById(`chat-tab-${userId}`);
+        if (tab) {
+            const isMin = this.minimizedConversations.has(userId);
+
+            // Toggle Height
+            tab.style.height = isMin ? '56px' : '400px';
+
+            // Toggle Border Radius (Smooth transition)
+            tab.style.borderRadius = isMin ? '8px' : '8px 8px 0 0';
+
+            // Toggle Icon (+ / -)
+            const icon = tab.querySelector('.minimize-icon');
+            if (icon) icon.textContent = isMin ? '+' : '−';
+
+            // Toggle Bottom Border (optional, but good for aesthetics)
+            tab.style.borderBottom = isMin ? '1px solid var(--glass-border)' : 'none';
+        }
+    }
+
     renderChatTab(conv) {
         const user = conv.otherUser;
-        // Always expanded in multi-tab mode for now
         const tabId = `chat-tab-${user.id}`;
-
         // SORT MESSAGES: Oldest -> Newest
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         const isMinimized = this.minimizedConversations.has(user.id);
-        const headerHeight = '56px'; // Taller to prevent cutoff
-        const tabHeight = isMinimized ? headerHeight : '400px';
 
+        // Render FULL markup always. State just controls initial CSS.
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: ${isMinimized ? '1px solid var(--glass-border)' : 'none'}; border-radius: ${isMinimized ? '8px' : '8px 8px 0 0'}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease; box-sizing: border-box;">
-                <div onclick="chatManager.toggleMinimize(${user.id})" style="height: ${isMinimized ? '100%' : '56px'}; min-height: 56px; padding: 0 12px; background: rgba(255,255,255,0.05); border-bottom: ${isMinimized ? 'none' : '1px solid var(--glass-border)'}; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-sizing: border-box;">
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${isMinimized ? '56px' : '400px'}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: ${isMinimized ? '1px solid var(--glass-border)' : 'none'}; border-radius: ${isMinimized ? '8px' : '8px 8px 0 0'}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease; box-sizing: border-box;">
+                <div onclick="chatManager.toggleMinimize(${user.id})" style="height: 56px; min-height: 56px; padding: 0 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
                         <span style="font-size: 0.9rem; font-weight: 600; color: white;">${user.name}</span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center;">
-                        <span style="color: #aaa; font-size: 1.2rem; font-weight: bold; line-height:0.8;" title="Minimizar">${isMinimized ? '+' : '−'}</span>
+                        <span class="minimize-icon" style="color: #aaa; font-size: 1.2rem; font-weight: bold; line-height:0.8;" title="Minimizar">${isMinimized ? '+' : '−'}</span>
                         <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height:0.8; padding: 0 4px;" title="Cerrar">×</span>
                     </div>
                 </div>
                 
-                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: ${isMinimized ? 'none' : 'flex'}; flex-direction: column; gap: 8px;">
+                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
                             <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
@@ -725,7 +750,7 @@ class ChatManager {
                 </div>
                 
                 <!-- FREELANCER STYLE FOOTER -->
-                <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: ${isMinimized ? 'none' : 'flex'}; align-items: center; gap: 8px;">
+                <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
                     <!-- Attach Icon -->
                     <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
