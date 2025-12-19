@@ -204,6 +204,12 @@ window.handleNewMessage = function (message) {
     }
 };
 
+// NEUTRALIZE LEGACY CONFLICTS
+// script.js tries to load messages and wipe the container. We STOP it here.
+window.displayMessages = function () { console.log('Legacy displayMessages blocked by Dynamic Script'); };
+window.loadMessages = function () { console.log('Legacy loadMessages blocked by Dynamic Script'); };
+window.joinComputerRoom = function () { console.log('Legacy joinComputerRoom blocked by Dynamic Script'); };
+
 async function waitForChatManagerReady() {
     return new Promise((resolve) => {
         if (window.chatManager && typeof window.chatManager.loadHistory === 'function') {
