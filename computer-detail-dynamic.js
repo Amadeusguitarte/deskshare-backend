@@ -1,6 +1,6 @@
 // ========================================
 // Computer Detail & Booking Functionality
-// =======================================const socket = io();
+// ========================================
 // NEW: Strict Memory-Based Deduplication (Faster & More Reliable than DOM Query)
 window.visibleMessageIds = new Set();
 
