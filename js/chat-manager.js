@@ -87,18 +87,15 @@ class ChatManager {
                 }
             } else {
                 // Widget Update
-                this.renderWidgetTabs();
-                // If tab is open, scroll/update it
+                // If tab is open, just re-render (scrolling is handled inside renderWidgetTabs now)
                 if (this.activeConversation &&
                     (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
                     this.loadHistory(this.activeConversation.otherUser.id).then(msgs => {
                         this.activeConversation.messages = msgs;
                         this.renderWidgetTabs();
-                        setTimeout(() => {
-                            const area = this.widgetContainer.querySelector('.mini-messages-area');
-                            if (area) area.scrollTop = area.scrollHeight;
-                        }, 50);
                     });
+                } else {
+                    this.renderWidgetTabs();
                 }
             }
         });
@@ -425,6 +422,13 @@ class ChatManager {
 
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+
+        // POST-RENDER SCROLL FIX
+        // Immediately scroll all chat areas to bottom to prevent visual jumping
+        // This replaces the "opacity: 0" hack which was causing invisible chats
+        this.widgetContainer.querySelectorAll('.mini-messages-area').forEach(area => {
+            area.scrollTop = area.scrollHeight;
+        });
     }
 
     updateGlobalBadge(count) {
@@ -468,8 +472,8 @@ class ChatManager {
                     </div>
                 </div>
                 
-                <!-- MESSAGES AREA (Opacity 0 init to prevent jump) -->
-                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px; opacity: 0; transition: opacity 0.2s;">
+                <!-- MESSAGES AREA (Visible by default) -->
+                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
                             <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
@@ -536,7 +540,7 @@ class ChatManager {
         }
     }
 
-    // Updated toggleTab to handle scroll reveal
+    // Updated toggleTab
     toggleTab(userId) {
         if (!this.openConversationIds.includes(userId)) {
             this.openConversationIds.push(userId);
@@ -549,12 +553,6 @@ class ChatManager {
             if (conv) {
                 conv.messages = msgs;
                 this.renderWidgetTabs();
-                // Scroll Fix: Wait for render, then scroll, then show
-                setTimeout(() => {
-                    this.scrollToBottom(userId);
-                    const area = document.getElementById(`msg-area-${userId}`);
-                    if (area) area.style.opacity = '1';
-                }, 50);
             }
         });
         this.renderWidgetTabs();
