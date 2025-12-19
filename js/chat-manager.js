@@ -7,6 +7,7 @@ class ChatManager {
         this.conversations = [];
         // Multi-tab support: Track IDs of open conversations
         this.openConversationIds = [];
+        this.minimizedConversations = new Set();
 
         // UI Elements
         this.widgetContainer = null;
@@ -582,4 +583,201 @@ class ChatManager {
 }
 
 // Make globally available
+// Make globally available
 window.ChatManager = ChatManager;
+
+renderChatTab(conv) {
+    const user = conv.otherUser;
+    const tabId = `chat-tab-${user.id}`;
+    // SORT MESSAGES: Oldest -> Newest
+    const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    return `
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+                <!-- HEADER -->
+                <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name}</span>
+                            <span style="font-size: 0.7rem; color: #aaa; line-height: 1; margin-top: 2px;">En línea</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">−</span>
+                        <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
+                    </div>
+                </div>
+                
+                <!-- MESSAGES AREA (Opacity 0 init to prevent jump) -->
+                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px; opacity: 0; transition: opacity 0.2s;">
+                    ${sortedMessages.map(msg => `
+                        <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
+                            <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                                ${msg.message}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- FOOTER (Freelancer Style with Icons) -->
+                <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
+                     <!-- Attach Icon -->
+                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
+                    
+                    <!-- Input Container -->
+                    <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
+                        <input type="text" placeholder="Escribe un mensaje..." 
+                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
+                               style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
+                        
+                        <!-- Emoji Icon -->
+                        <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                        </button>
+                    </div>
+
+                    <!-- Send Icon -->
+                    <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }" 
+                            style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+}
+
+toggleMinimize(userId) {
+    // 1. Update State
+    const isMin = this.minimizedConversations.has(userId);
+    if (isMin) {
+        this.minimizedConversations.delete(userId);
+    } else {
+        this.minimizedConversations.add(userId);
+    }
+
+    // 2. Direct DOM Manipulation (CSS Transition)
+    const tab = document.getElementById(`chat-tab-${userId}`);
+    if (tab) {
+        const newMin = !isMin; // Toggle logic
+        tab.style.height = newMin ? '50px' : '400px';
+        // If minimized, radius 8px all around. If expanded, 8px 8px 0 0.
+        tab.style.borderRadius = newMin ? '8px' : '8px 8px 0 0';
+
+        // Toggle Icon
+        const icon = tab.querySelector('.minimize-icon');
+        if (icon) icon.textContent = newMin ? '+' : '−';
+
+        // Important: When expanding, enforce scroll to bottom
+        if (!newMin) {
+            setTimeout(() => this.scrollToBottom(userId), 300); // Wait for transition
+        }
+    }
+}
+
+// Updated toggleTab to handle scroll reveal
+toggleTab(userId) {
+    if (!this.openConversationIds.includes(userId)) {
+        this.openConversationIds.push(userId);
+    }
+    // Ensure not minimized on open
+    this.minimizedConversations.delete(userId);
+
+    this.loadHistory(userId).then(msgs => {
+        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        if (conv) {
+            conv.messages = msgs;
+            this.renderWidgetTabs();
+            // Scroll Fix: Wait for render, then scroll, then show
+            setTimeout(() => {
+                this.scrollToBottom(userId);
+                const area = document.getElementById(`msg-area-${userId}`);
+                if (area) area.style.opacity = '1';
+            }, 50);
+        }
+    });
+    this.renderWidgetTabs();
+}
+
+// Updated scrollToBottom to support ID targeting and minimized check
+scrollToBottom(userId) {
+    if (userId && this.minimizedConversations.has(userId)) return;
+
+    const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
+    if (area) {
+        area.scrollTop = area.scrollHeight;
+        // Ensure opacity is 1 if it was hidden
+        if (area.style.opacity === '0') area.style.opacity = '1';
+    }
+}
+
+closeTab(userId) {
+    this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
+    this.minimizedConversations.delete(userId); // Cleanup
+    this.renderWidgetTabs();
+}
+
+    async sendMiniMessage(userId, text) {
+    if (!text.trim()) return;
+
+    const conv = this.conversations.find(c => c.otherUser.id === userId);
+    if (conv) {
+        const tempMsg = {
+            id: 'temp-' + Date.now(),
+            senderId: this.currentUser.id,
+            message: text,
+            createdAt: new Date().toISOString(),
+            isRead: false
+        };
+        if (!conv.messages) conv.messages = [];
+        conv.messages.push(tempMsg);
+
+        const tabId = `chat-tab-${userId}`;
+        const tabEl = document.getElementById(tabId);
+
+        if (tabEl) {
+            const msgArea = tabEl.querySelector('.mini-messages-area');
+            if (msgArea) {
+                const msgHtml = `
+                        <div style="display: flex; justify-content: flex-end;">
+                            <span style="background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
+                                ${text}
+                            </span>
+                        </div>
+                    `;
+                msgArea.insertAdjacentHTML('beforeend', msgHtml);
+                this.scrollToBottom(userId);
+            } else {
+                this.renderWidgetTabs();
+            }
+        } else {
+            this.renderWidgetTabs();
+        }
+    }
+
+    try {
+        await this.sendMessage(userId, text);
+    } catch (e) {
+        console.error("Failed to send", e);
+    }
+}
+
+    async openChat(userId) {
+    if (this.conversations.length === 0) await this.loadConversations();
+
+    // Ensure tab is added
+    if (!this.openConversationIds.includes(userId)) {
+        this.openConversationIds.push(userId);
+    }
+
+    const conv = this.conversations.find(c => c.otherUser.id === userId);
+    if (conv) {
+        this.toggleTab(userId);
+    } else {
+        await this.loadConversations();
+        this.toggleTab(userId);
+    }
+}
+}
