@@ -250,15 +250,20 @@ class ChatManager {
     }
 
     scrollToBottom(userId) {
-        setTimeout(() => {
-            const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages');
-            if (tab) {
-                const area = userId ? tab.querySelector('.mini-messages-area') : tab;
-                if (area) {
-                    this.forceScrollToBottom(area);
+        // Ensure we find the element synchronously if possible
+        const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages');
+        if (tab) {
+            const area = userId ? tab.querySelector('.mini-messages-area') : tab;
+            if (area) {
+                // Method 1: Scroll Top Max
+                area.scrollTop = 999999;
+
+                // Method 2: Last Child Scroll (Most Robust)
+                if (area.lastElementChild) {
+                    area.lastElementChild.scrollIntoView({ block: "end", behavior: "auto" });
                 }
             }
-        }, 50);
+        }
     }
 
     async loadConversations() {
@@ -375,16 +380,18 @@ class ChatManager {
                 }
 
                 // FORCE SCROLL TO BOTTOM (User Request: "Abre con el ultimo mensaje")
-                // We use a stronger chain of attempts to catch any render timing issues
                 const scrollTarget = () => this.scrollToBottom(userId);
 
-                // Use RequestAnimationFrame to wait for paint
-                requestAnimationFrame(() => {
-                    scrollTarget();
-                    setTimeout(scrollTarget, 50);
-                    setTimeout(scrollTarget, 150);
-                    setTimeout(scrollTarget, 400); // Extended catch
-                });
+                // Run immediately (Synchronous DOM check)
+                scrollTarget();
+
+                // Run on next frame
+                requestAnimationFrame(scrollTarget);
+
+                // Run on timeouts to catch efficient layout calcs or image loads
+                setTimeout(scrollTarget, 50);
+                setTimeout(scrollTarget, 200);
+                setTimeout(scrollTarget, 500);
             }
         }
     }
@@ -409,7 +416,7 @@ class ChatManager {
 
         // If maximizing, scroll to bottom
         if (!this.minimizedConversations.has(userId)) {
-            setTimeout(() => this.scrollToBottom(userId), 100);
+            setTimeout(() => this.scrollToBottom(userId), 50);
         }
     }
 
@@ -425,19 +432,13 @@ class ChatManager {
             if (conv) {
                 conv.messages = msgs;
                 this.renderWidgetTabs();
-                setTimeout(() => {
-                    const tab = document.getElementById(`chat-tab-${userId}`);
-                    if (tab) {
-                        const area = tab.querySelector('.mini-messages-area');
-                        // Use a large number to ensure we hit the true bottom even if images load later
-                        if (area) area.scrollTop = 999999;
-                    }
-                }, 100);
+                setTimeout(() => this.scrollToBottom(userId), 50);
             }
         });
 
         this.renderWidgetTabs();
     }
+
 
     // ===========================================
     // View Logic - Full Page (messages.html)
