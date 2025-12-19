@@ -281,13 +281,38 @@ async function initializeChat(computerId) {
                     });
 
                     // FALLBACK: If nothing rendered (or truly empty), show placeholder
-                    if (renderedCount === 0) {
+                    const showPlaceholder = () => {
                         chatContainer.innerHTML = `
-                            <div class="message message-received" style="font-style: italic; opacity: 0.7;">
-                                <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
-                            </div>
-                        `;
+                        <div class="message message-received" style="font-style: italic; opacity: 0.7; display: block !important;">
+                            <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
+                        </div>
+                    `;
+                    };
+
+                    if (renderedCount === 0) {
+                        showPlaceholder();
                     }
+
+                    scrollChatToBottom();
+
+                    // EMERGENCY SAFEGUARD: Watch for unexpected clearing
+                    // If anything clears the box, put the placeholder back immediately
+                    const observer = new MutationObserver((mutations) => {
+                        if (chatContainer.innerHTML.trim() === '') {
+                            console.warn('⚠️ DOM WIPED BY EXTERNAL SCRIPT - RESTORING PLACEHOLDER ⚠️');
+                            console.trace();
+                            showPlaceholder();
+                        }
+                    });
+                    observer.observe(chatContainer, { childList: true, subtree: true });
+
+                    // SECONDARY SAFEGUARD: Polling check (in case observer misses or is disconnected)
+                    setInterval(() => {
+                        if (chatContainer.innerHTML.trim() === '') {
+                            console.warn('⚠️ DOM EMPTY DETECTED BY INTERVAL - RESTORING ⚠️');
+                            showPlaceholder();
+                        }
+                    }, 500);
                 }
 
                 // Prevent duplicate listeners (Global Guard)
