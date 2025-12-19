@@ -698,11 +698,12 @@ class ChatManager {
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         const isMinimized = this.minimizedConversations.has(user.id);
-        const tabHeight = isMinimized ? '48px' : '400px';
+        const headerHeight = '56px'; // Taller to prevent cutoff
+        const tabHeight = isMinimized ? headerHeight : '400px';
 
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease;">
-                <div onclick="chatManager.toggleMinimize(${user.id})" style="padding: 10px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease; box-sizing: border-box;">
+                <div onclick="chatManager.toggleMinimize(${user.id})" style="height: ${headerHeight}; padding: 0 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
                         <span style="font-size: 0.9rem; font-weight: 600; color: white;">${user.name}</span>
@@ -713,7 +714,7 @@ class ChatManager {
                     </div>
                 </div>
                 
-                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
+                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; display: ${isMinimized ? 'none' : 'flex'};">
                     ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
                             <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
