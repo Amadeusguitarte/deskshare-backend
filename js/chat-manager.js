@@ -7,6 +7,7 @@ class ChatManager {
         this.conversations = [];
         // Multi-tab support: Track IDs of open conversations
         this.openConversationIds = [];
+        this.minimizedConversations = new Set(); // Track minimized state
 
         // UI Elements
         this.widgetContainer = null;
@@ -30,6 +31,9 @@ class ChatManager {
         this.messagesPageContainer = document.getElementById('messagesPageContainer');
         this.widgetContainer = document.getElementById('chatWidgetContainer');
 
+        // Load Persistence State
+        this.loadState();
+
         // Load data
         await this.loadConversations();
 
@@ -38,6 +42,34 @@ class ChatManager {
             this.renderFullPage();
         } else {
             this.renderWidget();
+        }
+    }
+
+    // ===========================================
+    // Persistence Logic
+    // ===========================================
+    loadState() {
+        try {
+            const state = localStorage.getItem('deskshare_chat_state');
+            if (state) {
+                const parsed = JSON.parse(state);
+                this.openConversationIds = parsed.openIds || [];
+                this.minimizedConversations = new Set(parsed.minimizedIds || []);
+            }
+        } catch (e) {
+            console.error('Failed to load chat state', e);
+        }
+    }
+
+    saveState() {
+        try {
+            const state = {
+                openIds: this.openConversationIds,
+                minimizedIds: Array.from(this.minimizedConversations)
+            };
+            localStorage.setItem('deskshare_chat_state', JSON.stringify(state));
+        } catch (e) {
+            console.error('Failed to save chat state', e);
         }
     }
 
@@ -298,6 +330,7 @@ class ChatManager {
         const wasOpen = this.openConversationIds.includes(userId);
         if (!wasOpen) {
             this.openConversationIds.push(userId);
+            this.saveState(); // Save explicitly
         }
 
         // Find existing or create dummy for new chat
@@ -321,13 +354,46 @@ class ChatManager {
                 this.renderConversationsList();
                 this.selectConversation(userId);
             } else {
-                // FIXED: Only re-render if it wasn't already open.
-                // Re-rendering an existing tab wipes the DOM and resets scroll to 0 (Jump to Top).
-                // If it was already open, we assume it's fine or updated via handleNewMessage.
-                if (!wasOpen) {
+                // Widget Logic
+                // If it was minimized, un-minimize it (User Action = Open)
+                if (this.minimizedConversations.has(userId)) {
+                    this.minimizedConversations.delete(userId);
+                    this.saveState();
+                }
+
+                // If not open or we just want to ensure it's fresh
+                if (!wasOpen || true) { // FORCE RENDER to ensure logic flows
                     this.renderWidgetTabs();
                 }
+
+                // FORCE SCROLL TO BOTTOM (User Request: "Abre con el ultimo mensaje")
+                setTimeout(() => this.scrollToBottom(userId), 50);
+                setTimeout(() => this.scrollToBottom(userId), 300); // Double tap for slower loads
             }
+        }
+    }
+
+    closeTab(userId) {
+        userId = parseInt(userId);
+        this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
+        this.minimizedConversations.delete(userId);
+        this.saveState();
+        this.renderWidgetTabs();
+    }
+
+    toggleMinimize(userId) {
+        userId = parseInt(userId);
+        if (this.minimizedConversations.has(userId)) {
+            this.minimizedConversations.delete(userId);
+        } else {
+            this.minimizedConversations.add(userId);
+        }
+        this.saveState();
+        this.renderWidgetTabs();
+
+        // If maximizing, scroll to bottom
+        if (!this.minimizedConversations.has(userId)) {
+            setTimeout(() => this.scrollToBottom(userId), 100);
         }
     }
 
