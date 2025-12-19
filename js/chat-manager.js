@@ -250,6 +250,9 @@ class ChatManager {
     }
 
     scrollToBottom(userId) {
+        // Guard: Do NOT scroll if minimized (User Request: "logic only work when opening")
+        if (userId && this.minimizedConversations.has(userId)) return;
+
         // Strict ID Targeting to prevent confusion
         // We look for our specific 'msg-area-ID' first
         let area = null;
