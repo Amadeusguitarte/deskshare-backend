@@ -152,10 +152,13 @@ class ChatManager {
                             header.style.animation = 'highlightPulse 0.5s 4';
                         }
                     }
-                } else if (tabIsOpen && !tabEl) {
                     // State says open but DOM missing
                     this.renderWidgetTabs();
                 }
+
+                // GLOBAL SYNC: Notify other components (Inline Chat) about this message
+                // This bridges the gap between Widget and Inline
+                window.dispatchEvent(new CustomEvent('chat:sync', { detail: msg }));
 
                 // 3. UPDATE LIST PREVIEW (Sidebar)
                 // We do this manually to avoid full re-render
@@ -608,7 +611,17 @@ class ChatManager {
         // This prevents double messages (one optimistic, one from socket)
         try {
             await this.sendMessage(userId, text);
-            // Success: Socket will trigger handleNewMessage to append bubble.
+            // Success: Socket will handle handleNewMessage.
+            // Dispatch sync event just in case socket is slow
+            window.dispatchEvent(new CustomEvent('chat:sync', {
+                detail: {
+                    senderId: this.currentUser.id,
+                    receiverId: userId,
+                    message: text,
+                    createdAt: new Date().toISOString(),
+                    id: 'temp-' + Date.now()
+                }
+            }));
         } catch (e) {
             console.error("Failed to send", e);
             alert("Error al enviar mensaje. Intenta de nuevo.");

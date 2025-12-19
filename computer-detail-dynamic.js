@@ -238,6 +238,16 @@ async function initializeChat(computerId) {
                     displayChatMessage(msg);
                 }
             });
+
+            // GLOBAL SYNC: Listen for messages from ChatManager (Widget)
+            // This ensures messages sent via Widget appear here immediately
+            window.addEventListener('chat:sync', (e) => {
+                const msg = e.detail;
+                if (msg.senderId === ownerId || msg.senderId === currentUser.id || msg.receiverId === ownerId) {
+                    displayChatMessage(msg);
+                }
+            });
+
             window.chatManager._detailListenerAttached = true;
         }
     }
