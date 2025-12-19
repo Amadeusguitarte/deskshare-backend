@@ -250,18 +250,30 @@ class ChatManager {
     }
 
     scrollToBottom(userId) {
-        // Ensure we find the element synchronously if possible
-        const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages');
-        if (tab) {
-            const area = userId ? tab.querySelector('.mini-messages-area') : tab;
-            if (area) {
-                // Method 1: Scroll Top Max
-                area.scrollTop = 999999;
+        // Strict ID Targeting to prevent confusion
+        // We look for our specific 'msg-area-ID' first
+        let area = null;
+        if (userId) {
+            area = document.getElementById(`msg-area-${userId}`);
+        }
 
-                // Method 2: Last Child Scroll (Most Robust)
-                if (area.lastElementChild) {
-                    area.lastElementChild.scrollIntoView({ block: "end", behavior: "auto" });
-                }
+        // Fallback
+        if (!area) {
+            const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages');
+            if (tab) {
+                // Try legacy class check
+                const potentialArea = tab.querySelector('.mini-messages-area');
+                // If tab has class mini-messages-area, it is the area. Else child.
+                area = potentialArea || (tab.classList.contains('mini-messages-area') ? tab : null) || tab;
+            }
+        }
+
+        if (area) {
+            // FORCE BOTTOM
+            area.scrollTop = 999999;
+            // Backup
+            if (area.lastElementChild) {
+                area.lastElementChild.scrollIntoView({ block: "end", behavior: "auto" });
             }
         }
     }
@@ -585,11 +597,6 @@ class ChatManager {
         }).join('');
     }
 
-    scrollToBottom() {
-        const area = document.getElementById('messagesArea');
-        if (area) area.scrollTop = area.scrollHeight;
-    }
-
     // ===========================================
     // View Logic - Global Widget
     // ===========================================
@@ -656,19 +663,18 @@ class ChatManager {
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
 
-        // CRITICAL: Restore Scroll Positions to Bottom (Stamina Mode)
-        // Container expands over 300ms. We must force scroll repeatedly until expansion finishes.
-        this.openConversationIds.forEach(id => {
-            const start = Date.now();
-            const animateScroll = () => {
-                const now = Date.now();
-                if (now - start > 800) return; // Stop after 800ms
-
-                this.scrollToBottom(id);
-                requestAnimationFrame(animateScroll);
-            };
-            requestAnimationFrame(animateScroll);
-        });
+        // GRUTE FORCE SCROLL ENFORCEMENT (1.5s Duration)
+        // We use a simple setInterval to hammer the scroll position down.
+        // This covers distinct phases: Render (0ms), Paint (Paint), Layout Shift (50ms), Animation (300ms).
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            if (attempts > 15) { // 15 * 100ms = 1.5 seconds coverage
+                clearInterval(interval);
+                return;
+            }
+            this.openConversationIds.forEach(id => this.scrollToBottom(id));
+        }, 100);
     }
 
     updateGlobalBadge(count) {
@@ -707,7 +713,7 @@ class ChatManager {
                     </div>
                 </div>
                 
-                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
+                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
                             <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
@@ -745,37 +751,6 @@ class ChatManager {
                 </div>
             </div>
             `;
-    }
-
-    toggleTab(userId) {
-        // In multi-tab mode, "toggle" means "open if not open, bring to front/focus if open"
-        // Since we render side-by-side, we just ensure it's in the list.
-        if (!this.openConversationIds.includes(userId)) {
-            this.openConversationIds.push(userId);
-        }
-
-        // Refresh history
-        this.loadHistory(userId).then(msgs => {
-            const conv = this.conversations.find(c => c.otherUser.id === userId);
-            if (conv) {
-                conv.messages = msgs;
-                this.renderWidgetTabs();
-                setTimeout(() => {
-                    const tab = document.getElementById(`chat - tab - ${userId} `);
-                    if (tab) {
-                        const area = tab.querySelector('.mini-messages-area');
-                        if (area) area.scrollTop = area.scrollHeight;
-                    }
-                }, 100);
-            }
-        });
-
-        this.renderWidgetTabs();
-    }
-
-    closeTab(userId) {
-        this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
-        this.renderWidgetTabs();
     }
 
     async sendMiniMessage(userId, text) {
@@ -828,7 +803,7 @@ class ChatManager {
 
         // 3. Update Sidebar (Widget) - DOM Manipulation
         if (this.widgetContainer) {
-            const item = this.widgetContainer.querySelector(`.sidebar - item[data - user - id="${userId}"]`);
+            const item = this.widgetContainer.querySelector(`.sidebar-item[data-user-id="${userId}"]`);
             if (item) {
                 // Update Text
                 const msgDiv = item.querySelector('.sidebar-last-msg');
