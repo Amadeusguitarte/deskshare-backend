@@ -54,7 +54,15 @@ class ChatManager {
             if (state) {
                 const parsed = JSON.parse(state);
                 this.openConversationIds = parsed.openIds || [];
-                this.minimizedConversations = new Set(parsed.minimizedIds || []);
+                // AUTO-MINIMIZE ON NAV: User wants chat to "stay but be minimized" when changing pages
+                // So when we load state (new page load), we treat all open tabs as minimized initially
+                // unless the user explicitly opens them on this page.
+                const storedMinimized = new Set(parsed.minimizedIds || []);
+
+                // Add all open IDs to minimized set for this new session start
+                this.openConversationIds.forEach(id => storedMinimized.add(id));
+
+                this.minimizedConversations = storedMinimized;
             }
         } catch (e) {
             console.error('Failed to load chat state', e);
@@ -367,8 +375,14 @@ class ChatManager {
                 }
 
                 // FORCE SCROLL TO BOTTOM (User Request: "Abre con el ultimo mensaje")
-                setTimeout(() => this.scrollToBottom(userId), 50);
-                setTimeout(() => this.scrollToBottom(userId), 300); // Double tap for slower loads
+                // We use a stronger chain of attempts to catch any render timing issues
+                const scrollTarget = () => this.scrollToBottom(userId);
+
+                scrollTarget();
+                setTimeout(scrollTarget, 50);
+                setTimeout(scrollTarget, 150);
+                setTimeout(scrollTarget, 300);
+                setTimeout(scrollTarget, 500); // Final check
             }
         }
     }
