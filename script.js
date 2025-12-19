@@ -612,14 +612,12 @@ function debounce(func, wait) {
 const urlParams = new URLSearchParams(window.location.search);
 const computerId = urlParams.get('id');
 
-if (computerId && document.getElementById('chatMessages')) {
-    // Load computer details
-    loadComputerDetails(computerId);
-    // Load chat messages
-    loadMessages(computerId);
-    // Join socket room
-    joinComputerRoom(computerId);
-}
+// DISABLED: Modern logic moved to computer-detail-dynamic.js to prevent race conditions
+// if (computerId && document.getElementById('chatMessages')) {
+//    loadComputerDetails(computerId);
+//    loadMessages(computerId);
+//    joinComputerRoom(computerId);
+// }
 
 async function loadComputerDetails(id) {
     try {
