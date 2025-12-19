@@ -281,11 +281,12 @@ class ChatManager {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
             }
-            return await response.json();
+            const data = await response.json();
+            return data.message; // Unwrap the message object
         } catch (error) {
             console.error('Send error:', error);
             alert(`Error: ${error.message}`);
-            throw error; // Re-throw so caller knows it failed
+            throw error;
         }
     }
 
