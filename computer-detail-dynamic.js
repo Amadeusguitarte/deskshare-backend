@@ -245,10 +245,13 @@ async function initializeChat(computerId) {
                 };
 
                 if (messages.length > 0) {
-                    chatContainer.innerHTML = ''; // Clear placeholder
                     // Client-side Sort (Oldest -> Newest) to ensure correct order
                     messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                     console.log(`Loaded ${messages.length} messages for Detail View`);
+
+                    // ATOMIC RESET: Clear Visuals AND Memory
+                    chatContainer.innerHTML = '';
+                    window.visibleMessageIds.clear();
 
                     messages.forEach(msg => {
                         if (msg.id) window.visibleMessageIds.add(String(msg.id)); // Sync History to Set (String forced)
@@ -304,7 +307,8 @@ function displayChatMessage(message) {
     const chatContainer = document.getElementById('chatMessages');
     if (!chatContainer) return;
 
-    const isMe = message.senderId === currentUser.id;
+    // SAFE ACCESS: Handle case where currentUser is not yet fully loaded
+    const isMe = message.senderId === currentUser?.id;
 
     console.log('Displaying msg:', message);
 
