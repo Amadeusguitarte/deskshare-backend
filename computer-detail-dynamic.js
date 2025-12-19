@@ -5,7 +5,7 @@
 window.visibleMessageIds = new Set();
 
 let currentComputer = null;
-let currentUser = null;
+let currentBooking = null; // Restore needed variable, remove duplicate currentUser
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
