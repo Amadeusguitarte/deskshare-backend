@@ -261,13 +261,10 @@ function displayChatMessage(message) {
 
     console.log('Displaying msg:', message);
 
-    // 1. Strict ID Check (Guards against Socket Echo)
-    if (message.id) {
-        const existingEl = chatContainer.querySelector(`[data-msg-id="${message.id}"]`);
-        if (existingEl) {
-            console.warn('Duplicate ID skipped:', message.id);
-            return;
-        }
+    // 1. Strict ID Check
+    if (message.id && chatContainer.querySelector(`[data-msg-id="${message.id}"]`)) {
+        console.warn('Duplicate ID skipped:', message.id);
+        return;
     }
 
     const msgText = String(message.message || message.text || '').trim();
