@@ -331,6 +331,13 @@ function displayChatMessage(message) {
 
     chatContainer.appendChild(messageEl);
     scrollChatToBottom();
+
+    // BIDIRECTIONAL SCROLL: Wake up the Widget too!
+    if (window.chatManager && typeof window.chatManager.scrollToBottom === 'function') {
+        const otherId = (message.senderId === currentUser.id) ? message.receiverId : message.senderId;
+        // Small delay to ensure widget renders if it's receiving same event
+        setTimeout(() => window.chatManager.scrollToBottom(otherId), 50);
+    }
 }
 
 function scrollChatToBottom() {
@@ -384,13 +391,21 @@ window.sendChatMessage = async function () {
 
         const ownerId = currentComputer.user.id;
 
-        // 1. Open widget FIRST so user sees something happening
+        // 1. Open widget FIRST
         await window.chatManager.openChat(ownerId);
 
-        // 2. Send message
-        await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
+        // 2. Send message & Get Result
+        const responseMsg = await window.chatManager.sendMessage(ownerId, text, currentComputer.id);
 
-        // Note: We rely on Socket.io to update the UI (both widget and inline)
+        // UNIFIED OPTIMISTIC UPDATE:
+        // Use the response from ChatManager (which might be the real msg or a temp one)
+        // to immediately update our Inline View.
+        if (responseMsg) {
+            console.log('Optimistic Update:', responseMsg);
+            displayChatMessage(responseMsg);
+            // Ensure Widget also gets it if it didn't already
+            window.chatManager.handleNewMessage(responseMsg);
+        }
         // to avoid duplicate messages.
 
     } catch (err) {
