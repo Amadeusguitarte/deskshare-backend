@@ -295,7 +295,8 @@ class ChatManager {
 
         // Ensure Tab is tracked (Fix for Missing Widget)
         userId = parseInt(userId);
-        if (!this.openConversationIds.includes(userId)) {
+        const wasOpen = this.openConversationIds.includes(userId);
+        if (!wasOpen) {
             this.openConversationIds.push(userId);
         }
 
@@ -320,7 +321,12 @@ class ChatManager {
                 this.renderConversationsList();
                 this.selectConversation(userId);
             } else {
-                this.renderWidgetTabs();
+                // FIXED: Only re-render if it wasn't already open.
+                // Re-rendering an existing tab wipes the DOM and resets scroll to 0 (Jump to Top).
+                // If it was already open, we assume it's fine or updated via handleNewMessage.
+                if (!wasOpen) {
+                    this.renderWidgetTabs();
+                }
             }
         }
     }
