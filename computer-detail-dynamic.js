@@ -263,20 +263,25 @@ async function initializeChat(computerId) {
                     chatContainer.innerHTML = '';
                     window.visibleMessageIds.clear();
 
-                    messages.forEach((msg, index) => {
+                    // LIMIT HISTORY: Only show last 15 messages to prevent overload/glitches
+                    // User requested "only the latest" if full history fails
+                    const recentMessages = messages.slice(-15);
+
+                    let renderedCount = 0;
+                    recentMessages.forEach((msg, index) => {
                         try {
                             if (!msg) return;
                             if (msg.id) window.visibleMessageIds.add(String(msg.id)); // Sync History to Set (String forced)
                             displayChatMessage(msg);
+                            renderedCount++;
                         } catch (err) {
                             console.error(`Failed to render msg at index ${index}:`, msg, err);
                             // Continue loop - don't let one bad apple rot the basket
                         }
                     });
-                    scrollChatToBottom();
-                } else {
-                    // Ensure placeholder is visible (optional, or just leave as is)
-                    if (!chatContainer.querySelector('.message-received')) {
+
+                    // FALLBACK: If nothing rendered (or truly empty), show placeholder
+                    if (renderedCount === 0) {
                         chatContainer.innerHTML = `
                             <div class="message message-received" style="font-style: italic; opacity: 0.7;">
                                 <p style="margin: 0;">Inicia una conversación con el anfitrión...</p>
