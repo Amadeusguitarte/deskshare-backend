@@ -574,7 +574,7 @@ class ChatManager {
                     <span style="color: #aaa; font-size: 1.2rem; line-height:0.8;">×</span>
                 </div>
                 
-                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth;">
+                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
                             <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">

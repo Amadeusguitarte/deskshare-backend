@@ -296,12 +296,9 @@ function displayChatMessage(message) {
     }
     window.msgSignatures.set(dedupSignature, now);
 
-    // 3. DOM Guard (Persistence Protection)
-    const existingExact = chatContainer.querySelector(`[data-dedup-hash="${dedupSignature.replace(/"/g, '\\"')}"]`);
-    if (existingExact) {
-        console.warn('Duplicate blocked by DOM Hash:', dedupSignature);
-        return;
-    }
+    // 3. DOM Guard (Persistence Protection) - REMOVED for Repeat/Teleport logic
+    // We Rely purely on the 800ms Memory Map for Echo Protection.
+    // This allows sending "7" then "7" again after 1 second.
 
     // Removed legacy Text Scan to allow identical messages if Hash is different (or timed out)
 
@@ -337,7 +334,8 @@ function displayChatMessage(message) {
 function scrollChatToBottom() {
     const chatContainer = document.getElementById('chatMessages');
     if (chatContainer && chatContainer.lastElementChild) {
-        chatContainer.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        // INSTANT SCROLL ("Teleport")
+        chatContainer.lastElementChild.scrollIntoView({ behavior: 'auto', block: 'end' });
     }
 }
 
