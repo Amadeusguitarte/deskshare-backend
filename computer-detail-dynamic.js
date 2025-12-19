@@ -251,17 +251,27 @@ async function initializeChat(computerId) {
                 };
 
                 if (messages.length > 0) {
-                    // Client-side Sort (Oldest -> Newest) to ensure correct order
-                    messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                    // Client-side Sort (Oldest -> Newest) with Safety Fallback
+                    messages.sort((a, b) => {
+                        const tA = new Date(a.createdAt).getTime() || 0;
+                        const tB = new Date(b.createdAt).getTime() || 0;
+                        return tA - tB;
+                    });
                     console.log(`Loaded ${messages.length} messages for Detail View`);
 
                     // ATOMIC RESET: Clear Visuals AND Memory
                     chatContainer.innerHTML = '';
                     window.visibleMessageIds.clear();
 
-                    messages.forEach(msg => {
-                        if (msg.id) window.visibleMessageIds.add(String(msg.id)); // Sync History to Set (String forced)
-                        displayChatMessage(msg);
+                    messages.forEach((msg, index) => {
+                        try {
+                            if (!msg) return;
+                            if (msg.id) window.visibleMessageIds.add(String(msg.id)); // Sync History to Set (String forced)
+                            displayChatMessage(msg);
+                        } catch (err) {
+                            console.error(`Failed to render msg at index ${index}:`, msg, err);
+                            // Continue loop - don't let one bad apple rot the basket
+                        }
                     });
                     scrollChatToBottom();
                 } else {
