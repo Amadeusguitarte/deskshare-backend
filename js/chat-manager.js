@@ -656,11 +656,18 @@ class ChatManager {
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
 
-        // CRITICAL: Restore Scroll Positions to Bottom
-        // Since innerHTML nukes the DOM, we must re-apply scroll to bottom for all open tabs immediately.
-        // This prevents the "Starts at Top" bug.
+        // CRITICAL: Restore Scroll Positions to Bottom (Stamina Mode)
+        // Container expands over 300ms. We must force scroll repeatedly until expansion finishes.
         this.openConversationIds.forEach(id => {
-            this.scrollToBottom(id);
+            const start = Date.now();
+            const animateScroll = () => {
+                const now = Date.now();
+                if (now - start > 800) return; // Stop after 800ms
+
+                this.scrollToBottom(id);
+                requestAnimationFrame(animateScroll);
+            };
+            requestAnimationFrame(animateScroll);
         });
     }
 
