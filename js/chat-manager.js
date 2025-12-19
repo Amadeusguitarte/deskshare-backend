@@ -416,21 +416,7 @@ class ChatManager {
         this.renderWidgetTabs();
     }
 
-    toggleMinimize(userId) {
-        userId = parseInt(userId);
-        if (this.minimizedConversations.has(userId)) {
-            this.minimizedConversations.delete(userId);
-        } else {
-            this.minimizedConversations.add(userId);
-        }
-        this.saveState();
-        this.renderWidgetTabs();
 
-        // If maximizing, scroll to bottom
-        if (!this.minimizedConversations.has(userId)) {
-            setTimeout(() => this.scrollToBottom(userId), 50);
-        }
-    }
 
     toggleTab(userId) {
         // In multi-tab mode, "toggle" means "open if not open, bring to front/focus if open"
