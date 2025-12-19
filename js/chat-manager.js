@@ -702,8 +702,8 @@ class ChatManager {
         const tabHeight = isMinimized ? headerHeight : '400px';
 
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease; box-sizing: border-box;">
-                <div onclick="chatManager.toggleMinimize(${user.id})" style="height: 56px; min-height: 56px; padding: 0 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-sizing: border-box;">
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: ${isMinimized ? '1px solid var(--glass-border)' : 'none'}; border-radius: ${isMinimized ? '8px' : '8px 8px 0 0'}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease; box-sizing: border-box;">
+                <div onclick="chatManager.toggleMinimize(${user.id})" style="height: 56px; min-height: 56px; padding: 0 12px; background: rgba(255,255,255,0.05); border-bottom: ${isMinimized ? 'none' : '1px solid var(--glass-border)'}; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
                         <span style="font-size: 0.9rem; font-weight: 600; color: white;">${user.name}</span>
