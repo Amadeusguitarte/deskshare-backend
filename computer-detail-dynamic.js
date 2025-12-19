@@ -1,9 +1,11 @@
 // ========================================
 // Computer Detail & Booking Functionality
-// ========================================
+// =======================================const socket = io();
+// NEW: Strict Memory-Based Deduplication (Faster & More Reliable than DOM Query)
+window.visibleMessageIds = new Set();
 
 let currentComputer = null;
-let currentBooking = null;
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -212,7 +214,10 @@ async function initializeChat(computerId) {
 
             if (messages.length > 0) {
                 chatContainer.innerHTML = ''; // Clear placeholder
-                messages.forEach(msg => displayChatMessage(msg));
+                messages.forEach(msg => {
+                    if (msg.id) window.visibleMessageIds.add(msg.id); // Sync History to Set
+                    displayChatMessage(msg);
+                });
                 scrollChatToBottom();
             } else {
                 // Ensure placeholder is visible (optional, or just leave as is)
@@ -261,13 +266,22 @@ function displayChatMessage(message) {
 
     console.log('Displaying msg:', message);
 
-    // 1. Strict ID Check (Guards against Socket Echo)
+    // 1. Strict ID Check (Memory Set + DOM Backup)
     if (message.id) {
-        const existingEl = chatContainer.querySelector(`[data-msg-id="${message.id}"]`);
-        if (existingEl) {
-            console.warn('Duplicate ID skipped:', message.id);
+        // Check Memory Set First (Fastest)
+        if (window.visibleMessageIds.has(message.id)) {
+            console.warn('Duplicate ID blocked by Memory Set:', message.id);
             return;
         }
+        // Double Check DOM just in case (e.g. reload or race)
+        const existingEl = chatContainer.querySelector(`[data-msg-id="${message.id}"]`);
+        if (existingEl) {
+            console.warn('Duplicate ID blocked by DOM Query:', message.id);
+            window.visibleMessageIds.add(message.id); // Sync Set
+            return;
+        }
+        // If clean, add to Set
+        window.visibleMessageIds.add(message.id);
     }
 
     const msgText = String(message.message || message.text || '').trim();
