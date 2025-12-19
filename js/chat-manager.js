@@ -170,6 +170,8 @@ class ChatManager {
                 } else if (tabIsOpen && !tabEl) {
                     // State says open but DOM missing -> Re-render
                     this.renderWidgetTabs();
+                    // Ensure scroll is restored after re-render
+                    setTimeout(() => this.scrollToBottom(relevantUserId), 100);
                 }
 
                 // GLOBAL SYNC
@@ -189,21 +191,23 @@ class ChatManager {
 
     forceScrollToBottom(element) {
         if (!element) return;
-        // Method 1: Immediate with smooth behavior
-        element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
+        // Method 1: Immediate
+        // We use direct assignment. CSS 'scroll-behavior: smooth' handles the animation.
+        // Using JS scrollTo({behavior:'smooth'}) repeatedly causes "stuck" behavior.
+        element.scrollTop = element.scrollHeight;
 
         // Method 2: Next Frame
         requestAnimationFrame(() => {
-            element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
+            element.scrollTop = element.scrollHeight;
         });
 
         // Method 3: Safety delay (catch async layout shifts)
         setTimeout(() => {
-            element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
+            element.scrollTop = element.scrollHeight;
         }, 100);
 
         setTimeout(() => {
-            element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
+            element.scrollTop = element.scrollHeight;
         }, 300);
     }
 

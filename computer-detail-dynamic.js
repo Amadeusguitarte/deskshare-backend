@@ -287,7 +287,9 @@ function displayChatMessage(message) {
 
     if (window.msgSignatures.has(dedupSignature)) {
         const lastTime = window.msgSignatures.get(dedupSignature);
-        if (now - lastTime < 2000) {
+        // RELAXED DEDUP: Only block for 800ms (Machine Speed).
+        // Allows Human Speed (>1s) to send identical messages intentionally.
+        if (now - lastTime < 800) {
             console.warn('Duplicate blocked by Memory Guard (Race):', dedupSignature);
             return;
         }
@@ -295,21 +297,13 @@ function displayChatMessage(message) {
     window.msgSignatures.set(dedupSignature, now);
 
     // 3. DOM Guard (Persistence Protection)
-    // Checks if message is already physically present using Hash Attribute
-    // Uses data-dedup-hash for 100% accuracy, fallback to text scan
     const existingExact = chatContainer.querySelector(`[data-dedup-hash="${dedupSignature.replace(/"/g, '\\"')}"]`);
     if (existingExact) {
         console.warn('Duplicate blocked by DOM Hash:', dedupSignature);
         return;
     }
 
-    // Fallback Text Scan (for older messages without hash)
-    const existingMessages = Array.from(chatContainer.querySelectorAll('.message-content'));
-    const isDuplicateText = existingMessages.slice(-5).some(el => el.textContent.trim() === msgText);
-    if (isDuplicateText) {
-        console.warn('Duplicate blocked by Text Scan:', msgText);
-        return;
-    }
+    // Removed legacy Text Scan to allow identical messages if Hash is different (or timed out)
 
 
 
