@@ -648,12 +648,11 @@ class ChatManager {
         // SORT MESSAGES: Oldest -> Newest
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-        return `
         const isMinimized = this.minimizedConversations.has(user.id);
         const tabHeight = isMinimized ? '48px' : '400px';
 
         return `
-            < div id = "${tabId}" class="chat-tab expanded" style = "width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease;" >
+            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${tabHeight}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease;">
                 <div onclick="chatManager.toggleMinimize(${user.id})" style="padding: 10px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
@@ -718,7 +717,7 @@ class ChatManager {
                 conv.messages = msgs;
                 this.renderWidgetTabs();
                 setTimeout(() => {
-                    const tab = document.getElementById(`chat - tab - ${ userId } `);
+                    const tab = document.getElementById(`chat - tab - ${userId} `);
                     if (tab) {
                         const area = tab.querySelector('.mini-messages-area');
                         if (area) area.scrollTop = area.scrollHeight;
