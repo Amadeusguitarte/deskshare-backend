@@ -333,6 +333,13 @@ function displayChatMessage(message) {
     scrollChatToBottom();
 }
 
+function scrollChatToBottom() {
+    const chatContainer = document.getElementById('chatMessages');
+    if (chatContainer && chatContainer.lastElementChild) {
+        chatContainer.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+}
+
 // Make available globally for button click
 window.sendChatMessage = async function () {
     const input = document.getElementById('messageInput');

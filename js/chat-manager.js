@@ -139,7 +139,8 @@ class ChatManager {
                                 </div>
                             `;
                             msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                            msgArea.scrollTop = msgArea.scrollHeight;
+                            // Smooth Scroll
+                            msgArea.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
                         }
                     }
 
