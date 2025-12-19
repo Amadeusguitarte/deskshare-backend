@@ -162,7 +162,12 @@ class ChatManager {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
             }
-            return await response.json();
+            const data = await response.json();
+            // FIX: Backend returns { message: { ... } }, so we must unwrap it
+            if (data.message && typeof data.message === 'object' && !Array.isArray(data.message)) {
+                return data.message;
+            }
+            return data;
         } catch (error) {
             console.error('Send error:', error);
             alert(`Error: ${error.message}`);
