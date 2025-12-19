@@ -139,8 +139,10 @@ class ChatManager {
                                 </div>
                             `;
                             msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                            // Smooth Scroll
-                            msgArea.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                            // Robust Scroll: Revert to scrollTop with RAF for stability
+                            requestAnimationFrame(() => {
+                                msgArea.scrollTop = msgArea.scrollHeight;
+                            });
                         }
                     }
 
@@ -152,21 +154,23 @@ class ChatManager {
                             header.offsetHeight;
                             header.style.animation = 'highlightPulse 0.5s 4';
                         }
+
+                        // Also pulse the header icon
+                        const msgIcon = document.querySelector('nav svg.feather-message-square');
+                        if (msgIcon) {
+                            msgIcon.style.color = 'var(--accent-purple)';
+                            setTimeout(() => msgIcon.style.color = '', 2000);
+                        }
                     }
                     // State says open but DOM missing
                     this.renderWidgetTabs();
                 }
 
-                // GLOBAL SYNC: Notify other components (Inline Chat) about this message
-                // This bridges the gap between Widget and Inline
+                // GLOBAL SYNC: Notify other components (Inline Chat)
                 window.dispatchEvent(new CustomEvent('chat:sync', { detail: msg }));
 
-                // 3. UPDATE LIST PREVIEW (Sidebar)
-                // We do this manually to avoid full re-render
-                // this.updateListPreview(relevantUserId, msg, senderId === currentUserId);
-                // (Previous stable version didn't have updateListPreview method extracted yet, it did full render or badge only?
-                // Wait, the backup content (Step 7050) has `renderWidgetTabs()` logic inside.
-                // It DOES NOT have `updateListPreview` call.
+                // 3. UPDATE LIST PREVIEW (Sidebar & Header)
+                this.updateGlobalPreviews(relevantUserId, msg);
 
                 // Update Data Unread Count
                 const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
@@ -474,13 +478,13 @@ class ChatManager {
                 
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
                     ${this.conversations.length > 0 ? this.conversations.map(conv => `
-                        <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
+                        <div class="sidebar-item" data-user-id="${conv.otherUser.id}" onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
                             <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
-                                <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
+                                <div class="sidebar-last-msg" style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
                             </div>
-                            ${(conv.unreadCount > 0) ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
+                            <div class="sidebar-unread" style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%; display:${(conv.unreadCount > 0) ? 'block' : 'none'};"></div>
                         </div>
                     `).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>'}
                 </div>
@@ -629,7 +633,49 @@ class ChatManager {
         }
     }
 
+    updateGlobalPreviews(userId, msg) {
+        // 1. Update Internal Model
+        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        if (conv) {
+            conv.lastMessage = msg;
+
+            // Logic: If I am sender, unread = 0.
+            // If receiver AND tab closed, unread++.
+            // If receiver AND tab open, unread stays same (or 0 if we assume read).
+            if (msg.senderId === this.currentUser.id) {
+                // Sent by me -> Read
+                // conv.unreadCount = 0; // Don't reset to 0 immediately as backend sync might differ, but for UI feedback yes.
+            } else {
+                if (!this.openConversationIds.includes(userId)) {
+                    conv.unreadCount = (conv.unreadCount || 0) + 1;
+                }
+            }
+        }
+
+        // 2. Update Header (UI Global)
+        if (typeof window.renderHeaderDropdown === 'function') {
+            window.renderHeaderDropdown(this.conversations);
+        }
+
+        // 3. Update Sidebar (Widget) - DOM Manipulation
+        if (this.widgetContainer) {
+            const item = this.widgetContainer.querySelector(`.sidebar-item[data-user-id="${userId}"]`);
+            if (item) {
+                // Update Text
+                const msgDiv = item.querySelector('.sidebar-last-msg');
+                if (msgDiv) msgDiv.textContent = msg.message;
+
+                // Update Unread Dot
+                const dot = item.querySelector('.sidebar-unread');
+                if (dot && conv) {
+                    dot.style.display = (conv.unreadCount > 0) ? 'block' : 'none';
+                }
+            }
+        }
+    }
 }
+
+
 
 // Make globally available
 window.ChatManager = ChatManager;
