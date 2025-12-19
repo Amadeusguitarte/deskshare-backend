@@ -130,7 +130,8 @@ class ChatManager {
                     const msgArea = tabEl.querySelector('.mini-messages-area');
                     if (msgArea) {
                         // View Synchronization
-                        constcleanMsg = msg.message.trim();
+                        // View Synchronization
+                        const cleanMsg = msg.message.trim();
                         const existingTexts = Array.from(msgArea.querySelectorAll('span'))
                             .slice(-5)
                             .map(s => s.textContent.trim());
@@ -188,22 +189,22 @@ class ChatManager {
 
     forceScrollToBottom(element) {
         if (!element) return;
-        // Method 1: Immediate
-        element.scrollTop = element.scrollHeight;
+        // Method 1: Immediate with smooth behavior
+        element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
 
         // Method 2: Next Frame
         requestAnimationFrame(() => {
-            element.scrollTop = element.scrollHeight;
+            element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
         });
 
         // Method 3: Safety delay (catch async layout shifts)
         setTimeout(() => {
-            element.scrollTop = element.scrollHeight;
-        }, 50);
+            element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
+        }, 100);
 
         setTimeout(() => {
-            element.scrollTop = element.scrollHeight;
-        }, 150);
+            element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
+        }, 300);
     }
 
     scrollToBottom(userId) {
@@ -568,7 +569,7 @@ class ChatManager {
                     <span style="color: #aaa; font-size: 1.2rem; line-height:0.8;">×</span>
                 </div>
                 
-                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
+                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth;">
                     ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
                             <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
