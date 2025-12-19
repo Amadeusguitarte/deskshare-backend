@@ -214,8 +214,12 @@ async function initializeChat(computerId) {
 
             if (messages.length > 0) {
                 chatContainer.innerHTML = ''; // Clear placeholder
+                // Client-side Sort (Oldest -> Newest) to ensure correct order
+                messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                console.log(`Loaded ${messages.length} messages for Detail View`);
+
                 messages.forEach(msg => {
-                    if (msg.id) window.visibleMessageIds.add(msg.id); // Sync History to Set
+                    if (msg.id) window.visibleMessageIds.add(String(msg.id)); // Sync History to Set (String forced)
                     displayChatMessage(msg);
                 });
                 scrollChatToBottom();
@@ -268,20 +272,22 @@ function displayChatMessage(message) {
 
     // 1. Strict ID Check (Memory Set + DOM Backup)
     if (message.id) {
+        const msgId = String(message.id); // Force String for reliable Set check
+
         // Check Memory Set First (Fastest)
-        if (window.visibleMessageIds.has(message.id)) {
-            console.warn('Duplicate ID blocked by Memory Set:', message.id);
+        if (window.visibleMessageIds.has(msgId)) {
+            console.warn('Duplicate ID blocked by Memory Set:', msgId);
             return;
         }
         // Double Check DOM just in case (e.g. reload or race)
-        const existingEl = chatContainer.querySelector(`[data-msg-id="${message.id}"]`);
+        const existingEl = chatContainer.querySelector(`[data-msg-id="${msgId}"]`);
         if (existingEl) {
-            console.warn('Duplicate ID blocked by DOM Query:', message.id);
-            window.visibleMessageIds.add(message.id); // Sync Set
+            console.warn('Duplicate ID blocked by DOM Query:', msgId);
+            window.visibleMessageIds.add(msgId); // Sync Set
             return;
         }
         // If clean, add to Set
-        window.visibleMessageIds.add(message.id);
+        window.visibleMessageIds.add(msgId);
     }
 
     const msgText = String(message.message || message.text || '').trim();
