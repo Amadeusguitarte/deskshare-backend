@@ -257,20 +257,47 @@ function displayChatMessage(message) {
         return;
     }
 
-    // 2. DOM-Based Deduplication (The Fallback)
-    // If memory fails (due to script reloads/duplicates), DOM is truth.
     const msgText = (message.message || message.text || '').trim();
     if (!msgText) return;
 
-    // Scan existing DOM elements for identical text (+- same time not needed if we want strict blocking)
-    // We check the LAST few messages to be safe/fast
-    const existingMessages = Array.from(chatContainer.querySelectorAll('.message-content'));
-    const isDuplicate = existingMessages.slice(-5).some(el => {
-        return el.textContent.trim() === msgText;
-    });
+    // --- DEDUPLICATION LOGIC ---
 
-    if (isDuplicate) {
-        console.warn('Duplicate blocked by DOM Scan:', msgText);
+    // 1. Signature Generation
+    const dedupSignature = `${message.senderId}:${msgText}`;
+    const now = Date.now();
+
+    // 2. Memory Guard (Race Condition Protection)
+    // Instantly blocks rapid-fire duplicates before they hit the DOM
+    if (!window.msgSignatures) window.msgSignatures = new Map();
+
+    // Cleanup old signatures
+    for (const [key, timestamp] of window.msgSignatures) {
+        if (now - timestamp > 5000) window.msgSignatures.delete(key);
+    }
+
+    if (window.msgSignatures.has(dedupSignature)) {
+        const lastTime = window.msgSignatures.get(dedupSignature);
+        if (now - lastTime < 2000) {
+            console.warn('Duplicate blocked by Memory Guard (Race):', dedupSignature);
+            return;
+        }
+    }
+    window.msgSignatures.set(dedupSignature, now);
+
+    // 3. DOM Guard (Persistence Protection)
+    // Checks if message is already physically present using Hash Attribute
+    // Uses data-dedup-hash for 100% accuracy, fallback to text scan
+    const existingExact = chatContainer.querySelector(`[data-dedup-hash="${dedupSignature.replace(/"/g, '\\"')}"]`);
+    if (existingExact) {
+        console.warn('Duplicate blocked by DOM Hash:', dedupSignature);
+        return;
+    }
+
+    // Fallback Text Scan (for older messages without hash)
+    const existingMessages = Array.from(chatContainer.querySelectorAll('.message-content'));
+    const isDuplicateText = existingMessages.slice(-5).some(el => el.textContent.trim() === msgText);
+    if (isDuplicateText) {
+        console.warn('Duplicate blocked by Text Scan:', msgText);
         return;
     }
 
@@ -278,6 +305,9 @@ function displayChatMessage(message) {
 
     const messageEl = document.createElement('div');
     if (message.id) messageEl.dataset.msgId = message.id; // Store ID
+    // CRITICAL: Store Deduplication Hash for strict blocking
+    messageEl.dataset.dedupHash = dedupSignature;
+
     messageEl.className = isMe ? 'message-sent' : 'message-received';
     // Match styles from CSS or inline
     messageEl.style.cssText = isMe ?
