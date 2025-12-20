@@ -30,6 +30,9 @@ async function loadMarketplaceComputers(filters = {}) {
     }
 }
 
+// Global map to store images for carousel functionality
+window.marketplaceImages = {};
+
 function renderComputers(computers) {
     const grid = document.getElementById('computerGrid');
     if (!grid) return;
@@ -47,14 +50,20 @@ function renderComputers(computers) {
     // MATCHING THE DESIGN FROM index.html "Computadoras Destacadas"
     grid.innerHTML = computers.map(computer => {
         // Image handling logic
-        let imageUrl = FALLBACK_SVG;
+        let images = [FALLBACK_SVG];
 
         if (computer.images && computer.images.length > 0) {
-            const firstImg = computer.images[0].imageUrl || computer.images[0].url;
-            if (firstImg && !firstImg.includes('localhost') && !firstImg.includes('127.0.0.1')) {
-                imageUrl = firstImg;
+            // Filter out bad localhosts
+            const valid = computer.images.map(img => img.imageUrl || img.url).filter(url => url && !url.includes('localhost') && !url.includes('127.0.0.1'));
+            if (valid.length > 0) {
+                images = valid;
             }
         }
+
+        // Store for carousel
+        window.marketplaceImages[computer.id] = images;
+        const currentImage = images[0];
+        const hasMultiple = images.length > 1;
 
         // Generate spec badges (LIKE THE FEATURED CARDS)
         const specBadges = [
@@ -72,13 +81,25 @@ function renderComputers(computers) {
         const stars = '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '☆').repeat(5 - Math.floor(rating));
 
         return `
-        <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'">
-            <img src="${imageUrl}" 
-                 alt="${computer.name}" 
-                 class="computer-image"
-                 style="object-fit: cover; background-color: #222;"
-                 onerror="this.onerror=null; this.src='${FALLBACK_SVG}';"
-            >
+        <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'" style="cursor: pointer;">
+            <div style="position: relative; height: 200px; overflow: hidden;" class="card-image-container">
+                <img src="${currentImage}" 
+                     alt="${computer.name}" 
+                     class="computer-image"
+                     id="img-${computer.id}" data-index="0"
+                     style="width: 100%; height: 100%; object-fit: cover; background-color: #222; transition: transform 0.3s;"
+                     onerror="this.onerror=null; this.src='${FALLBACK_SVG}';"
+                >
+                
+                ${hasMultiple ? `
+                    <button onclick="event.stopPropagation(); event.preventDefault(); nextCardImage('${computer.id}', -1)" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; z-index: 10;">‹</button>
+                    <button onclick="event.stopPropagation(); event.preventDefault(); nextCardImage('${computer.id}', 1)" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; z-index: 10;">›</button>
+                    <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; pointer-events: none;">
+                        ${images.map((_, idx) => `<div id="dot-${computer.id}-${idx}" style="width: 6px; height: 6px; border-radius: 50%; background: ${idx === 0 ? 'white' : 'rgba(255,255,255,0.4)'}; box-shadow: 0 1px 2px rgba(0,0,0,0.5);"></div>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+
             <div class="computer-info">
                 <h3 class="computer-title">${computer.name}</h3>
                 <div class="computer-specs">
@@ -101,3 +122,30 @@ function renderComputers(computers) {
         `;
     }).join('');
 }
+
+// Global function to handle carousel navigation
+window.nextCardImage = function (computerId, direction) {
+    const imgEl = document.getElementById(`img-${computerId}`);
+    if (!imgEl) return;
+
+    const images = window.marketplaceImages[computerId];
+    if (!images || images.length <= 1) return;
+
+    let currentIndex = parseInt(imgEl.dataset.index || '0');
+    let newIndex = currentIndex + direction;
+
+    if (newIndex >= images.length) newIndex = 0;
+    if (newIndex < 0) newIndex = images.length - 1;
+
+    // Update Image
+    imgEl.src = images[newIndex];
+    imgEl.dataset.index = newIndex;
+
+    // Update Dots
+    images.forEach((_, idx) => {
+        const dot = document.getElementById(`dot-${computerId}-${idx}`);
+        if (dot) {
+            dot.style.background = (idx === newIndex) ? 'white' : 'rgba(255,255,255,0.4)';
+        }
+    });
+};

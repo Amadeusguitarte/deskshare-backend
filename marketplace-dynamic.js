@@ -32,6 +32,9 @@ async function loadMarketplaceComputers(filters = {}) {
     }
 }
 
+// Global map to store images for carousel functionality
+window.marketplaceImages = {};
+
 function renderComputers(computers) {
     const grid = document.getElementById('computerGrid');
     if (!grid) return;
@@ -48,11 +51,17 @@ function renderComputers(computers) {
     }
 
     grid.innerHTML = computers.map(computer => {
-        // Image
-        let imageUrl = 'assets/workstation_professional_1765782988095.png';
+        // Image Handling
+        let images = ['assets/workstation_professional_1765782988095.png'];
         if (computer.images && computer.images.length > 0) {
-            imageUrl = computer.images[0].imageUrl || computer.images[0].url || imageUrl;
+            images = computer.images.map(img => img.imageUrl || img.url);
         }
+
+        // Store for carousel logic
+        window.marketplaceImages[computer.id] = images;
+
+        const currentImage = images[0];
+        const hasMultiple = images.length > 1;
 
         // Status
         const isAvailable = computer.status === 'active';
@@ -67,12 +76,21 @@ function renderComputers(computers) {
         // FINAL CORRECTED DESIGN - Edge-to-edge image, labeled specs
         return `
             <div class="computer-card glass-card" style="display: flex; flex-direction: column; overflow: hidden;">
-                <div style="position: relative;">
-                    <img src="${imageUrl}" alt="${computer.name}" class="computer-image" 
-                        style="width: 100%; height: 220px; object-fit: cover; display: block;">
-                     <div style="position: absolute; top: 12px; right: 12px;">
+                <div style="position: relative; height: 220px; overflow: hidden;" class="card-image-container" id="img-container-${computer.id}">
+                    <img src="${currentImage}" alt="${computer.name}" id="img-${computer.id}" data-index="0"
+                        style="width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s;">
+                    
+                    <div style="position: absolute; top: 12px; right: 12px;">
                        ${status}
                     </div>
+
+                    ${hasMultiple ? `
+                        <button onclick="event.preventDefault(); nextCardImage('${computer.id}', -1)" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; transition: opacity 0.2s;">‹</button>
+                        <button onclick="event.preventDefault(); nextCardImage('${computer.id}', 1)" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; transition: opacity 0.2s;">›</button>
+                        <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px;">
+                            ${images.map((_, idx) => `<div id="dot-${computer.id}-${idx}" style="width: 6px; height: 6px; border-radius: 50%; background: ${idx === 0 ? 'white' : 'rgba(255,255,255,0.4)'}; box-shadow: 0 1px 2px rgba(0,0,0,0.5);"></div>`).join('')}
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
@@ -117,6 +135,33 @@ function renderComputers(computers) {
         `;
     }).join('');
 }
+
+// Global function to handle carousel navigation
+window.nextCardImage = function (computerId, direction) {
+    const imgEl = document.getElementById(`img-${computerId}`);
+    if (!imgEl) return;
+
+    const images = window.marketplaceImages[computerId];
+    if (!images || images.length <= 1) return;
+
+    let currentIndex = parseInt(imgEl.dataset.index || '0');
+    let newIndex = currentIndex + direction;
+
+    if (newIndex >= images.length) newIndex = 0;
+    if (newIndex < 0) newIndex = images.length - 1;
+
+    // Update Image
+    imgEl.src = images[newIndex];
+    imgEl.dataset.index = newIndex;
+
+    // Update Dots
+    images.forEach((_, idx) => {
+        const dot = document.getElementById(`dot-${computerId}-${idx}`);
+        if (dot) {
+            dot.style.background = (idx === newIndex) ? 'white' : 'rgba(255,255,255,0.4)';
+        }
+    });
+};
 
 function setupFilters() {
     const applyButton = document.getElementById('applyFilters');

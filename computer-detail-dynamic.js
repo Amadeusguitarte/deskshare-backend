@@ -53,9 +53,8 @@ function updateComputerInfo(computer) {
         mainImage.src = imageUrl;
 
         // Populate thumbnails
-        // Populate thumbnails
-        // Try to find container directly first, or via child
-        let thumbnailContainer = document.querySelector('.thumbnail-grid') || (document.querySelector('.thumbnail-image') ? document.querySelector('.thumbnail-image').parentNode : null);
+        // FIX: Match the ID in HTML exactly
+        let thumbnailContainer = document.getElementById('thumbnailRow');
 
         if (thumbnailContainer) {
             thumbnailContainer.innerHTML = '';
