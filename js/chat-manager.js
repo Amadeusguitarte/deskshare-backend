@@ -81,15 +81,32 @@ class ChatManager {
             return; // Stop here, wait for reload
         }
 
-        // 3. Dedup
+        // 3. Dedup & Optimistic Merge
         if (!conv.messages) conv.messages = [];
+
+        // Check if it's a duplicate of an existing REAL message
         if (conv.messages.some(m => m.id == msg.id)) {
-            // Already exists
             return;
         }
 
-        // 4. Append
-        conv.messages.push(msg);
+        // OPTIMISTIC MERGE FIX (v162)
+        // Check if this incoming real message corresponds to a temporary optimistic message we just pushed.
+        // If matches, we REPLACE the temp message with this real one, preventing duplicates.
+        const lastMsg = conv.messages[conv.messages.length - 1];
+        if (msg.senderId == this.currentUser.id &&
+            lastMsg &&
+            String(lastMsg.id).startsWith('temp-') &&
+            lastMsg.message === msg.message) {
+
+            // It's a match! Replace the temp placeholder with the real confirmed message.
+            // This prevents the "Double Bubble" issue.
+            conv.messages[conv.messages.length - 1] = msg;
+
+            // We don't push, we just updated in place.
+        } else {
+            // standard append
+            conv.messages.push(msg);
+        }
 
         // 5. Update Metadata
         conv.lastMessage = msg;
