@@ -82,8 +82,9 @@ function renderComputers(computers) {
 
         // RENDER: Create a sliding track
         // IMPORTANT: object-fit: cover and WIDTH 100% are key for the slide
+        // FIX for Hover Bleed: Add overflow: hidden to wrappers so scaling images don't overlap neighbors
         const slideTrack = images.map(imgSrc => `
-            <div style="flex: 0 0 100%; width: 100%; height: 100%;">
+            <div style="flex: 0 0 100%; width: 100%; height: 100%; overflow: hidden;">
                 <img src="${imgSrc}" 
                      class="computer-image"
                      style="width: 100%; height: 100%; object-fit: cover; background-color: #222; display: block;"
