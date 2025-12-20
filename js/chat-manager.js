@@ -120,7 +120,8 @@ class ChatManager {
                     // PRESERVE HISTORY FIX:
                     // Check if we already have messages for this user in memory
                     // and copy them over so we don't wipe the UI while loading.
-                    const existing = this.conversations.find(c => c.otherUser.id === conv.otherUser.id);
+                    // FIX: Loose equality for ID check
+                    const existing = this.conversations.find(c => c.otherUser.id == conv.otherUser.id);
                     if (existing && existing.messages) {
                         conv.messages = existing.messages;
                     }
@@ -129,6 +130,14 @@ class ChatManager {
                 }
             }
             this.conversations = uniqueConvs;
+
+            // Sync UI with new data
+            if (this.messagesPageContainer) {
+                this.renderConversationsList();
+            } else {
+                this.renderWidgetTabs();
+            }
+
         } catch (error) {
             console.error('Error loading conversations:', error);
         }
