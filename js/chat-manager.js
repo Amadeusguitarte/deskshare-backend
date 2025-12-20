@@ -92,6 +92,7 @@ class ChatManager {
         // OPTIMISTIC MERGE FIX (v162)
         // Check if this incoming real message corresponds to a temporary optimistic message we just pushed.
         // If matches, we REPLACE the temp message with this real one, preventing duplicates.
+        let wasMerge = false;
         const lastMsg = conv.messages[conv.messages.length - 1];
         if (msg.senderId == this.currentUser.id &&
             lastMsg &&
@@ -101,8 +102,7 @@ class ChatManager {
             // It's a match! Replace the temp placeholder with the real confirmed message.
             // This prevents the "Double Bubble" issue.
             conv.messages[conv.messages.length - 1] = msg;
-
-            // We don't push, we just updated in place.
+            wasMerge = true;
         } else {
             // standard append
             conv.messages.push(msg);
@@ -127,7 +127,14 @@ class ChatManager {
                 this.scrollToBottom();
             }
         } else {
-            this.renderWidgetTabs();
+            // Widget Mode
+            // FIX: If it was a merge (confirmation), the UI is already correct (optimistic).
+            // We SKIP re-rendering to prevent killing the input focus.
+            if (!wasMerge) {
+                this.renderWidgetTabs();
+            } else {
+                console.log('Skipping render for merge confirmation to preserve focus');
+            }
         }
     }
 
@@ -135,7 +142,7 @@ class ChatManager {
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/chat/conversations`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
             });
             const data = await response.json();
             // Deduplicate conversations by otherUser.id
@@ -176,8 +183,8 @@ class ChatManager {
     async loadHistory(userId) {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/chat/history/${userId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch(`${API_BASE_URL}/chat/history/${userId}?t=${Date.now()}`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
             });
             const data = await response.json();
             return data.messages || [];
@@ -391,6 +398,15 @@ class ChatManager {
     renderWidgetTabs() {
         if (!this.widgetContainer) return;
 
+        // FOCUS PROTECTION: Capture which input is focused before we destroy the DOM
+        let focusedTabId = null;
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+            const tabEl = document.activeElement.closest('.chat-tab');
+            if (tabEl && tabEl.id.startsWith('chat-tab-')) {
+                focusedTabId = tabEl.id;
+            }
+        }
+
         // 1. Persistent "Messages" Bar (Freelancer Style)
         const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
 
@@ -439,6 +455,18 @@ class ChatManager {
 
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+
+        // RESTORE FOCUS: If we had focus, put it back
+        if (focusedTabId) {
+            const newTab = document.getElementById(focusedTabId);
+            if (newTab) {
+                const input = newTab.querySelector('input');
+                if (input) {
+                    input.focus();
+                    // Optional: Restore cursor to end if needed, but usually empty after send.
+                }
+            }
+        }
 
         // POST-RENDER SCROLL FIX
         // Immediately scroll all chat areas to bottom to prevent visual jumping
