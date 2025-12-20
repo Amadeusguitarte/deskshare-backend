@@ -62,206 +62,154 @@ class ChatManager {
     }
 
     handleNewMessage(msg) {
-        // Deduplication: Check if we already have this message in the history of the relevant conversation
-        if (this.activeConversation &&
-            (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
-            const exists = this.activeConversation.messages.some(m => m.id === msg.id);
-            if (exists) {
-                console.log('Skipping duplicate message:', msg.id);
-                return;
-            }
+        // 1. Identify Target
+        // Use loose equality for IDs to be safe
+        let targetUserId = (msg.senderId == this.currentUser.id) ? msg.receiverId : msg.senderId;
+
+        // 2. Find Conversation or Create Dummy
+        let conv = this.conversations.find(c => c.otherUser.id == targetUserId);
+
+        if (!conv) {
+            // If completely missing, we have to load to get metadata (name, avatar).
+            this.loadConversations().then(() => {
+                // Retry
+                let retryConv = this.conversations.find(c => c.otherUser.id == targetUserId);
+                if (retryConv) {
+                    this.handleNewMessage(msg);
+                }
+            });
+            return; // Stop here, wait for reload
         }
 
-        // Refresh conversations
-        this.loadConversations().then(() => {
-            if (this.messagesPageContainer) {
-                this.renderConversationsList();
-                if (this.activeConversation &&
-                    (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
-                    let targetUserId = msg.senderId === this.currentUser.id ? msg.receiverId : msg.senderId;
-                    let conv = this.conversations.find(c => c.otherUser.id === targetUserId);
+        // 3. Dedup
+        if (!conv.messages) conv.messages = [];
+        if (conv.messages.some(m => m.id == msg.id)) {
+            // Already exists
+            return;
+        }
 
-                    if (!conv) {
-                        // If conversation doesn't exist locally, we need to fetch it.
-                        // This can happen if a new chat is initiated from another tab or device.
-                        this.loadConversations().then(() => {
-                            // After loading, try to find it again and process the message
-                            conv = this.conversations.find(c => c.otherUser.id === targetUserId);
-                            if (conv) {
-                                this.handleNewMessage(msg); // Re-process with the newly loaded conversation
-                            } else {
-                                console.warn('Received message for non-existent conversation even after refresh:', msg);
-                            }
-                        });
-                        return;
-                    }
+        // 4. Append
+        conv.messages.push(msg);
 
-                    if (conv.messages && conv.messages.some(m => m.id === msg.id)) {
-                        console.log('Skipping duplicate message:', msg.id);
-                        return;
-                    }
+        // 5. Update Metadata
+        conv.lastMessage = msg;
+        if (msg.receiverId == this.currentUser.id) conv.unreadCount = (conv.unreadCount || 0) + 1;
 
-                    // 4. APPEND IMMEDIATE (The "Zero Latency" Fix)
-                    if (!conv.messages) conv.messages = []; // Ensure messages array exists
-                    conv.messages.push(msg);
+        // 6. Manual Reorder (Move to top)
+        const idx = this.conversations.indexOf(conv);
+        if (idx > 0) {
+            this.conversations.splice(idx, 1);
+            this.conversations.unshift(conv);
+        }
 
-                    // Update "Last Message" for the list preview & Unread Count
-                    conv.lastMessage = msg;
-                    if (msg.receiverId == this.currentUser.id) conv.unreadCount = (conv.unreadCount || 0) + 1;
-
-                    // 5. MANUAL RE-ORDER (Sort by Newest)
-                    // Move this conversation to the top of the list without fetching from server
-                    const idx = this.conversations.indexOf(conv);
-                    if (idx > 0) {
-                        this.conversations.splice(idx, 1); // Remove
-                        this.conversations.unshift(conv);  // Add to front
-                    }
-
-                    // 6. RENDER IMMEDIATE
-                    if (this.messagesPageContainer) {
-                        this.renderConversationsList();
-                        if (this.activeConversation && this.activeConversation.otherUser.id == targetUserId) {
-                            this.renderMessages(this.activeConversation.messages);
-                            this.scrollToBottom();
-                        }
-                    } else {
-                        // Widget Mode
-                        this.renderWidgetTabs();
-                    }
-
-                    // 7. NO BACKGROUND SYNC
-                    // We trust our local state. Calling loadConversations() here causes the race condition 
-                    // that hides the message. We skip it.
-                    // this.loadConversations(); 
-                }
+        // 7. Render
+        if (this.messagesPageContainer) {
+            this.renderConversationsList();
+            if (this.activeConversation && this.activeConversation.otherUser.id == targetUserId) {
+                this.renderMessages(this.activeConversation.messages);
+                this.scrollToBottom();
+            }
+        } else {
+            this.renderWidgetTabs();
+        }
+    }
 
     async loadConversations() {
-                    try {
-                        const token = localStorage.getItem('authToken');
-                        const response = await fetch(`${API_BASE_URL}/chat/conversations`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const data = await response.json();
-                        // Deduplicate conversations by otherUser.id
-                        const rawConvs = data.conversations || [];
-                        const uniqueConvs = [];
-                        const seenIds = new Set();
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/chat/conversations`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            // Deduplicate conversations by otherUser.id
+            const rawConvs = data.conversations || [];
+            const uniqueConvs = [];
+            const seenIds = new Set();
 
-                        for (const conv of rawConvs) {
-                            if (!seenIds.has(conv.otherUser.id)) {
-                                seenIds.add(conv.otherUser.id);
+            for (const conv of rawConvs) {
+                if (!seenIds.has(conv.otherUser.id)) {
+                    seenIds.add(conv.otherUser.id);
 
-                                // PRESERVE HISTORY FIX:
-                                // Check if we already have messages for this user in memory
-                                // and copy them over so we don't wipe the UI while loading.
-                                // FIX: Loose equality for ID check
-                                const existing = this.conversations.find(c => c.otherUser.id == conv.otherUser.id);
-                                if (existing && existing.messages) {
-                                    conv.messages = existing.messages;
-                                }
-
-                                uniqueConvs.push(conv);
-                            }
-                        }
-                        this.conversations = uniqueConvs;
-
-                        // Sync UI with new data
-                        if (this.messagesPageContainer) {
-                            this.renderConversationsList();
-                        } else {
-                            this.renderWidgetTabs();
-                        }
-
-                    } catch (error) {
-                        console.error('Error loading conversations:', error);
+                    // PRESERVE HISTORY FIX:
+                    // Check if we already have messages for this user in memory
+                    // and copy them over so we don't wipe the UI while loading.
+                    // FIX: Loose equality for ID check
+                    const existing = this.conversations.find(c => c.otherUser.id == conv.otherUser.id);
+                    if (existing && existing.messages) {
+                        conv.messages = existing.messages;
                     }
+
+                    uniqueConvs.push(conv);
                 }
+            }
+            this.conversations = uniqueConvs;
+
+            // Sync UI with new data
+            if (this.messagesPageContainer) {
+                this.renderConversationsList();
+            } else {
+                this.renderWidgetTabs();
+            }
+
+        } catch (error) {
+            console.error('Error loading conversations:', error);
+        }
+    }
 
     async loadHistory(userId) {
-                    try {
-                        const token = localStorage.getItem('authToken');
-                        const response = await fetch(`${API_BASE_URL}/chat/history/${userId}`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const data = await response.json();
-                        return data.messages || [];
-                    } catch (error) {
-                        console.error('Error loading history:', error);
-                        return [];
-                    }
-                }
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/chat/history/${userId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            return data.messages || [];
+        } catch (error) {
+            console.error('Error loading history:', error);
+            return [];
+        }
+    }
 
     async sendMessage(receiverId, text, computerId = null) {
-                    try {
-                        const token = localStorage.getItem('authToken');
-                        const response = await fetch(`${API_BASE_URL}/chat`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                receiverId,
-                                message: text,
-                                computerId
-                            })
-                        });
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    receiverId,
+                    message: text,
+                    computerId
+                })
+            });
 
-                        if (!response.ok) {
-                            const errData = await response.json().catch(() => ({}));
-                            throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
-                        }
-                        const data = await response.json();
-                        // FIX: Backend returns { message: { ... } }, so we must unwrap it
-                        if (data.message && typeof data.message === 'object' && !Array.isArray(data.message)) {
-                            return data.message;
-                        }
-                        return data;
-                    } catch (error) {
-                        console.error('Send error:', error);
-                        alert(`Error: ${error.message}`);
-                        throw error; // Re-throw so caller knows it failed
-                    }
-                }
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
+            }
+            const data = await response.json();
+            // FIX: Backend returns { message: { ... } }, so we must unwrap it
+            if (data.message && typeof data.message === 'object' && !Array.isArray(data.message)) {
+                return data.message;
+            }
+            return data;
+        } catch (error) {
+            console.error('Send error:', error);
+            alert(`Error: ${error.message}`);
+            throw error; // Re-throw so caller knows it failed
+        }
+    }
 
-    // Public API to open a chat
-    async openChat(userId) {
-                    // Ensure conversations are loaded
-                    if (this.conversations.length === 0) await this.loadConversations();
+    // ===========================================
+    // View Logic - Full Page (messages.html)
+    // ===========================================
+    renderFullPage() {
+        if (!this.messagesPageContainer) return;
 
-                    // Find existing or create dummy for new chat
-                    let conv = this.conversations.find(c => c.otherUser.id === userId);
-
-                    if (!conv) {
-                        // Re-load conversations to check if backend created it
-                        await this.loadConversations();
-                        conv = this.conversations.find(c => c.otherUser.id === userId);
-                    }
-
-                    if (conv) {
-                        // Set active and render
-                        this.activeConversation = conv;
-
-                        // Fetch latest history
-                        const msgs = await this.loadHistory(userId);
-                        this.activeConversation.messages = msgs;
-
-                        if (this.messagesPageContainer) {
-                            this.renderConversationsList();
-                            this.selectConversation(userId);
-                        } else {
-                            this.renderWidgetTabs();
-                        }
-                    }
-                }
-
-                // ===========================================
-                // View Logic - Full Page (messages.html)
-                // ===========================================
-                renderFullPage() {
-                    if (!this.messagesPageContainer) return;
-
-                    this.messagesPageContainer.innerHTML = `
+        this.messagesPageContainer.innerHTML = `
             <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: calc(100vh - 80px); gap: 1rem; padding: 1rem;">
                 <!-- Sidebar -->
                 <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column;">
@@ -298,24 +246,24 @@ class ChatManager {
             </div>
         `;
 
-                    this.renderConversationsList();
-                }
+        this.renderConversationsList();
+    }
 
-                renderConversationsList() {
-                    const list = document.getElementById('conversationsList');
-                    if (!list) return;
+    renderConversationsList() {
+        const list = document.getElementById('conversationsList');
+        if (!list) return;
 
-                    if (this.conversations.length === 0) {
-                        list.innerHTML = '<p style="text-align:center; opacity:0.6; padding: 1rem;">No tienes mensajes aún.</p>';
-                        return;
-                    }
+        if (this.conversations.length === 0) {
+            list.innerHTML = '<p style="text-align:center; opacity:0.6; padding: 1rem;">No tienes mensajes aún.</p>';
+            return;
+        }
 
-                    list.innerHTML = this.conversations.map(conv => {
-                        const user = conv.otherUser;
-                        const lastMsg = conv.messages[0] || conv.lastMessage;
-                        const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        list.innerHTML = this.conversations.map(conv => {
+            const user = conv.otherUser;
+            const lastMsg = conv.messages[0] || conv.lastMessage;
+            const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-                        return `
+            return `
             <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'active' : ''}" 
                  onclick="chatManager.selectConversation(${user.id})"
                  style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
@@ -334,23 +282,23 @@ class ChatManager {
                 </div>
             </div>
             `;
-                    }).join('');
-                }
+        }).join('');
+    }
 
     async selectConversation(userId) {
-                    let conv = this.conversations.find(c => c.otherUser.id === userId);
-                    if (!conv) return;
+        let conv = this.conversations.find(c => c.otherUser.id === userId);
+        if (!conv) return;
 
-                    this.activeConversation = conv;
-                    this.renderConversationsList();
+        this.activeConversation = conv;
+        this.renderConversationsList();
 
-                    const messages = await this.loadHistory(userId);
-                    this.activeConversation.messages = messages;
+        const messages = await this.loadHistory(userId);
+        this.activeConversation.messages = messages;
 
-                    // Update Header
-                    const user = conv.otherUser;
-                    const header = document.getElementById('chatHeader');
-                    header.innerHTML = `
+        // Update Header
+        const user = conv.otherUser;
+        const header = document.getElementById('chatHeader');
+        header.innerHTML = `
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
@@ -363,34 +311,34 @@ class ChatManager {
             </div>
         `;
 
-                    document.getElementById('inputArea').style.display = 'block';
+        document.getElementById('inputArea').style.display = 'block';
 
-                    const form = document.getElementById('messageForm');
-                    form.onsubmit = async (e) => {
-                        e.preventDefault();
-                        const input = document.getElementById('messageInput');
-                        const text = input.value;
-                        if (!text.trim()) return;
+        const form = document.getElementById('messageForm');
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const text = input.value;
+            if (!text.trim()) return;
 
-                        input.value = '';
-                        await this.sendMessage(user.id, text);
-                        // Optimistic
-                        const msg = { senderId: this.currentUser.id, message: text, createdAt: new Date().toISOString() };
-                        this.activeConversation.messages.push(msg);
-                        this.renderMessages(this.activeConversation.messages);
-                        this.scrollToBottom();
-                    };
+            input.value = '';
+            await this.sendMessage(user.id, text);
+            // Optimistic
+            const msg = { senderId: this.currentUser.id, message: text, createdAt: new Date().toISOString() };
+            this.activeConversation.messages.push(msg);
+            this.renderMessages(this.activeConversation.messages);
+            this.scrollToBottom();
+        };
 
-                    this.renderMessages(messages);
-                    this.scrollToBottom();
-                }
+        this.renderMessages(messages);
+        this.scrollToBottom();
+    }
 
-                renderMessages(messages) {
-                    messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                    const area = document.getElementById('messagesArea');
-                    area.innerHTML = messages.map(msg => {
-                        const isMe = msg.senderId === this.currentUser.id;
-                        return `
+    renderMessages(messages) {
+        messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const area = document.getElementById('messagesArea');
+        area.innerHTML = messages.map(msg => {
+            const isMe = msg.senderId === this.currentUser.id;
+            return `
             <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                 <div style="max-width: 70%; padding: 0.8rem 1rem; border-radius: 12px; background: ${isMe ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}; color: white; border-bottom-${isMe ? 'right' : 'left'}-radius: 2px;">
                     <p style="margin: 0; line-height: 1.4;">${msg.message}</p>
@@ -401,39 +349,39 @@ class ChatManager {
                 </div>
             </div>
             `;
-                    }).join('');
-                }
+        }).join('');
+    }
 
-                scrollToBottom() {
-                    const area = document.getElementById('messagesArea');
-                    if (area) area.scrollTop = area.scrollHeight;
-                }
+    scrollToBottom() {
+        const area = document.getElementById('messagesArea');
+        if (area) area.scrollTop = area.scrollHeight;
+    }
 
-                // ===========================================
-                // View Logic - Global Widget
-                // ===========================================
-                renderWidget() {
-                    if (!this.widgetContainer) {
-                        this.widgetContainer = document.createElement('div');
-                        this.widgetContainer.id = 'chatWidgetContainer';
-                        this.widgetContainer.style.cssText = 'position: fixed; bottom: 0; right: 20px; display: flex; align-items: flex-end; gap: 10px; z-index: 9999; pointer-events: none;';
-                        document.body.appendChild(this.widgetContainer);
-                    }
+    // ===========================================
+    // View Logic - Global Widget
+    // ===========================================
+    renderWidget() {
+        if (!this.widgetContainer) {
+            this.widgetContainer = document.createElement('div');
+            this.widgetContainer.id = 'chatWidgetContainer';
+            this.widgetContainer.style.cssText = 'position: fixed; bottom: 0; right: 20px; display: flex; align-items: flex-end; gap: 10px; z-index: 9999; pointer-events: none;';
+            document.body.appendChild(this.widgetContainer);
+        }
 
-                    this.renderWidgetTabs();
-                }
+        this.renderWidgetTabs();
+    }
 
-                renderWidgetTabs() {
-                    if (!this.widgetContainer) return;
+    renderWidgetTabs() {
+        if (!this.widgetContainer) return;
 
-                    // 1. Persistent "Messages" Bar (Freelancer Style)
-                    const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
+        // 1. Persistent "Messages" Bar (Freelancer Style)
+        const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
 
-                    // Calculate total unread for badge
-                    const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-                    this.updateGlobalBadge(totalUnread);
+        // Calculate total unread for badge
+        const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        this.updateGlobalBadge(totalUnread);
 
-                    const persistentBar = `
+        const persistentBar = `
             <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;">
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
@@ -462,52 +410,52 @@ class ChatManager {
             </div>
         `;
 
-                    // 2. Render Active Tabs
-                    // We render ALL IDs in openConversationIds
-                    const maxTabs = 3; // Limit visible tabs to prevent crowding
-                    const tabsToRender = this.openConversationIds.slice(0, maxTabs);
+        // 2. Render Active Tabs
+        // We render ALL IDs in openConversationIds
+        const maxTabs = 3; // Limit visible tabs to prevent crowding
+        const tabsToRender = this.openConversationIds.slice(0, maxTabs);
 
-                    const tabsHtml = tabsToRender.map(id => {
-                        const conv = this.conversations.find(c => c.otherUser.id === id);
-                        return conv ? this.renderChatTab(conv) : '';
-                    }).join('');
+        const tabsHtml = tabsToRender.map(id => {
+            const conv = this.conversations.find(c => c.otherUser.id === id);
+            return conv ? this.renderChatTab(conv) : '';
+        }).join('');
 
-                    // Combine: Tabs (Left) + Persistent Bar (Right)
-                    this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+        // Combine: Tabs (Left) + Persistent Bar (Right)
+        this.widgetContainer.innerHTML = tabsHtml + persistentBar;
 
-                    // POST-RENDER SCROLL FIX
-                    // Immediately scroll all chat areas to bottom to prevent visual jumping
-                    // This replaces the "opacity: 0" hack which was causing invisible chats
-                    this.widgetContainer.querySelectorAll('.mini-messages-area').forEach(area => {
-                        area.scrollTop = area.scrollHeight;
-                    });
-                }
+        // POST-RENDER SCROLL FIX
+        // Immediately scroll all chat areas to bottom to prevent visual jumping
+        // This replaces the "opacity: 0" hack which was causing invisible chats
+        this.widgetContainer.querySelectorAll('.mini-messages-area').forEach(area => {
+            area.scrollTop = area.scrollHeight;
+        });
+    }
 
-                updateGlobalBadge(count) {
-                    const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
-                    badges.forEach(el => {
-                        if (count > 0) {
-                            el.innerText = count > 99 ? '99+' : count;
-                            el.style.display = 'flex'; // or inline-block depending on css. flex allows centering
-                        } else {
-                            el.style.display = 'none';
-                        }
-                    });
-                }
+    updateGlobalBadge(count) {
+        const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
+        badges.forEach(el => {
+            if (count > 0) {
+                el.innerText = count > 99 ? '99+' : count;
+                el.style.display = 'flex'; // or inline-block depending on css. flex allows centering
+            } else {
+                el.style.display = 'none';
+            }
+        });
+    }
 
-                renderChatTab(conv) {
-                    const user = conv.otherUser;
-                    const tabId = `chat-tab-${user.id}`;
-                    // Check state to persist minimization
-                    const isMin = this.minimizedConversations.has(user.id);
-                    const height = isMin ? '50px' : '400px';
-                    const borderRadius = isMin ? '8px' : '8px 8px 0 0';
-                    const minIcon = isMin ? '' : '−'; // No '+' icon per user request
+    renderChatTab(conv) {
+        const user = conv.otherUser;
+        const tabId = `chat-tab-${user.id}`;
+        // Check state to persist minimization
+        const isMin = this.minimizedConversations.has(user.id);
+        const height = isMin ? '50px' : '400px';
+        const borderRadius = isMin ? '8px' : '8px 8px 0 0';
+        const minIcon = isMin ? '' : '−'; // No '+' icon per user request
 
-                    // SORT MESSAGES: Oldest -> Newest
-                    const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        // SORT MESSAGES: Oldest -> Newest
+        const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-                    return `
+        return `
             <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                 <!-- HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
@@ -562,153 +510,153 @@ class ChatManager {
                 </div>
             </div>
         `;
-                }
+    }
 
-                toggleMinimize(userId) {
-                    // 1. Update State
-                    const isMin = this.minimizedConversations.has(userId);
-                    if (isMin) {
-                        this.minimizedConversations.delete(userId);
-                    } else {
-                        this.minimizedConversations.add(userId);
+    toggleMinimize(userId) {
+        // 1. Update State
+        const isMin = this.minimizedConversations.has(userId);
+        if (isMin) {
+            this.minimizedConversations.delete(userId);
+        } else {
+            this.minimizedConversations.add(userId);
+        }
+
+        // 2. Direct DOM Manipulation (CSS Transition)
+        const tab = document.getElementById(`chat-tab-${userId}`);
+        if (tab) {
+            const newMin = !isMin; // Toggle logic
+            tab.style.height = newMin ? '50px' : '400px';
+            // If minimized, radius 8px all around. If expanded, 8px 8px 0 0.
+            tab.style.borderRadius = newMin ? '8px' : '8px 8px 0 0';
+
+            // Toggle Icon
+            const icon = tab.querySelector('.minimize-icon');
+            if (icon) icon.textContent = newMin ? '' : '−';
+
+            // Important: When expanding, enforce scroll to bottom
+            if (!newMin) {
+                setTimeout(() => this.scrollToBottom(userId), 300); // Wait for transition
+            }
+        }
+    }
+
+    // Updated toggleTab
+    toggleTab(userId) {
+        if (!this.openConversationIds.includes(userId)) {
+            this.openConversationIds.push(userId);
+        }
+        // Ensure not minimized on open
+        this.minimizedConversations.delete(userId);
+
+        this.loadHistory(userId).then(fetchedMsgs => {
+            const conv = this.conversations.find(c => c.otherUser.id == userId);
+            if (conv) {
+                // SAFE MERGE STRATEGY:
+                // Don't just overwrite. DB might be slightly behind local optimistic state.
+                const currentMsgs = conv.messages || [];
+                const mergedMap = new Map();
+
+                // 1. Add Fetched (DB) Messages (Source of Truth)
+                fetchedMsgs.forEach(m => mergedMap.set(String(m.id), m));
+
+                // 2. Add Local (Optimistic) Messages that aren't in DB yet
+                currentMsgs.forEach(m => {
+                    const id = String(m.id);
+                    if (!mergedMap.has(id)) {
+                        mergedMap.set(id, m);
                     }
+                });
 
-                    // 2. Direct DOM Manipulation (CSS Transition)
-                    const tab = document.getElementById(`chat-tab-${userId}`);
-                    if (tab) {
-                        const newMin = !isMin; // Toggle logic
-                        tab.style.height = newMin ? '50px' : '400px';
-                        // If minimized, radius 8px all around. If expanded, 8px 8px 0 0.
-                        tab.style.borderRadius = newMin ? '8px' : '8px 8px 0 0';
+                // 3. Convert back to array
+                conv.messages = Array.from(mergedMap.values());
 
-                        // Toggle Icon
-                        const icon = tab.querySelector('.minimize-icon');
-                        if (icon) icon.textContent = newMin ? '' : '−';
+                this.renderWidgetTabs();
+            }
+        });
+        this.renderWidgetTabs();
+    }
 
-                        // Important: When expanding, enforce scroll to bottom
-                        if (!newMin) {
-                            setTimeout(() => this.scrollToBottom(userId), 300); // Wait for transition
-                        }
-                    }
-                }
+    // Updated scrollToBottom to support ID targeting and minimized check
+    scrollToBottom(userId) {
+        if (userId && this.minimizedConversations.has(userId)) return;
 
-                // Updated toggleTab
-                toggleTab(userId) {
-                    if (!this.openConversationIds.includes(userId)) {
-                        this.openConversationIds.push(userId);
-                    }
-                    // Ensure not minimized on open
-                    this.minimizedConversations.delete(userId);
+        const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
+        if (area) {
+            area.scrollTop = area.scrollHeight;
+            // Ensure opacity is 1 if it was hidden
+            if (area.style.opacity === '0') area.style.opacity = '1';
+        }
+    }
 
-                    this.loadHistory(userId).then(fetchedMsgs => {
-                        const conv = this.conversations.find(c => c.otherUser.id == userId);
-                        if (conv) {
-                            // SAFE MERGE STRATEGY:
-                            // Don't just overwrite. DB might be slightly behind local optimistic state.
-                            const currentMsgs = conv.messages || [];
-                            const mergedMap = new Map();
-
-                            // 1. Add Fetched (DB) Messages (Source of Truth)
-                            fetchedMsgs.forEach(m => mergedMap.set(String(m.id), m));
-
-                            // 2. Add Local (Optimistic) Messages that aren't in DB yet
-                            currentMsgs.forEach(m => {
-                                const id = String(m.id);
-                                if (!mergedMap.has(id)) {
-                                    mergedMap.set(id, m);
-                                }
-                            });
-
-                            // 3. Convert back to array
-                            conv.messages = Array.from(mergedMap.values());
-
-                            this.renderWidgetTabs();
-                        }
-                    });
-                    this.renderWidgetTabs();
-                }
-
-                // Updated scrollToBottom to support ID targeting and minimized check
-                scrollToBottom(userId) {
-                    if (userId && this.minimizedConversations.has(userId)) return;
-
-                    const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
-                    if (area) {
-                        area.scrollTop = area.scrollHeight;
-                        // Ensure opacity is 1 if it was hidden
-                        if (area.style.opacity === '0') area.style.opacity = '1';
-                    }
-                }
-
-                closeTab(userId) {
-                    this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
-                    this.minimizedConversations.delete(userId); // Cleanup
-                    this.renderWidgetTabs();
-                }
+    closeTab(userId) {
+        this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
+        this.minimizedConversations.delete(userId); // Cleanup
+        this.renderWidgetTabs();
+    }
 
     async sendMiniMessage(userId, text) {
-                    if (!text.trim()) return;
+        if (!text.trim()) return;
 
-                    const conv = this.conversations.find(c => c.otherUser.id === userId);
-                    if (conv) {
-                        const tempMsg = {
-                            id: 'temp-' + Date.now(),
-                            senderId: this.currentUser.id,
-                            message: text,
-                            createdAt: new Date().toISOString(),
-                            isRead: false
-                        };
-                        if (!conv.messages) conv.messages = [];
-                        conv.messages.push(tempMsg);
+        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        if (conv) {
+            const tempMsg = {
+                id: 'temp-' + Date.now(),
+                senderId: this.currentUser.id,
+                message: text,
+                createdAt: new Date().toISOString(),
+                isRead: false
+            };
+            if (!conv.messages) conv.messages = [];
+            conv.messages.push(tempMsg);
 
-                        const tabId = `chat-tab-${userId}`;
-                        const tabEl = document.getElementById(tabId);
+            const tabId = `chat-tab-${userId}`;
+            const tabEl = document.getElementById(tabId);
 
-                        if (tabEl) {
-                            const msgArea = tabEl.querySelector('.mini-messages-area');
-                            if (msgArea) {
-                                const msgHtml = `
+            if (tabEl) {
+                const msgArea = tabEl.querySelector('.mini-messages-area');
+                if (msgArea) {
+                    const msgHtml = `
                         <div style="display: flex; justify-content: flex-end;">
                             <span style="background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
                                 ${text}
                             </span>
                         </div>
                     `;
-                                msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                                this.scrollToBottom(userId);
-                            } else {
-                                this.renderWidgetTabs();
-                            }
-                        } else {
-                            this.renderWidgetTabs();
-                        }
-                    }
-
-                    try {
-                        await this.sendMessage(userId, text);
-                    } catch (e) {
-                        console.error("Failed to send", e);
-                    }
+                    msgArea.insertAdjacentHTML('beforeend', msgHtml);
+                    this.scrollToBottom(userId);
+                } else {
+                    this.renderWidgetTabs();
                 }
+            } else {
+                this.renderWidgetTabs();
+            }
+        }
+
+        try {
+            await this.sendMessage(userId, text);
+        } catch (e) {
+            console.error("Failed to send", e);
+        }
+    }
 
     async openChat(userId) {
-                    if (this.conversations.length === 0) await this.loadConversations();
+        if (this.conversations.length === 0) await this.loadConversations();
 
-                    // Ensure tab is added
-                    // Fix ID check
-                    if (!this.openConversationIds.some(id => id == userId)) {
-                        this.openConversationIds.push(userId);
-                    }
+        // Ensure tab is added
+        // Fix ID check
+        if (!this.openConversationIds.some(id => id == userId)) {
+            this.openConversationIds.push(userId);
+        }
 
-                    const conv = this.conversations.find(c => c.otherUser.id == userId);
-                    if (conv) {
-                        this.toggleTab(userId);
-                    } else {
-                        await this.loadConversations();
-                        this.toggleTab(userId);
-                    }
-                }
-            }
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (conv) {
+            this.toggleTab(userId);
+        } else {
+            await this.loadConversations();
+            this.toggleTab(userId);
+        }
+    }
+}
 
-            // Make globally available
-            window.ChatManager = ChatManager;
+// Make globally available
+window.ChatManager = ChatManager;
