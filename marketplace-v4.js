@@ -62,7 +62,7 @@ function renderComputers(computers) {
 
         // Store for carousel
         window.marketplaceImages[computer.id] = images;
-        const currentImage = images[0];
+        // const currentImage = images[0]; // Not used in sliding logic
         const hasMultiple = images.length > 1;
 
         // Generate spec badges (LIKE THE FEATURED CARDS)
@@ -80,22 +80,33 @@ function renderComputers(computers) {
         const reviewCount = computer.reviewCount || 0;
         const stars = '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '★' : '☆').repeat(5 - Math.floor(rating));
 
-        return `
-        <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'" style="cursor: pointer;">
-            <div style="position: relative; height: 200px; overflow: hidden;" class="card-image-container">
-                <img src="${currentImage}" 
-                     alt="${computer.name}" 
+        // RENDER: Create a sliding track
+        // IMPORTANT: object-fit: cover and WIDTH 100% are key for the slide
+        const slideTrack = images.map(imgSrc => `
+            <div style="flex: 0 0 100%; width: 100%; height: 100%;">
+                <img src="${imgSrc}" 
                      class="computer-image"
-                     id="img-${computer.id}" data-index="0"
-                     style="width: 100%; height: 100%; object-fit: cover; background-color: #222; transition: transform 0.3s;"
+                     style="width: 100%; height: 100%; object-fit: cover; background-color: #222; display: block;"
                      onerror="this.onerror=null; this.src='${FALLBACK_SVG}';"
                 >
+            </div>
+        `).join('');
+
+        return `
+        <div class="computer-card" onclick="window.location.href='computer-detail.html?id=${computer._id || computer.id}'" style="cursor: pointer;">
+            <!-- CONTAINER -->
+            <div style="position: relative; height: 200px; overflow: hidden;" class="card-image-container">
+                
+                <!-- SLIDING TRACK -->
+                <div id="track-${computer.id}" data-index="0" style="display: flex; height: 100%; width: 100%; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);">
+                    ${slideTrack}
+                </div>
                 
                 ${hasMultiple ? `
-                    <button onclick="event.stopPropagation(); event.preventDefault(); nextCardImage('${computer.id}', -1)" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; z-index: 10;">‹</button>
-                    <button onclick="event.stopPropagation(); event.preventDefault(); nextCardImage('${computer.id}', 1)" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; z-index: 10;">›</button>
-                    <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; pointer-events: none;">
-                        ${images.map((_, idx) => `<div id="dot-${computer.id}-${idx}" style="width: 6px; height: 6px; border-radius: 50%; background: ${idx === 0 ? 'white' : 'rgba(255,255,255,0.4)'}; box-shadow: 0 1px 2px rgba(0,0,0,0.5);"></div>`).join('')}
+                    <button onclick="event.stopPropagation(); event.preventDefault(); nextCardImage('${computer.id}', -1)" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; z-index: 10; transition: background 0.2s;">‹</button>
+                    <button onclick="event.stopPropagation(); event.preventDefault(); nextCardImage('${computer.id}', 1)" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.8; z-index: 10; transition: background 0.2s;">›</button>
+                    <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; pointer-events: none; z-index: 11;">
+                        ${images.map((_, idx) => `<div id="dot-${computer.id}-${idx}" style="width: 6px; height: 6px; border-radius: 50%; background: ${idx === 0 ? 'white' : 'rgba(255,255,255,0.4)'}; box-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: background 0.3s;"></div>`).join('')}
                     </div>
                 ` : ''}
             </div>
@@ -123,23 +134,23 @@ function renderComputers(computers) {
     }).join('');
 }
 
-// Global function to handle carousel navigation
+// Global function to handle carousel navigation (SLIDING VERSION)
 window.nextCardImage = function (computerId, direction) {
-    const imgEl = document.getElementById(`img-${computerId}`);
-    if (!imgEl) return;
+    const track = document.getElementById(`track-${computerId}`);
+    if (!track) return;
 
     const images = window.marketplaceImages[computerId];
     if (!images || images.length <= 1) return;
 
-    let currentIndex = parseInt(imgEl.dataset.index || '0');
+    let currentIndex = parseInt(track.dataset.index || '0');
     let newIndex = currentIndex + direction;
 
-    if (newIndex >= images.length) newIndex = 0;
-    if (newIndex < 0) newIndex = images.length - 1;
+    if (newIndex >= images.length) newIndex = 0; // Wrap to start
+    if (newIndex < 0) newIndex = images.length - 1; // Wrap to end
 
-    // Update Image
-    imgEl.src = images[newIndex];
-    imgEl.dataset.index = newIndex;
+    // UPDATE TRANSFORM
+    track.style.transform = `translateX(-${newIndex * 100}%)`;
+    track.dataset.index = newIndex;
 
     // Update Dots
     images.forEach((_, idx) => {
