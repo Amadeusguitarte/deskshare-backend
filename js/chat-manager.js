@@ -557,10 +557,28 @@ class ChatManager {
         // Ensure not minimized on open
         this.minimizedConversations.delete(userId);
 
-        this.loadHistory(userId).then(msgs => {
-            const conv = this.conversations.find(c => c.otherUser.id === userId);
+        this.loadHistory(userId).then(fetchedMsgs => {
+            const conv = this.conversations.find(c => c.otherUser.id == userId);
             if (conv) {
-                conv.messages = msgs;
+                // SAFE MERGE STRATEGY:
+                // Don't just overwrite. DB might be slightly behind local optimistic state.
+                const currentMsgs = conv.messages || [];
+                const mergedMap = new Map();
+
+                // 1. Add Fetched (DB) Messages (Source of Truth)
+                fetchedMsgs.forEach(m => mergedMap.set(String(m.id), m));
+
+                // 2. Add Local (Optimistic) Messages that aren't in DB yet
+                currentMsgs.forEach(m => {
+                    const id = String(m.id);
+                    if (!mergedMap.has(id)) {
+                        mergedMap.set(id, m);
+                    }
+                });
+
+                // 3. Convert back to array
+                conv.messages = Array.from(mergedMap.values());
+
                 this.renderWidgetTabs();
             }
         });
@@ -634,11 +652,12 @@ class ChatManager {
         if (this.conversations.length === 0) await this.loadConversations();
 
         // Ensure tab is added
-        if (!this.openConversationIds.includes(userId)) {
+        // Fix ID check
+        if (!this.openConversationIds.some(id => id == userId)) {
             this.openConversationIds.push(userId);
         }
 
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
         if (conv) {
             this.toggleTab(userId);
         } else {
