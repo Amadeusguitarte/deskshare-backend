@@ -116,6 +116,15 @@ class ChatManager {
             for (const conv of rawConvs) {
                 if (!seenIds.has(conv.otherUser.id)) {
                     seenIds.add(conv.otherUser.id);
+
+                    // PRESERVE HISTORY FIX:
+                    // Check if we already have messages for this user in memory
+                    // and copy them over so we don't wipe the UI while loading.
+                    const existing = this.conversations.find(c => c.otherUser.id === conv.otherUser.id);
+                    if (existing && existing.messages) {
+                        conv.messages = existing.messages;
+                    }
+
                     uniqueConvs.push(conv);
                 }
             }
