@@ -8,6 +8,9 @@ class ChatManager {
         // Multi-tab support: Track IDs of open conversations
         this.openConversationIds = [];
         this.minimizedConversations = new Set();
+        // New Features
+        this.typingUsers = new Set();
+        this.typingTimeouts = {};
 
         // UI Elements
         this.widgetContainer = null;
@@ -56,9 +59,29 @@ class ChatManager {
             this.handleNewMessage(msg);
         });
 
-        // this.socket.on('new-message', (msg) => {
-        //     this.handleNewMessage(msg);
-        // });
+        // Typing Indicators
+        this.socket.on('typing', ({ senderId }) => {
+            this.typingUsers.add(senderId);
+            this.renderWidgetTabs(); // Update UI
+        });
+
+        this.socket.on('stop-typing', ({ senderId }) => {
+            this.typingUsers.delete(senderId);
+            this.renderWidgetTabs();
+        });
+
+        // Read Receipts
+        this.socket.on('messages-read', ({ readerId }) => {
+            const conv = this.conversations.find(c => c.otherUser.id == readerId);
+            if (conv && conv.messages) {
+                // Mark all messages as read
+                conv.messages.forEach(m => m.isRead = true);
+                if (this.activeConversation && this.activeConversation.otherUser.id == readerId) {
+                    this.renderMessages(this.activeConversation.messages);
+                }
+                this.renderWidgetTabs();
+            }
+        });
     }
 
     handleNewMessage(msg) {
@@ -166,6 +189,12 @@ class ChatManager {
                     uniqueConvs.push(conv);
                 }
             }
+            // Sort: Newest First (Sort by last message created at)
+            uniqueConvs.sort((a, b) => {
+                const dateA = new Date(a.lastMessage?.createdAt || 0);
+                const dateB = new Date(b.lastMessage?.createdAt || 0);
+                return dateB - dateA;
+            });
             this.conversations = uniqueConvs;
 
             // Sync UI with new data
@@ -314,6 +343,10 @@ class ChatManager {
         if (!conv) return;
 
         this.activeConversation = conv;
+
+        // Mark as Read (Full Page)
+        conv.unreadCount = 0;
+        this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
         this.renderConversationsList();
 
         const messages = await this.loadHistory(userId);
@@ -521,11 +554,22 @@ class ChatManager {
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map(msg => `
                         <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
-                            <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
-                                ${msg.message}
-                            </span>
+                            <div style="display:flex; flex-direction:column; align-items: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'}; max-width: 85%;">
+                                <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
+                                    ${msg.message}
+                                </span>
+                                ${msg.senderId === this.currentUser.id && msg.isRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
+                            </div>
                         </div>
                     `).join('')}
+                    
+                    ${this.typingUsers.has(user.id) ? `
+                        <div style="display: flex; justify-content: flex-start;">
+                            <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
+                                Escribiendo...
+                            </span>
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <!-- FOOTER (Freelancer Style with Icons) -->
@@ -538,7 +582,7 @@ class ChatManager {
                     <!-- Input Container -->
                     <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
                         <input type="text" placeholder="Escribe un mensaje..." 
-                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
+                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; } else { chatManager.emitTyping(${user.id}); }"
                                style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
                         
                         <!-- Emoji Icon -->
@@ -599,6 +643,12 @@ class ChatManager {
                 // SAFE MERGE STRATEGY:
                 // Don't just overwrite. DB might be slightly behind local optimistic state.
                 const currentMsgs = conv.messages || [];
+                // Mark as Read (Widget)
+                if (conv.unreadCount > 0) {
+                    conv.unreadCount = 0;
+                    this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
+                }
+
                 const mergedMap = new Map();
 
                 // 1. Add Fetched (DB) Messages (Source of Truth)
@@ -682,6 +732,24 @@ class ChatManager {
         } catch (e) {
             console.error("Failed to send", e);
         }
+    }
+
+    emitTyping(receiverId) {
+        if (!this.currentUser) return;
+
+        // Debounce
+        if (this.typingTimeouts[receiverId]) {
+            clearTimeout(this.typingTimeouts[receiverId]);
+        } else {
+            // Start typing
+            this.socket.emit('user-typing', { senderId: this.currentUser.id, receiverId });
+        }
+
+        // Stop typing after 2 seconds of inactivity
+        this.typingTimeouts[receiverId] = setTimeout(() => {
+            this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId });
+            this.typingTimeouts[receiverId] = null;
+        }, 2000);
     }
 
     async openChat(userId) {

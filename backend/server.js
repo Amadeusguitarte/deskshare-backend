@@ -131,7 +131,7 @@ app.use(errorHandler);
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    // Join room for specific computer
+    // Existing handlers
     socket.on('join-computer-room', (computerId) => {
         socket.join(`computer-${computerId}`);
         console.log(`Socket ${socket.id} joined room computer-${computerId}`);
@@ -148,12 +148,30 @@ io.on('connection', (socket) => {
         io.to(`computer-${data.computerId}`).emit('new-message', data);
     });
 
-    // User typing indicator
+    // User typing indicator (Legacy)
     socket.on('typing', (data) => {
         socket.to(`computer-${data.computerId}`).emit('user-typing', {
             userId: data.userId,
             isTyping: data.isTyping
         });
+    });
+
+    // --- NEW CHAT FEATURES ---
+
+    // 1. Direct Typing Indicators
+    socket.on('user-typing', ({ senderId, receiverId }) => {
+        io.to(`user-${receiverId}`).emit('typing', { senderId });
+    });
+
+    socket.on('user-stop-typing', ({ senderId, receiverId }) => {
+        io.to(`user-${receiverId}`).emit('stop-typing', { senderId });
+    });
+
+    // 2. Read Receipts
+    socket.on('mark-read', ({ senderId, receiverId }) => {
+        // senderId = person who just read
+        // receiverId = person who sent the messages (needs to see the checkmarks)
+        io.to(`user-${receiverId}`).emit('messages-read', { readerId: senderId });
     });
 
     socket.on('disconnect', () => {
