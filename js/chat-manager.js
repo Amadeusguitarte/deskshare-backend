@@ -535,13 +535,13 @@ class ChatManager {
 
         return `
             <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
-                <!-- HEADER -->
+                 <!-- HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
                         <div style="display: flex; flex-direction: column;">
                             <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name}</span>
-                            <span style="font-size: 0.7rem; color: #aaa; line-height: 1; margin-top: 2px;">En línea</span>
+                            <span class="user-status-text" style="font-size: 0.7rem; color: ${user.isOnline ? '#4ade80' : '#aaa'}; line-height: 1; margin-top: 2px;">${user.isOnline ? 'En línea' : 'Desconectado'}</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
@@ -552,16 +552,35 @@ class ChatManager {
                 
                 <!-- MESSAGES AREA (Visible by default) -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
-                    ${sortedMessages.map(msg => `
-                        <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
-                            <div style="display:flex; flex-direction:column; align-items: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'}; max-width: 85%;">
-                                <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
+                    ${sortedMessages.map((msg, idx, arr) => {
+            // SMART VISTO LOGIC:
+            // Find the LAST message sent by ME (currentUser)
+            // If this current msg IS that last message AND it's read, show 'Visto'
+            // Otherwise show nothing.
+
+            const isMe = msg.senderId === this.currentUser.id;
+            let showRead = false;
+
+            // Efficiency: Check if this is the last message sent by me
+            if (isMe && msg.isRead) {
+                // Look ahead to see if there are any newer messages from me
+                const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
+                if (!newerMyMsg) {
+                    showRead = true;
+                }
+            }
+
+            return `
+                        <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
+                            <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
+                                <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
                                     ${msg.message}
                                 </span>
-                                ${msg.senderId === this.currentUser.id && msg.isRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
+                                ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                             </div>
                         </div>
-                    `).join('')}
+                    `;
+        }).join('')}
                     
                     ${this.typingUsers.has(user.id) ? `
                         <div style="display: flex; justify-content: flex-start;">
