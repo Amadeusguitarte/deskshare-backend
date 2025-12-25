@@ -1,6 +1,7 @@
 
 class ChatManager {
     constructor(currentUser, socketUrl) {
+        window.chatManagerInstance = this; // Make instance globally available for inline handlers
         this.currentUser = currentUser;
         this.socketUrl = socketUrl;
         this.socket = null;
