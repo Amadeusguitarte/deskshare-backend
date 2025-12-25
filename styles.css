@@ -378,9 +378,9 @@ p {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
+  /* Master Container 12px */
   height: 6px;
-  /* Thinner horizontal scrollbar */
 }
 
 ::-webkit-scrollbar-track {
@@ -390,6 +390,9 @@ p {
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
   border-radius: 5px;
+  border: 1px solid transparent;
+  /* Visual Width becomes 10px */
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -404,9 +407,10 @@ p {
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
-  width: 10px;
-  height: 8px;
-  /* Ultra-tight height to pull scrollbar closer */
+  width: 12px;
+  /* Full 12px width */
+  height: 10px;
+  /* Tight height */
 }
 
 /* Vertical Arrows - Ultra Wide Solid Triangles */
