@@ -118,8 +118,6 @@ model Message {
   receiverId  Int      @map("receiver_id")
   computerId  Int?     @map("computer_id")
   message     String   @db.Text
-  fileUrl     String?  @map("file_url")
-  fileType    String?  @map("file_type") // 'image', 'document'
   isRead      Boolean  @default(false) @map("is_read")
   createdAt   DateTime @default(now()) @map("created_at")
   

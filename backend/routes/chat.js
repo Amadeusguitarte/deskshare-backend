@@ -178,9 +178,7 @@ router.post('/', auth, async (req, res, next) => {
                 senderId: req.user.userId || req.user.id,
                 receiverId: parseInt(receiverId),
                 computerId: computerId ? parseInt(computerId) : null,
-                message: message ? message.trim() : '',
-                fileUrl: fileUrl || null,
-                fileType: fileType || null
+                message: message.trim()
             },
             include: {
                 sender: { select: { id: true, name: true, avatarUrl: true } },
