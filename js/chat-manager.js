@@ -1487,6 +1487,16 @@ class ChatManager {
     }
 
     // ==========================================
+    // Helper: Robust Download with Cloudinary fl_attachment (Bypassing legacy downloadFile)
+    downloadFileSecure(url, filename) {
+        let finalUrl = url;
+        // Inject fl_attachment to force download for Cloudinary URLs
+        if (url && url.includes('cloudinary.com') && url.includes('/upload/') && !url.includes('/fl_attachment/')) {
+            finalUrl = url.replace('/upload/', '/upload/fl_attachment/');
+        }
+        window.open(finalUrl, '_blank');
+    }
+
     // Lightbox Logic (Phase F)
     // ==========================================
     // ==========================================
