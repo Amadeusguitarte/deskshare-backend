@@ -1420,59 +1420,149 @@ class ChatManager {
     // ==========================================
     // Lightbox Logic (Phase F)
     // ==========================================
-    openLightbox(url) {
-        let lightbox = document.getElementById('chat-lightbox');
-        if (!lightbox) {
-            lightbox = document.createElement('div');
-            lightbox.id = 'chat-lightbox';
-            lightbox.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.9); z-index: 10000;
-                display: flex; align-items: center; justify-content: center;
-                cursor: pointer; opacity: 0; transition: opacity 0.3s;
-            `;
-            lightbox.onclick = (e) => {
-                if (e.target === lightbox || e.target.tagName === 'IMG') { // Close on click anywhere
-                    lightbox.style.opacity = '0';
-                    setTimeout(() => lightbox.remove(), 300);
-                }
-            };
-            document.body.appendChild(lightbox);
+    // ==========================================
+    // Lightbox Logic (Phase G - Carousel)
+    // ==========================================
+    openLightbox(currentUrl, userId) {
+        // 1. Get all images in conversation
+        let conversation = this.conversations.find(c => c.withUser.id === userId);
+        // If not found in active list, try to find in messagesPageContainer or fallback
+        // Fallback: Scan DOM if needed, but state is better. 
+        // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
+        // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
+        // Let's use the DOM-rendered images to be 100% sync with what the user sees.
+
+        const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
+        let currentIndex = allImages.indexOf(currentUrl);
+        if (currentIndex === -1) {
+            // Fallback if URL mismatch (e.g. query params)
+            currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
+        }
+        if (currentIndex === -1) {
+            // Just show single if not found in list
+            allImages.push(currentUrl);
+            currentIndex = 0;
         }
 
-        // Close button (X)
-        const closeBtn = document.createElement('div');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.style.cssText = `
-            position: absolute; top: 20px; right: 30px; 
-            color: white; font-size: 40px; cursor: pointer; 
-            z-index: 10001; font-family: sans-serif; opacity: 0.8;
+        let lightbox = document.getElementById('chat-lightbox');
+        if (lightbox) lightbox.remove(); // Re-create to ensure clean state
+
+        lightbox = document.createElement('div');
+        lightbox.id = 'chat-lightbox';
+        lightbox.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            user-select: none; opacity: 0; transition: opacity 0.2s;
         `;
-        closeBtn.onmouseover = () => closeBtn.style.opacity = '1';
-        closeBtn.onmouseout = () => closeBtn.style.opacity = '0.8';
-        closeBtn.onclick = (e) => {
-            e.stopPropagation(); // Prevent bubble
-            lightbox.click();
-        };
-        lightbox.appendChild(closeBtn); // Add X
+        document.body.appendChild(lightbox);
 
-        lightbox.innerHTML += `<img src="${url}" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); transform: scale(0.9); transition: transform 0.3s;">`;
-        document.body.appendChild(lightbox); // Ensure top
+        // --- RENDER FUNCTION ---
+        const renderContent = () => {
+            lightbox.innerHTML = '';
 
-        // ESC Key Listener
-        const escHandler = (e) => {
-            if (e.key === 'Escape') {
-                lightbox.click();
-                document.removeEventListener('keydown', escHandler);
+            // Close Button
+            const closeBtn = document.createElement('div');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = `
+                position: absolute; top: 10px; right: 20px; color: #fff; font-size: 40px; 
+                cursor: pointer; z-index: 10002; opacity: 0.8;
+            `;
+            closeBtn.onclick = () => close();
+            lightbox.appendChild(closeBtn);
+
+            // Container for Main Image + Arrows
+            const mainContainer = document.createElement('div');
+            mainContainer.style.cssText = `
+                flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;
+            `;
+
+            // Prev Arrow
+            if (allImages.length > 1) {
+                const prevBtn = document.createElement('div');
+                prevBtn.innerHTML = '&#10094;';
+                prevBtn.style.cssText = `
+                    position: absolute; left: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
+                `;
+                prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
+                mainContainer.appendChild(prevBtn);
             }
-        };
-        document.addEventListener('keydown', escHandler);
 
-        // Animate in
-        requestAnimationFrame(() => {
-            lightbox.style.opacity = '1';
-            lightbox.querySelector('img').style.transform = 'scale(1)';
-        });
+            // Image
+            const img = document.createElement('img');
+            img.src = allImages[currentIndex];
+            img.style.cssText = `
+                max-width: 90%; max-height: 80vh; border-radius: 4px; 
+                box-shadow: 0 0 30px rgba(0,0,0,0.5); transition: transform 0.2s;
+            `;
+            mainContainer.appendChild(img);
+
+            // Next Arrow
+            if (allImages.length > 1) {
+                const nextBtn = document.createElement('div');
+                nextBtn.innerHTML = '&#10095;';
+                nextBtn.style.cssText = `
+                    position: absolute; right: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
+                `;
+                nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
+                mainContainer.appendChild(nextBtn);
+            }
+            lightbox.appendChild(mainContainer);
+
+            // Thumbnails Strip
+            if (allImages.length > 1) {
+                const strip = document.createElement('div');
+                strip.style.cssText = `
+                    height: 80px; width: 100%; background: rgba(0,0,0,0.5); 
+                    display: flex; align-items: center; justify-content: center; gap: 10px; 
+                    overflow-x: auto; padding: 10px; box-sizing: border-box;
+                `;
+
+                allImages.forEach((src, idx) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = src;
+                    const isActive = idx === currentIndex;
+                    thumb.style.cssText = `
+                        height: 50px; width: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; 
+                        border: 2px solid ${isActive ? 'var(--accent-purple)' : 'transparent'};
+                        opacity: ${isActive ? '1' : '0.6'}; transition: all 0.2s;
+                    `;
+                    thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
+                    strip.appendChild(thumb);
+                });
+                lightbox.appendChild(strip);
+            }
+
+            // Click BG to close
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox || e.target === mainContainer) close();
+            };
+        };
+
+        // --- HELPERS ---
+        const navigate = (dir) => {
+            currentIndex += dir;
+            if (currentIndex < 0) currentIndex = allImages.length - 1;
+            if (currentIndex >= allImages.length) currentIndex = 0;
+            renderContent();
+        };
+
+        const close = () => {
+            lightbox.style.opacity = '0';
+            setTimeout(() => lightbox.remove(), 200);
+            document.removeEventListener('keydown', keyHandler);
+        };
+
+        const keyHandler = (e) => {
+            if (e.key === 'Escape') close();
+            if (e.key === 'ArrowLeft') navigate(-1);
+            if (e.key === 'ArrowRight') navigate(1);
+        };
+        document.addEventListener('keydown', keyHandler);
+
+        // Init
+        renderContent();
+        requestAnimationFrame(() => lightbox.style.opacity = '1');
     }
 
     // ==========================================
