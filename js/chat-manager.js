@@ -1022,59 +1022,139 @@ class ChatManager {
                 
                 <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
-                    ${sortedMessages.map((msg, idx, arr) => {
-            // SMART VISTO LOGIC
-            const isMe = msg.senderId === this.currentUser.id;
-            let showRead = false;
-            if (isMe && msg.isRead) {
-                const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
-                if (!newerMyMsg) showRead = true;
-            }
+                    // Grouping Logic for "Collage" Effect
+                    ${(() => {
+                const groups = [];
+                let currentGroup = [];
 
-            let contentHtml = '';
+                sortedMessages.forEach((msg, idx) => {
+                    const isImage = msg.fileUrl && msg.fileType === 'image';
+                    const prevMsg = idx > 0 ? sortedMessages[idx - 1] : null;
+                    const isSameSender = prevMsg && prevMsg.senderId === msg.senderId;
+                    const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
 
-            // 1. Render Attachment (if any)
-            if (msg.fileUrl) {
-                if (msg.fileType === 'image') {
-                    contentHtml += `
-                        <div style="margin-bottom: 6px;">
-                            <a href="javascript:void(0)" onclick="chatManager.openLightbox('${msg.fileUrl}')" style="cursor: zoom-in;">
-                                <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-                            </a>
-                        </div>
-                    `;
-                } else {
-                    const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
-                    contentHtml += `
-                        <div style="margin-bottom: 6px;">
-                            <a href="${msg.fileUrl}" target="_blank" download style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-decoration: none; color: inherit; border: 1px solid rgba(255,255,255,0.1); hover:background: rgba(255,255,255,0.1);">
-                                <span style="font-size: 1.5em;">📄</span>
-                                <div style="display: flex; flex-direction: column; max-width: 150px;">
-                                    <span style="font-size: 0.85em; font-weight: 600; text-decoration: underline; word-break: break-all;">${cleanName}</span>
-                                    <span style="font-size: 0.7em; opacity: 0.7;">Click para descargar</span>
-                                </div>
-                            </a>
-                        </div>
-                    `;
-                }
-            }
+                    // Determine if we should start a new group
+                    // Start new group if:
+                    // 1. No previous message
+                    // 2. Different sender
+                    // 3. Current is not Image (break the chain)
+                    // 4. Previous was not Image (break chain)
+                    // 5. Time gap > 2 mins (optional, but good for UX)
 
-            // 2. Render Text (if any)
-            if (msg.message && msg.message.trim()) {
-                contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
-            }
+                    const shouldContinueGroup = isImage && isSameSender && isPrevImage;
 
-            return `
-                        <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
-                            <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
-                                <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
-                                    ${contentHtml}
-                                </span>
-                                ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
-                            </div>
-                        </div>
-                        `;
-        }).join('')}
+                    if (shouldContinueGroup) {
+                        currentGroup.push(msg);
+                    } else {
+                        if (currentGroup.length > 0) groups.push(currentGroup);
+                        currentGroup = [msg];
+                    }
+                });
+                if (currentGroup.length > 0) groups.push(currentGroup);
+
+                // Render Groups
+                return groups.map(group => {
+                    const firstMsg = group[0];
+                    const isMe = firstMsg.senderId === this.currentUser.id;
+                    const isImageGroup = group.every(m => m.fileUrl && m.fileType === 'image');
+
+                    // 1. IMAGE COLLAGE RENDER
+                    if (isImageGroup && group.length > 1) {
+                        // Grid Calculations
+                        const count = group.length;
+                        let gridStyle = 'display: grid; gap: 4px; border-radius: 12px; overflow: hidden; max-width: 250px;';
+
+                        if (count === 2) gridStyle += 'grid-template-columns: 1fr 1fr;';
+                        else if (count >= 3) gridStyle += 'grid-template-columns: 1fr 1fr;'; // 2x2 roughly
+
+                        const imagesHtml = group.map((msg, i) => {
+                            // Logic for 3rd image to show "+N" if we want to limit, 
+                            // but user asked for "small ones", so distinct items is better.
+                            // User said: "if 3 they stay small".
+
+                            // Full Gallery on Click
+                            return `
+                                        <div onclick="chatManager.openLightbox('${msg.fileUrl}', '${firstMsg.senderId}')" style="cursor: pointer; position: relative; aspect-ratio: 1; overflow: hidden;">
+                                            <img src="${msg.fileUrl}" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                    `;
+                        }).join('');
+
+                        return `
+                                    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                                        <div style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; padding: 4px; border-radius: 12px;">
+                                            <div style="${gridStyle}">
+                                                ${imagesHtml}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                    }
+
+                    // 2. STANDARD RENDER (Single Message or Mixed)
+                    // Even if it's a group of text messages, we technically render them individually 
+                    // to support standard behavior, OR we could bubble them. 
+                    // For safety/simplicity, mapping non-image groups back to individual bubbles
+                    // unless it's a single image.
+
+                    return group.map((msg, subIdx) => {
+                        // Recalculate 'showRead' locally? No, 'sortedMessages' context needed?
+                        // Let's just use the logic per message as before but wrapped.
+
+                        const isMe = msg.senderId === this.currentUser.id;
+                        let showRead = false;
+                        if (isMe && msg.isRead) {
+                            // Find real index in sortedMessages to check 'newerMyMsg'
+                            const realIdx = sortedMessages.indexOf(msg);
+                            const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
+                            if (!newerMyMsg) showRead = true;
+                        }
+
+                        let contentHtml = '';
+                        if (msg.fileUrl) {
+                            if (msg.fileType === 'image') {
+                                contentHtml += `
+                                            <div style="margin-bottom: 0;">
+                                                <a href="javascript:void(0)" onclick="chatManager.openLightbox('${msg.fileUrl}')" style="cursor: zoom-in; display: block;">
+                                                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                                                </a>
+                                            </div>
+                                        `;
+                            } else {
+                                const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
+                                contentHtml += `
+                                            <div style="margin-bottom: 6px;">
+                                                <a href="${msg.fileUrl}" target="_blank" download style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-decoration: none; color: inherit; border: 1px solid rgba(255,255,255,0.1); hover:background: rgba(255,255,255,0.1);">
+                                                    <span style="font-size: 1.5em;">📄</span>
+                                                    <div style="display: flex; flex-direction: column; max-width: 150px;">
+                                                        <span style="font-size: 0.85em; font-weight: 600; text-decoration: underline; word-break: break-all;">${cleanName}</span>
+                                                        <span style="font-size: 0.7em; opacity: 0.7;">Click para descargar</span>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        `;
+                            }
+                        }
+
+                        if (msg.message && msg.message.trim()) {
+                            contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                        }
+
+                        return `
+                                    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
+                                        <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
+                                            <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
+                                                ${contentHtml}
+                                            </span>
+                                            ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
+                                        </div>
+                                    </div>
+                                `;
+                    }).join('');
+
+                }).join('');
+
+            })()}
                     
                     ${this.typingUsers.has(user.id) ? `
                         <div style="display: flex; justify-content: flex-start;">
@@ -1143,13 +1223,17 @@ class ChatManager {
             input.type = 'file';
             input.id = `file-input-${userId}`;
             input.style.display = 'none';
-            // Accept Images and Docs
+            // Accept Images and Docs. Enable Multiple!
             input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
+            input.multiple = true;
             document.body.appendChild(input);
 
             input.onchange = (e) => {
                 if (e.target.files.length > 0) {
-                    this.uploadFile(userId, e.target.files[0]);
+                    // Loop through all selected files
+                    Array.from(e.target.files).forEach(file => {
+                        this.uploadFile(userId, file);
+                    });
                 }
                 input.value = ''; // Reset
             };
