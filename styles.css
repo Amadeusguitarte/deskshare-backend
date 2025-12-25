@@ -653,14 +653,7 @@ textarea:focus {
   }
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--primary-purple);
-  border-radius: 5px;
-}
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-purple-dark);
-}
 
 /* Mobile Menu */
 .mobile-menu-toggle {
