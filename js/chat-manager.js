@@ -1077,65 +1077,67 @@ class ChatManager {
                 </div>
             </div>
         `;
-        // ==========================================
-        // Attachments & Emojis
-        // ==========================================
+    }
 
-        triggerFileUpload(userId) {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*,.pdf,.doc,.docx,.txt,.zip';
-            input.onchange = (e) => this.uploadFile(userId, e.target.files[0]);
-            input.click();
-        }
+    // ==========================================
+    // Attachments & Emojis
+    // ==========================================
+
+    triggerFileUpload(userId) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,.pdf,.doc,.docx,.txt,.zip';
+        input.onchange = (e) => this.uploadFile(userId, e.target.files[0]);
+        input.click();
+    }
 
     async uploadFile(userId, file) {
-            if (!file) return;
-            const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
-            if (btn) btn.style.opacity = '0.5';
+        if (!file) return;
+        const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
+        if (btn) btn.style.opacity = '0.5';
 
-            try {
-                const token = localStorage.getItem('authToken');
-                const formData = new FormData();
-                formData.append('file', file);
+        try {
+            const token = localStorage.getItem('authToken');
+            const formData = new FormData();
+            formData.append('file', file);
 
-                const uploadRes = await fetch(`${API_BASE_URL}/chat/upload`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
+            const uploadRes = await fetch(`${API_BASE_URL}/chat/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
 
-                if (!uploadRes.ok) throw new Error('Upload failed');
-                const { fileUrl, fileType } = await uploadRes.json();
+            if (!uploadRes.ok) throw new Error('Upload failed');
+            const { fileUrl, fileType } = await uploadRes.json();
 
-                await this.sendMessage(userId, '', null, fileUrl, fileType);
+            await this.sendMessage(userId, '', null, fileUrl, fileType);
 
-            } catch (error) {
-                console.error('Upload error:', error);
-                alert('Error al subir archivo');
-            } finally {
-                if (btn) btn.style.opacity = '1';
-            }
-        }
-
-        bindEventsAfterRender(userId) {
-            const btn = document.getElementById(`emoji-btn-${userId}`);
-            const input = btn?.previousElementSibling;
-
-            if (btn && input && window.EmojiButton) {
-                const picker = new EmojiButton({
-                    position: 'top-start',
-                    theme: 'dark',
-                    autoHide: false
-                });
-                picker.on('emoji', selection => {
-                    input.value += selection.emoji;
-                    input.focus();
-                });
-                btn.onclick = () => picker.togglePicker(btn);
-            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error al subir archivo');
+        } finally {
+            if (btn) btn.style.opacity = '1';
         }
     }
+
+    bindEventsAfterRender(userId) {
+        const btn = document.getElementById(`emoji-btn-${userId}`);
+        const input = btn?.previousElementSibling;
+
+        if (btn && input && window.EmojiButton) {
+            const picker = new EmojiButton({
+                position: 'top-start',
+                theme: 'dark',
+                autoHide: false
+            });
+            picker.on('emoji', selection => {
+                input.value += selection.emoji;
+                input.focus();
+            });
+            btn.onclick = () => picker.togglePicker(btn);
+        }
+    }
+}
 
 // Make globally available
 window.ChatManager = ChatManager;
