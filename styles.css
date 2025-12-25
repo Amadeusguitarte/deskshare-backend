@@ -376,6 +376,26 @@ p {
   box-shadow: 0 12px 40px rgba(138, 43, 226, 0.3);
 }
 
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 6px;
+  /* Thinner horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-purple);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-purple-dark);
+}
+
 .computer-image {
   width: 100%;
   height: 220px;
