@@ -1096,7 +1096,7 @@ class ChatManager {
                             return `
                                 <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')" 
                                      style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
-                                    <img src="${msg.fileUrl}" style="${itemStyle}">
+                                    <img src="${msg.fileUrl}" alt="Imagen" style="${itemStyle}">
                                 </div>
                             `;
                         }).join('');
@@ -1137,7 +1137,7 @@ class ChatManager {
                                             <div style="margin-bottom: 0;">
                                                 <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')" 
                                                      style="cursor: zoom-in; display: block; position: relative;">
-                                                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 220px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: select;">
+                                                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 160px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                                                 </div>
                                             </div>
                                         `;
@@ -1176,10 +1176,14 @@ class ChatManager {
                             contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                         }
 
+                        const isNakedImage = msg.fileUrl && msg.fileType === 'image' && (!msg.message || !msg.message.trim());
+                        const bubbleBg = isNakedImage ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
+                        const bubblePad = isNakedImage ? '0' : '8px 12px';
+
                         return `
                                     <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                                         <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
-                                            <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
+                                            <span style="background: ${bubbleBg}; color: white; padding: ${bubblePad}; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
                                                 ${contentHtml}
                                             </span>
                                             ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
@@ -1461,7 +1465,7 @@ class ChatManager {
     // ==========================================
     openLightbox(currentUrl, userId) {
         // 1. Get all images in conversation
-        let conversation = this.conversations.find(c => c.withUser.id === userId);
+        let conversation = this.conversations.find(c => c.otherUser.id == userId);
         // If not found in active list, try to find in messagesPageContainer or fallback
         // Fallback: Scan DOM if needed, but state is better. 
         // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
