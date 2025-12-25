@@ -282,7 +282,9 @@ class ChatManager {
         }
     }
 
-    async sendMessage(receiverId, text, computerId = null, fileUrl = null, fileType = null) {
+    async sendMessage(receiverId, text, computerId = null) {
+        if (!text || !text.trim()) return;
+
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -294,9 +296,7 @@ class ChatManager {
                 body: JSON.stringify({
                     receiverId,
                     message: text,
-                    computerId,
-                    fileUrl,
-                    fileType
+                    computerId
                 })
             });
 
@@ -610,12 +610,9 @@ class ChatManager {
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         const unreadCount = conv.unreadCount || 0;
 
-        // Ensure "Desconectado" never appears. Use empty string.
+        // Ensure "Desconectado" never appears.
         const statusText = user.isOnline ? 'En línea' : '';
         const statusColor = user.isOnline ? '#4ade80' : 'transparent';
-
-        // BIND EVENTS LATER
-        setTimeout(() => this.bindEventsAfterRender(user.id), 100);
 
         return `
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
@@ -641,32 +638,19 @@ class ChatManager {
                 <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map((msg, idx, arr) => {
-            // SMART VISTO LOGIC
             const isMe = msg.senderId === this.currentUser.id;
             let showRead = false;
+            // logic for "Visto" if needed
             if (isMe && msg.isRead) {
                 const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
                 if (!newerMyMsg) showRead = true;
-            }
-
-            // ATTACHMENT RENDERING
-            let contentHtml = msg.message;
-            if (msg.fileUrl) {
-                if (msg.fileType === 'image') {
-                    contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-bottom: 4px; cursor: pointer;" onclick="window.open(this.src, '_blank')">` + (msg.message || '');
-                } else {
-                    contentHtml = `<a href="${msg.fileUrl}" target="_blank" style="color: white; text-decoration: underline; display: flex; align-items: center; gap: 6px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                        ${msg.message || 'Ver documento'}
-                    </a>`;
-                }
             }
 
             return `
                         <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                             <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
                                 <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
-                                    ${contentHtml || ''}
+                                    ${msg.message}
                                 </span>
                                 ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                             </div>
@@ -685,25 +669,17 @@ class ChatManager {
                 
                 <!-- FOOTER -->
                 <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
-                     <!-- Attach Icon -->
-                    <button onclick="chatManager.triggerFileUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                    <button onclick="alert('Feature coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     </button>
                     
-                    <!-- Input Container -->
                     <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
                         <input type="text" placeholder="Escribe un mensaje..." 
                                onfocus="chatManager.handleInputFocus(${user.id})"
                                onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; } else { chatManager.emitTyping(${user.id}); }"
-                               style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
-                        
-                        <!-- Emoji Icon -->
-                        <button id="emoji-btn-${user.id}" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                        </button>
+                               style="width: 100%; padding: 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
                     </div>
 
-                    <!-- Send Icon -->
                     <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }" 
                             style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
