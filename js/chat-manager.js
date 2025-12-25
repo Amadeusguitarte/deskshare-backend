@@ -7,14 +7,21 @@ class ChatManager {
         this.conversations = [];
         // Multi-tab support: Track IDs of open conversations
         this.openConversationIds = [];
-        this.minimizedConversations = new Set();
-        // New Features
-        this.typingUsers = new Set();
-        this.typingTimeouts = {};
+        this.minimizedConversations = new Set(); // Stores IDs of users with minimized tabs
+        this.resizeObserver = null;
+        this.picker = null; // Emoji Picker instance
+        this.fileInput = null; // Reusable file input using closure/event mapping or just dynamic creation
+
+        // Sound
+        this.audioContext = null;
 
         // UI Elements
         this.widgetContainer = null;
         this.messagesPageContainer = null;
+
+        // New Features
+        this.typingUsers = new Set();
+        this.typingTimeouts = {};
 
         this.init();
     }
@@ -282,6 +289,91 @@ class ChatManager {
         }
     }
 
+    // ========================================
+    // LOGIC: Send Message
+    // ========================================
+
+    async sendMiniMessage(receiverId, text, attachment = null) {
+        if ((!text || !text.trim()) && !attachment) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const payload = {
+                receiverId,
+                message: text || '', // Allow empty text if attachment exists
+            };
+
+            if (attachment) {
+                payload.fileUrl = attachment.fileUrl;
+                payload.fileType = attachment.fileType;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Failed to send');
+
+            const data = await response.json();
+
+            // Optimistic update
+            this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId });
+
+        } catch (error) {
+            console.error('Send error:', error);
+            alert('Error enviando mensaje');
+        }
+    }
+
+    async uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/chat/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        return await response.json(); // { fileUrl, fileType, originalName }
+    }
+
+    triggerFileUpload(userId) {
+        // Create a temp input or use existing
+        let input = document.getElementById(`file-input-${userId}`);
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = `file-input-${userId}`;
+            input.style.display = 'none';
+            input.accept = 'image/*,.pdf,.doc,.docx,.txt,.zip'; // Broad accept
+            document.body.appendChild(input);
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const uploaded = await this.uploadFile(file);
+                    await this.sendMiniMessage(userId, '', uploaded);
+                } catch (err) {
+                    alert('Error subiendo archivo: ' + err.message);
+                }
+                input.value = '';
+            };
+        }
+        input.click();
+    }
+
     async sendMessage(receiverId, text, computerId = null) {
         try {
             const token = localStorage.getItem('authToken');
@@ -543,61 +635,69 @@ class ChatManager {
         const tabsHtml = tabsToRender.map(id => {
             const conv = this.conversations.find(c => c.otherUser.id === id);
             return conv ? this.renderChatTab(conv) : '';
-        }).join('');
+            const tabsHtml = tabsToRender.map(id => {
+                const conv = this.conversations.find(c => c.otherUser.id === id);
+                return conv ? this.renderChatTab(conv) : '';
+            }).join('');
 
-        // Combine: Tabs (Left) + Persistent Bar (Right)
-        this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+            // Combine: Tabs (Left) + Persistent Bar (Right)
+            this.widgetContainer.innerHTML = tabsHtml + persistentBar;
 
-        // RESTORE FOCUS: If we had focus, put it back
-        if (focusedTabId) {
-            const newTab = document.getElementById(focusedTabId);
-            if (newTab) {
-                const input = newTab.querySelector('input');
-                if (input) {
-                    input.focus();
-                    // Optional: Restore cursor to end if needed, but usually empty after send.
+            // BIND EVENTS (Emoji Picker)
+            tabsToRender.forEach(id => {
+                this.bindEventsAfterRender(id);
+            });
+
+            // RESTORE FOCUS: If we had focus, put it back
+            if (focusedTabId) {
+                const newTab = document.getElementById(focusedTabId);
+                if (newTab) {
+                    const input = newTab.querySelector('input');
+                    if (input) {
+                        input.focus();
+                        // Optional: Restore cursor to end if needed, but usually empty after send.
+                    }
                 }
             }
+
+            // POST-RENDER SCROLL FIX
+            // Immediately scroll all chat areas to bottom to prevent visual jumping
+            // This replaces the "opacity: 0" hack which was causing invisible chats
+            this.widgetContainer.querySelectorAll('.mini-messages-area').forEach(area => {
+                area.scrollTop = area.scrollHeight;
+            });
         }
 
-        // POST-RENDER SCROLL FIX
-        // Immediately scroll all chat areas to bottom to prevent visual jumping
-        // This replaces the "opacity: 0" hack which was causing invisible chats
-        this.widgetContainer.querySelectorAll('.mini-messages-area').forEach(area => {
-            area.scrollTop = area.scrollHeight;
-        });
-    }
-
     updateGlobalBadge(count) {
-        const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
-        badges.forEach(el => {
-            if (count > 0) {
-                el.innerText = count > 99 ? '99+' : count;
-                el.style.display = 'flex'; // or inline-block depending on css. flex allows centering
-            } else {
-                el.style.display = 'none';
-            }
-        });
-    }
+            const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
+            badges.forEach(el => {
+                if (count > 0) {
+                    el.innerText = count > 99 ? '99+' : count;
+                    el.style.display = 'flex'; // or inline-block depending on css. flex allows centering
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
 
     renderChatTab(conv) {
-        const user = conv.otherUser;
-        const tabId = `chat-tab-${user.id}`;
-        // Check state to persist minimization
-        const isMin = this.minimizedConversations.has(user.id);
-        const height = isMin ? '50px' : '400px';
-        const borderRadius = isMin ? '8px' : '8px 8px 0 0';
-        const minIcon = isMin ? '' : '−';
+            const user = conv.otherUser;
+            const tabId = `chat-tab-${user.id}`;
+            // Check state to persist minimization
+            const isMin = this.minimizedConversations.has(user.id);
+            const height = isMin ? '50px' : '400px';
+            const borderRadius = isMin ? '8px' : '8px 8px 0 0';
+            const minIcon = isMin ? '' : '−';
 
-        // SORT MESSAGES: Oldest -> Newest
-        const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        const unreadCount = conv.unreadCount || 0;
+            // SORT MESSAGES: Oldest -> Newest
+            const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            const unreadCount = conv.unreadCount || 0;
 
-        // Ensure "Desconectado" never appears. Use empty string.
-        const statusText = user.isOnline ? 'En línea' : '';
-        const statusColor = user.isOnline ? '#4ade80' : 'transparent';
+            // Ensure "Desconectado" never appears. Use empty string.
+            const statusText = user.isOnline ? 'En línea' : '';
+            const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
-        return `
+            return `
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!-- HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
@@ -621,15 +721,15 @@ class ChatManager {
                 <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map((msg, idx, arr) => {
-            // SMART VISTO LOGIC
-            const isMe = msg.senderId === this.currentUser.id;
-            let showRead = false;
-            if (isMe && msg.isRead) {
-                const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
-                if (!newerMyMsg) showRead = true;
-            }
+                // SMART VISTO LOGIC
+                const isMe = msg.senderId === this.currentUser.id;
+                let showRead = false;
+                if (isMe && msg.isRead) {
+                    const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
+                    if (!newerMyMsg) showRead = true;
+                }
 
-            return `
+                return `
                         <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                             <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
                                 <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
@@ -639,7 +739,7 @@ class ChatManager {
                             </div>
                         </div>
                         `;
-        }).join('')}
+            }).join('')}
                     
                     ${this.typingUsers.has(user.id) ? `
                         <div style="display: flex; justify-content: flex-start;">
@@ -678,300 +778,300 @@ class ChatManager {
                 </div>
             </div>
         `;
-    }
+        }
 
     toggleMinimize(userId) {
-        // 1. Update State
-        const isMin = this.minimizedConversations.has(userId);
-        if (isMin) {
-            this.minimizedConversations.delete(userId);
-        } else {
-            this.minimizedConversations.add(userId);
-        }
+            // 1. Update State
+            const isMin = this.minimizedConversations.has(userId);
+            if(isMin) {
+                this.minimizedConversations.delete(userId);
+            } else {
+                this.minimizedConversations.add(userId);
+            }
 
         // 2. Direct DOM Manipulation (CSS Transition)
         const tab = document.getElementById(`chat-tab-${userId}`);
-        if (tab) {
-            const newMin = !isMin; // Toggle logic
-            tab.style.height = newMin ? '50px' : '400px';
-            // If minimized, radius 8px all around. If expanded, 8px 8px 0 0.
-            tab.style.borderRadius = newMin ? '8px' : '8px 8px 0 0';
+            if(tab) {
+                const newMin = !isMin; // Toggle logic
+                tab.style.height = newMin ? '50px' : '400px';
+                // If minimized, radius 8px all around. If expanded, 8px 8px 0 0.
+                tab.style.borderRadius = newMin ? '8px' : '8px 8px 0 0';
 
-            // Toggle Icon
-            const icon = tab.querySelector('.minimize-icon');
-            if (icon) icon.textContent = newMin ? '' : '−';
+                // Toggle Icon
+                const icon = tab.querySelector('.minimize-icon');
+                if (icon) icon.textContent = newMin ? '' : '−';
 
-            // Important: When expanding, enforce scroll to bottom AND focus input
-            if (!newMin) {
-                setTimeout(() => {
-                    this.scrollToBottom(userId);
-                    // UX Improvement: Auto-focus input on open
-                    // This creates the "Ready to type" feel and triggers 'mark-read' via onfocus handler
-                    const input = tab.querySelector('input');
-                    if (input) input.focus();
-                }, 300); // Wait for transition
+                // Important: When expanding, enforce scroll to bottom AND focus input
+                if (!newMin) {
+                    setTimeout(() => {
+                        this.scrollToBottom(userId);
+                        // UX Improvement: Auto-focus input on open
+                        // This creates the "Ready to type" feel and triggers 'mark-read' via onfocus handler
+                        const input = tab.querySelector('input');
+                        if (input) input.focus();
+                    }, 300); // Wait for transition
+                }
             }
         }
-    }
 
     // Updated toggleTab
     toggleTab(userId) {
-        if (!this.openConversationIds.includes(userId)) {
-            this.openConversationIds.push(userId);
-        }
+            if(!this.openConversationIds.includes(userId)) {
+                this.openConversationIds.push(userId);
+    }
         // Ensure not minimized on open
         this.minimizedConversations.delete(userId);
 
-        this.loadHistory(userId).then(fetchedMsgs => {
-            const conv = this.conversations.find(c => c.otherUser.id == userId);
-            if (conv) {
-                // SAFE MERGE STRATEGY:
-                // Don't just overwrite. DB might be slightly behind local optimistic state.
-                const currentMsgs = conv.messages || [];
+this.loadHistory(userId).then(fetchedMsgs => {
+    const conv = this.conversations.find(c => c.otherUser.id == userId);
+    if (conv) {
+        // SAFE MERGE STRATEGY:
+        // Don't just overwrite. DB might be slightly behind local optimistic state.
+        const currentMsgs = conv.messages || [];
 
-                // NOTE: We REMOVED the automatic mark-read here.
-                // It is now strictly handled in handleInputFocus()
+        // NOTE: We REMOVED the automatic mark-read here.
+        // It is now strictly handled in handleInputFocus()
 
-                const mergedMap = new Map();
+        const mergedMap = new Map();
 
-                // 1. Add Fetched (DB) Messages (Source of Truth)
-                fetchedMsgs.forEach(m => mergedMap.set(String(m.id), m));
+        // 1. Add Fetched (DB) Messages (Source of Truth)
+        fetchedMsgs.forEach(m => mergedMap.set(String(m.id), m));
 
-                // 2. Add Local (Optimistic) Messages that aren't in DB yet
-                currentMsgs.forEach(m => {
-                    const id = String(m.id);
-                    if (!mergedMap.has(id)) {
-                        mergedMap.set(id, m);
-                    }
-                });
-
-                // 3. Convert back to array
-                conv.messages = Array.from(mergedMap.values());
-
-                this.renderWidgetTabs();
+        // 2. Add Local (Optimistic) Messages that aren't in DB yet
+        currentMsgs.forEach(m => {
+            const id = String(m.id);
+            if (!mergedMap.has(id)) {
+                mergedMap.set(id, m);
             }
         });
+
+        // 3. Convert back to array
+        conv.messages = Array.from(mergedMap.values());
+
         this.renderWidgetTabs();
     }
-
-    // Updated scrollToBottom to support ID targeting and minimized check
-    scrollToBottom(userId) {
-        if (userId && this.minimizedConversations.has(userId)) return;
-
-        const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
-        if (area) {
-            area.scrollTop = area.scrollHeight;
-            // Ensure opacity is 1 if it was hidden
-            if (area.style.opacity === '0') area.style.opacity = '1';
-        }
+});
+this.renderWidgetTabs();
     }
 
-    closeTab(userId) {
-        this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
-        this.minimizedConversations.delete(userId); // Cleanup
-        this.renderWidgetTabs();
+// Updated scrollToBottom to support ID targeting and minimized check
+scrollToBottom(userId) {
+    if (userId && this.minimizedConversations.has(userId)) return;
+
+    const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
+    if (area) {
+        area.scrollTop = area.scrollHeight;
+        // Ensure opacity is 1 if it was hidden
+        if (area.style.opacity === '0') area.style.opacity = '1';
     }
+}
+
+closeTab(userId) {
+    this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
+    this.minimizedConversations.delete(userId); // Cleanup
+    this.renderWidgetTabs();
+}
 
     async sendMiniMessage(userId, text) {
-        if (!text.trim()) return;
+    if (!text.trim()) return;
 
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (conv) {
-            const tempMsg = {
-                id: 'temp-' + Date.now(),
-                senderId: this.currentUser.id,
-                message: text,
-                createdAt: new Date().toISOString(),
-                isRead: false
-            };
-            if (!conv.messages) conv.messages = [];
-            conv.messages.push(tempMsg);
+    const conv = this.conversations.find(c => c.otherUser.id === userId);
+    if (conv) {
+        const tempMsg = {
+            id: 'temp-' + Date.now(),
+            senderId: this.currentUser.id,
+            message: text,
+            createdAt: new Date().toISOString(),
+            isRead: false
+        };
+        if (!conv.messages) conv.messages = [];
+        conv.messages.push(tempMsg);
 
-            const tabId = `chat-tab-${userId}`;
-            const tabEl = document.getElementById(tabId);
+        const tabId = `chat-tab-${userId}`;
+        const tabEl = document.getElementById(tabId);
 
-            if (tabEl) {
-                const msgArea = tabEl.querySelector('.mini-messages-area');
-                if (msgArea) {
-                    const msgHtml = `
+        if (tabEl) {
+            const msgArea = tabEl.querySelector('.mini-messages-area');
+            if (msgArea) {
+                const msgHtml = `
                         <div style="display: flex; justify-content: flex-end;">
                             <span style="background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
                                 ${text}
                             </span>
                         </div>
                     `;
-                    msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                    this.scrollToBottom(userId);
-                } else {
-                    this.renderWidgetTabs();
-                }
+                msgArea.insertAdjacentHTML('beforeend', msgHtml);
+                this.scrollToBottom(userId);
             } else {
                 this.renderWidgetTabs();
             }
-        }
-
-        try {
-            await this.sendMessage(userId, text);
-        } catch (e) {
-            console.error("Failed to send", e);
-        }
-    }
-
-    emitTyping(receiverId) {
-        if (!this.currentUser) return;
-
-        // Debounce
-        if (this.typingTimeouts[receiverId]) {
-            clearTimeout(this.typingTimeouts[receiverId]);
         } else {
-            // Start typing
-            this.socket.emit('user-typing', { senderId: this.currentUser.id, receiverId });
+            this.renderWidgetTabs();
         }
-
-        // Stop typing after 2 seconds of inactivity
-        this.typingTimeouts[receiverId] = setTimeout(() => {
-            this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId });
-            this.typingTimeouts[receiverId] = null;
-        }, 2000);
     }
+
+    try {
+        await this.sendMessage(userId, text);
+    } catch (e) {
+        console.error("Failed to send", e);
+    }
+}
+
+emitTyping(receiverId) {
+    if (!this.currentUser) return;
+
+    // Debounce
+    if (this.typingTimeouts[receiverId]) {
+        clearTimeout(this.typingTimeouts[receiverId]);
+    } else {
+        // Start typing
+        this.socket.emit('user-typing', { senderId: this.currentUser.id, receiverId });
+    }
+
+    // Stop typing after 2 seconds of inactivity
+    this.typingTimeouts[receiverId] = setTimeout(() => {
+        this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId });
+        this.typingTimeouts[receiverId] = null;
+    }, 2000);
+}
 
     async openChat(userId) {
-        if (this.conversations.length === 0) await this.loadConversations();
+    if (this.conversations.length === 0) await this.loadConversations();
 
-        // Ensure tab is added
-        // Fix ID check
-        if (!this.openConversationIds.some(id => id == userId)) {
-            this.openConversationIds.push(userId);
-        }
+    // Ensure tab is added
+    // Fix ID check
+    if (!this.openConversationIds.some(id => id == userId)) {
+        this.openConversationIds.push(userId);
+    }
 
-        const conv = this.conversations.find(c => c.otherUser.id == userId);
-        if (conv) {
-            this.toggleTab(userId);
-        } else {
-            await this.loadConversations();
-            this.toggleTab(userId);
+    const conv = this.conversations.find(c => c.otherUser.id == userId);
+    if (conv) {
+        this.toggleTab(userId);
+    } else {
+        await this.loadConversations();
+        this.toggleTab(userId);
+    }
+}
+
+updateUserStatus(userId, isOnline) {
+    // Update data
+    const conv = this.conversations.find(c => c.otherUser.id == userId);
+    if (conv) {
+        conv.otherUser.isOnline = isOnline;
+    }
+
+    // Update UI (Full Page)
+    if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
+        const headerStatus = document.querySelector('#chatHeader span');
+        if (headerStatus) {
+            headerStatus.textContent = isOnline ? 'En línea' : '';
+            headerStatus.style.color = isOnline ? 'var(--success-green)' : '#999';
         }
     }
 
-    updateUserStatus(userId, isOnline) {
-        // Update data
-        const conv = this.conversations.find(c => c.otherUser.id == userId);
-        if (conv) {
-            conv.otherUser.isOnline = isOnline;
-        }
+    // Update UI (Widget Tab) - Rerender just the header if possible or full tab
+    const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
+    const statusDot = document.querySelector(`#chat-tab-${userId} .status-dot`);
 
-        // Update UI (Full Page)
-        if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
-            const headerStatus = document.querySelector('#chatHeader span');
-            if (headerStatus) {
-                headerStatus.textContent = isOnline ? 'En línea' : '';
-                headerStatus.style.color = isOnline ? 'var(--success-green)' : '#999';
-            }
-        }
+    if (tabHeader) {
+        tabHeader.textContent = isOnline ? 'En línea' : '';
+        tabHeader.style.color = isOnline ? '#4ade80' : 'transparent';
+    }
+    if (statusDot) {
+        statusDot.style.background = isOnline ? '#4ade80' : 'transparent';
+        statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';
+    }
+}
 
-        // Update UI (Widget Tab) - Rerender just the header if possible or full tab
-        const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
-        const statusDot = document.querySelector(`#chat-tab-${userId} .status-dot`);
+playSound() {
+    // Simple distinct beep
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
 
-        if (tabHeader) {
-            tabHeader.textContent = isOnline ? 'En línea' : '';
-            tabHeader.style.color = isOnline ? '#4ade80' : 'transparent';
-        }
-        if (statusDot) {
-            statusDot.style.background = isOnline ? '#4ade80' : 'transparent';
-            statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        // Nice notification chime
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.3);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+        console.error("Audio error", e);
+    }
+}
+
+// Helper for Input Focus (Read Receipt + Stop Flash + Stop Title Blink)
+handleInputFocus(userId) {
+    // 1. Mark Read
+    const conv = this.conversations.find(c => c.otherUser.id == userId);
+    if (conv) {
+        if (conv.unreadCount > 0) {
+            conv.unreadCount = 0;
+            this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
+            // Re-render to clear badge
+            this.renderWidgetTabs();
         }
     }
 
-    playSound() {
-        // Simple distinct beep
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            // Nice notification chime
-            osc.frequency.setValueAtTime(800, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
-
-            osc.type = 'sine';
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.3);
-
-            osc.start();
-            osc.stop(ctx.currentTime + 0.3);
-        } catch (e) {
-            console.error("Audio error", e);
-        }
+    // 2. Stop Flash
+    const tab = document.getElementById(`chat-tab-${userId}`);
+    if (tab) {
+        tab.classList.remove('flash-animation');
     }
 
-    // Helper for Input Focus (Read Receipt + Stop Flash + Stop Title Blink)
-    handleInputFocus(userId) {
-        // 1. Mark Read
-        const conv = this.conversations.find(c => c.otherUser.id == userId);
-        if (conv) {
-            if (conv.unreadCount > 0) {
-                conv.unreadCount = 0;
-                this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
-                // Re-render to clear badge
-                this.renderWidgetTabs();
-            }
-        }
+    // 3. Stop Title Blink
+    this.stopTitleBlink();
+}
 
-        // 2. Stop Flash
-        const tab = document.getElementById(`chat-tab-${userId}`);
-        if (tab) {
-            tab.classList.remove('flash-animation');
-        }
+startTitleBlink(userName) {
+    if (this.titleInterval) clearInterval(this.titleInterval);
 
-        // 3. Stop Title Blink
-        this.stopTitleBlink();
+    let isOriginal = false;
+    const originalTitle = "DeskShare - Alquila Computadoras Potentes";
+    const newTitle = `💬 Nuevo mensaje de ${userName}`;
+
+    this.titleInterval = setInterval(() => {
+        document.title = isOriginal ? newTitle : originalTitle;
+        isOriginal = !isOriginal;
+    }, 1000);
+}
+
+stopTitleBlink() {
+    if (this.titleInterval) {
+        clearInterval(this.titleInterval);
+        this.titleInterval = null;
+        document.title = "DeskShare - Alquila Computadoras Potentes";
     }
+}
 
-    startTitleBlink(userName) {
-        if (this.titleInterval) clearInterval(this.titleInterval);
+renderChatTab(conv) {
+    const user = conv.otherUser;
+    const tabId = `chat-tab-${user.id}`;
+    // Check state to persist minimization
+    const isMin = this.minimizedConversations.has(user.id);
+    const height = isMin ? '50px' : '400px';
+    const borderRadius = isMin ? '8px' : '8px 8px 0 0';
+    const minIcon = isMin ? '' : '−';
 
-        let isOriginal = false;
-        const originalTitle = "DeskShare - Alquila Computadoras Potentes";
-        const newTitle = `💬 Nuevo mensaje de ${userName}`;
+    // SORT MESSAGES: Oldest -> Newest
+    const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const unreadCount = conv.unreadCount || 0;
 
-        this.titleInterval = setInterval(() => {
-            document.title = isOriginal ? newTitle : originalTitle;
-            isOriginal = !isOriginal;
-        }, 1000);
-    }
+    // Ensure "Desconectado" never appears. Use empty string.
+    const statusText = user.isOnline ? 'En línea' : '';
+    const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
-    stopTitleBlink() {
-        if (this.titleInterval) {
-            clearInterval(this.titleInterval);
-            this.titleInterval = null;
-            document.title = "DeskShare - Alquila Computadoras Potentes";
-        }
-    }
-
-    renderChatTab(conv) {
-        const user = conv.otherUser;
-        const tabId = `chat-tab-${user.id}`;
-        // Check state to persist minimization
-        const isMin = this.minimizedConversations.has(user.id);
-        const height = isMin ? '50px' : '400px';
-        const borderRadius = isMin ? '8px' : '8px 8px 0 0';
-        const minIcon = isMin ? '' : '−';
-
-        // SORT MESSAGES: Oldest -> Newest
-        const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        const unreadCount = conv.unreadCount || 0;
-
-        // Ensure "Desconectado" never appears. Use empty string.
-        const statusText = user.isOnline ? 'En línea' : '';
-        const statusColor = user.isOnline ? '#4ade80' : 'transparent';
-
-        return `
+    return `
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!-- HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
@@ -995,15 +1095,15 @@ class ChatManager {
                 <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map((msg, idx, arr) => {
-            // SMART VISTO LOGIC
-            const isMe = msg.senderId === this.currentUser.id;
-            let showRead = false;
-            if (isMe && msg.isRead) {
-                const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
-                if (!newerMyMsg) showRead = true;
-            }
+        // SMART VISTO LOGIC
+        const isMe = msg.senderId === this.currentUser.id;
+        let showRead = false;
+        if (isMe && msg.isRead) {
+            const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
+            if (!newerMyMsg) showRead = true;
+        }
 
-            return `
+        return `
                         <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                             <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
                                 <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
@@ -1013,7 +1113,7 @@ class ChatManager {
                             </div>
                         </div>
                         `;
-        }).join('')}
+    }).join('')}
                     
                     ${this.typingUsers.has(user.id) ? `
                         <div style="display: flex; justify-content: flex-start;">
@@ -1052,7 +1152,7 @@ class ChatManager {
                 </div>
             </div>
         `;
-    }
+}
 }
 
 // Make globally available

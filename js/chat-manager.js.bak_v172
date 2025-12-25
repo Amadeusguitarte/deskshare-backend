@@ -701,9 +701,15 @@ class ChatManager {
             const icon = tab.querySelector('.minimize-icon');
             if (icon) icon.textContent = newMin ? '' : '−';
 
-            // Important: When expanding, enforce scroll to bottom
+            // Important: When expanding, enforce scroll to bottom AND focus input
             if (!newMin) {
-                setTimeout(() => this.scrollToBottom(userId), 300); // Wait for transition
+                setTimeout(() => {
+                    this.scrollToBottom(userId);
+                    // UX Improvement: Auto-focus input on open
+                    // This creates the "Ready to type" feel and triggers 'mark-read' via onfocus handler
+                    const input = tab.querySelector('input');
+                    if (input) input.focus();
+                }, 300); // Wait for transition
             }
         }
     }
