@@ -16,6 +16,12 @@ class ChatManager {
         this.widgetContainer = null;
         this.messagesPageContainer = null;
 
+        // Base API URL
+        // If socketUrl is 'https://backend.app', API is usually 'https://backend.app/api'
+        // If socketUrl is '/', API is '/api'
+        this.baseUrl = this.socketUrl.endsWith('/') ? `${this.socketUrl}api` : `${this.socketUrl}/api`;
+        if (this.baseUrl.includes('//api')) this.baseUrl = this.baseUrl.replace('//api', '/api'); // Sanity check
+
         this.init();
     }
 
