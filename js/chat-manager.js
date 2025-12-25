@@ -518,8 +518,11 @@ class ChatManager {
                 
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
                     ${this.conversations.length > 0 ? this.conversations.map(conv => `
-                        <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
-                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <div id="widget-list-item-${conv.otherUser.id}" onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
+                            <div style="position: relative; width: 32px; height: 32px;">
+                                <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                <div class="list-status-dot" style="position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #4ade80; border-radius: 50%; border: 2px solid #222; display: ${conv.otherUser.isOnline ? 'block' : 'none'};"></div>
+                            </div>
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
                                 <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
@@ -892,6 +895,12 @@ class ChatManager {
         if (statusDot) {
             statusDot.style.background = isOnline ? '#4ade80' : 'transparent';
             statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';
+        }
+
+        // Update UI (Widget List Item)
+        const listDot = document.querySelector(`#widget-list-item-${userId} .list-status-dot`);
+        if (listDot) {
+            listDot.style.display = isOnline ? 'block' : 'none';
         }
     }
 
