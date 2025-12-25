@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
+const uploadChat = require('../middleware/uploadChat'); // Phase A: Import
 
 const prisma = new PrismaClient();
 
@@ -146,19 +147,25 @@ router.get('/history/:userId', auth, async (req, res, next) => {
 });
 
 
-// ========================================
-// POST /api/chat
-// Send a new message
-// ========================================
+// Upload endpoint (Phase A)
+router.post('/upload', auth, uploadChat.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    res.json({
+        fileUrl: req.file.path,
+        fileType: req.file.mimetype.startsWith('image/') ? 'image' : 'document'
+    });
+});
+
 // ========================================
 // POST /api/chat
 // Send a new message
 // ========================================
 router.post('/', auth, async (req, res, next) => {
     try {
-        const { receiverId, computerId, message } = req.body;
+        const { receiverId, computerId, message, fileUrl, fileType } = req.body;
 
-        if (!message || !message.trim()) {
+        // Allow empty message IF there is a file
+        if ((!message || !message.trim()) && !fileUrl) {
             return res.status(400).json({ error: 'Message cannot be empty' });
         }
 
@@ -167,7 +174,9 @@ router.post('/', auth, async (req, res, next) => {
                 senderId: req.user.userId || req.user.id,
                 receiverId: parseInt(receiverId),
                 computerId: computerId ? parseInt(computerId) : null,
-                message: message.trim(),
+                message: message ? message.trim() : '',
+                fileUrl: fileUrl || null,
+                fileType: fileType || null
             },
             include: {
                 sender: { select: { id: true, name: true, avatarUrl: true } },
