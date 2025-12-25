@@ -1060,11 +1060,11 @@ class ChatManager {
 
                     // 1. IMAGE COLLAGE RENDER
                     // 1. IMAGE COLLAGE RENDER
+                    // 1. IMAGE COLLAGE RENDER
                     if (isImageGroup && group.length > 1) {
                         const count = group.length;
 
                         // Facebook-style Grid Logic:
-                        // No padding/background wrapper. The images THEMSELVES form the bubble.
                         let gridContainerStyle = `
                             display: grid; 
                             gap: 2px; 
@@ -1078,44 +1078,28 @@ class ChatManager {
                         if (count === 2) {
                             gridContainerStyle += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2/1;';
                         } else if (count === 3) {
-                            // 1 Top (Big), 2 Bottom (Small)
-                            gridContainerStyle += 'grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr; aspect-ratio: 1/1;';
+                            // "3 Pequeñas" -> Row of 3 equal images
+                            gridContainerStyle += 'grid-template-columns: 1fr 1fr 1fr; aspect-ratio: 3/1;';
                         } else {
-                            // 4+ (2x2 Grid)
-                            gridContainerStyle += 'grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; aspect-ratio: 1/1;';
+                            // 4+ (2-column stack)
+                            gridContainerStyle += 'grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr;';
                         }
 
                         // Render Images
                         const imagesHtml = group.map((msg, i) => {
-                            // Special styling for 3-image layout
                             let itemStyle = 'width: 100%; height: 100%; object-fit: cover;';
-                            let containerStyle = 'position: relative; overflow: hidden; height: 100%; width: 100%;';
+                            // No special container style needed for simple grids
 
-                            if (count === 3 && i === 0) {
-                                // First image spans 2 columns
-                                containerStyle += 'grid-column: span 2;';
-                            }
-                            // Limit to 4 items in grid for aesthetics if count > 4 ? 
-                            // User said "Accumulate below", but a 2x2 grid is standard for 4. 
-                            // If 5+, normally you show +N overlay. For now, let's Stick to standard behavior or just Slice?
-                            // User: "de 4 en adelante se van acumulando abajo" -> implies vertical stack or grid? 
-                            // Reference image shows a compact grid. 2x2 is safe. 
-
+                            // Explicit Click Handler Check
                             return `
-                                <div onclick="chatManager.openLightbox('${msg.fileUrl}', '${user.id}')" style="cursor: pointer; ${containerStyle}">
+                                <div onclick="event.stopPropagation(); chatManager.openLightbox('${msg.fileUrl}', '${user.id}')" 
+                                     style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 80px;">
                                     <img src="${msg.fileUrl}" style="${itemStyle}">
                                 </div>
                             `;
-                        }).slice(0, 4).join(''); // Limit render to 4 for the bubble context if we go strict FB style, but let's just show all if possible? 
-                        // Actually, if we map ALL, the grid will break if we defined fixed rows. 
-                        // If count > 4, Grid Auto Flow?
+                        }).join('');
 
-                        if (count > 4) {
-                            gridContainerStyle = gridContainerStyle.replace('grid-template-rows: 1fr 1fr;', 'grid-auto-rows: 1fr;');
-                        }
-
-                        // Wrapper: Remove the purple padding/background. 
-                        // Just the grid container.
+                        // Wrapper
                         return `
                             <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                                 <div style="${gridContainerStyle}">
