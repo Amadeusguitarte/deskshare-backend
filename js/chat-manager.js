@@ -1186,35 +1186,20 @@ class ChatManager {
             // Lazy Init safety check
             if (!this.stagedFiles) this.stagedFiles = new Map();
 
-            this.stagedFiles.set(userId, {
+            // Get existing or init array
+            let currentStaged = this.stagedFiles.get(userId) || [];
+            // Ensure it's an array (migration safety from Phase D)
+            if (!Array.isArray(currentStaged)) currentStaged = [currentStaged];
+
+            currentStaged.push({
                 fileUrl: data.fileUrl,
                 fileType: data.fileType,
                 fileName: file.name
             });
+            this.stagedFiles.set(userId, currentStaged);
 
             // 3. Update UI
-            const stagingArea = document.getElementById(`chat-staging-${userId}`);
-            const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
-
-            if (stagingArea && stagingContent) {
-                stagingArea.style.display = 'flex';
-
-                if (data.fileType === 'image') {
-                    stagingContent.innerHTML = `
-                        <img src="${data.fileUrl}" style="height: 50px; width: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #555;">
-                        <span style="font-size: 0.8em; color: #ccc;">Imagen lista para enviar</span>
-                    `;
-                } else {
-                    stagingContent.innerHTML = `
-                        <div style="height: 50px; width: 50px; background: #444; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
-                            📄
-                        </div>
-                        <span style="font-size: 0.8em; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;">
-                            ${file.name}
-                        </span>
-                    `;
-                }
-            }
+            this.renderStagingArea(userId);
 
             // Focus input
             const chatInput = document.getElementById(`chat-input-${userId}`);
@@ -1228,10 +1213,58 @@ class ChatManager {
         }
     }
 
+    renderStagingArea(userId) {
+        const stagingArea = document.getElementById(`chat-staging-${userId}`);
+        const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
+        const files = this.stagedFiles.get(userId) || [];
+
+        if (!files.length) {
+            if (stagingArea) stagingArea.style.display = 'none';
+            return;
+        }
+
+        if (stagingArea && stagingContent) {
+            stagingArea.style.display = 'flex';
+            stagingContent.innerHTML = ''; // Clear current
+            stagingContent.style.overflowX = 'auto'; // Horizontal scroll
+
+            files.forEach((file, index) => {
+                const thumb = document.createElement('div');
+                thumb.style.cssText = 'position: relative; display: inline-block; margin-right: 8px; flex-shrink: 0;';
+
+                let innerHTML = '';
+                if (file.fileType === 'image') {
+                    innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;">`;
+                } else {
+                    innerHTML = `
+                        <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
+                            📄
+                        </div>`;
+                }
+
+                // Add Close Button (X)
+                innerHTML += `
+                    <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">&times;</div>
+                `;
+
+                thumb.innerHTML = innerHTML;
+                stagingContent.appendChild(thumb);
+            });
+        }
+    }
+
+    removeStagedFile(userId, index) {
+        let files = this.stagedFiles.get(userId) || [];
+        if (files.length > index) {
+            files.splice(index, 1);
+            this.stagedFiles.set(userId, files);
+            this.renderStagingArea(userId);
+        }
+    }
+
     clearStaging(userId) {
         this.stagedFiles.delete(userId);
-        const stagingArea = document.getElementById(`chat-staging-${userId}`);
-        if (stagingArea) stagingArea.style.display = 'none';
+        this.renderStagingArea(userId); // Update UI after clearing
     }
 
     async sendStagedMessage(userId) {
@@ -1241,12 +1274,27 @@ class ChatManager {
         const text = input.value.trim();
         // Safety check
         if (!this.stagedFiles) this.stagedFiles = new Map();
-        const staged = this.stagedFiles.get(userId);
 
-        if (!text && !staged) return; // Nothing to send
+        let staged = this.stagedFiles.get(userId);
+        if (staged && !Array.isArray(staged)) staged = [staged]; // Safety
 
-        // Send
-        await this.sendMiniMessage(userId, text, staged?.fileUrl, staged?.fileType);
+        if (!text && (!staged || staged.length === 0)) return; // Nothing to send
+
+        // Logic: Send text with FIRST file, then send remaining files
+        // If no files, just send text.
+
+        if (staged && staged.length > 0) {
+            // Message 1: Text + File 1
+            await this.sendMiniMessage(userId, text, staged[0].fileUrl, staged[0].fileType);
+
+            // Remaining files
+            for (let i = 1; i < staged.length; i++) {
+                await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);
+            }
+        } else {
+            // Just text
+            await this.sendMiniMessage(userId, text);
+        }
 
         // Cleanup
         input.value = '';
@@ -1308,8 +1356,33 @@ class ChatManager {
             document.body.appendChild(lightbox);
         }
 
-        lightbox.innerHTML = `<img src="${url}" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); transform: scale(0.9); transition: transform 0.3s;">`;
+        // Close button (X)
+        const closeBtn = document.createElement('div');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cssText = `
+            position: absolute; top: 20px; right: 30px; 
+            color: white; font-size: 40px; cursor: pointer; 
+            z-index: 10001; font-family: sans-serif; opacity: 0.8;
+        `;
+        closeBtn.onmouseover = () => closeBtn.style.opacity = '1';
+        closeBtn.onmouseout = () => closeBtn.style.opacity = '0.8';
+        closeBtn.onclick = (e) => {
+            e.stopPropagation(); // Prevent bubble
+            lightbox.click();
+        };
+        lightbox.appendChild(closeBtn); // Add X
+
+        lightbox.innerHTML += `<img src="${url}" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); transform: scale(0.9); transition: transform 0.3s;">`;
         document.body.appendChild(lightbox); // Ensure top
+
+        // ESC Key Listener
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                lightbox.click();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
 
         // Animate in
         requestAnimationFrame(() => {
