@@ -1487,14 +1487,31 @@ class ChatManager {
     }
 
     // ==========================================
-    // Helper: Robust Download with Cloudinary fl_attachment (Bypassing legacy downloadFile)
-    downloadFileSecure(url, filename) {
-        let finalUrl = url;
-        // Inject fl_attachment to force download for Cloudinary URLs
-        if (url && url.includes('cloudinary.com') && url.includes('/upload/') && !url.includes('/fl_attachment/')) {
-            finalUrl = url.replace('/upload/', '/upload/fl_attachment/');
+    // Helper: Robust Download with Fetch/Blob (Bypassing Cloudinary errors)
+    async downloadFileSecure(url, filename) {
+        try {
+            // 1. Fetch as Blob (retains original headers, bypasses viewer)
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            // 2. Create invisible link and click
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = filename; // Force filename
+            document.body.appendChild(a);
+            a.click();
+
+            // 3. Cleanup
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback: Open in new tab (Original URL, no injection)
+            window.open(url, '_blank');
         }
-        window.open(finalUrl, '_blank');
     }
 
     // Lightbox Logic (Phase F)
