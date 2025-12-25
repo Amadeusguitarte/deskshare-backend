@@ -1171,16 +1171,16 @@ class ChatManager {
                                                             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
                                                             display: block; width: 100%;
                                                         ">${cleanName}</span>
-                                                        <span style="font-size: 0.7em; opacity: 0.6;">PDF • 2 MB</span>
                                                     </div>
-                                                </a>
+                                                </div> // Was </a>, now </div>
                                             </div>
                                         `;
+                                `;
                             }
                         }
 
                         if (msg.message && msg.message.trim()) {
-                            contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                            contentHtml += `< div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
                         }
 
                         const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1188,15 +1188,15 @@ class ChatManager {
                         const bubblePad = isStandAlone ? '0' : '8px 12px';
 
                         return `
-                                    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
+                                    < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};" >
                                         <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
                                             <span style="background: ${bubbleBg}; color: white; padding: ${bubblePad}; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
                                                 ${contentHtml}
                                             </span>
                                             ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                                         </div>
-                                    </div>
-                                `;
+                                    </div >
+                                    `;
                     }).join('');
 
                 }).join('');
@@ -1253,403 +1253,403 @@ class ChatManager {
             </div>
             </div>
         `;
-    }
+                            }
 
-    // ==========================================
-    // Attachments Logic (Phase B)
-    // ==========================================
+                            // ==========================================
+                            // Attachments Logic (Phase B)
+                            // ==========================================
 
-    // ==========================================
-    // File Upload & Staging (Phase D)
-    // ==========================================
-    triggerFileUpload(userId) {
-        // Create hidden input dynamically if not exists
-        let input = document.getElementById(`file-input-${userId}`);
-        if (!input) {
-            input = document.createElement('input');
-            input.type = 'file';
-            input.id = `file-input-${userId}`;
-            input.style.display = 'none';
-            // Accept Images and Docs. Enable Multiple!
-            input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
-            input.multiple = true;
-            document.body.appendChild(input);
+                            // ==========================================
+                            // File Upload & Staging (Phase D)
+                            // ==========================================
+                            triggerFileUpload(userId) {
+                                // Create hidden input dynamically if not exists
+                                let input = document.getElementById(`file-input-${userId}`);
+                                if (!input) {
+                                    input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.id = `file-input-${userId}`;
+                                    input.style.display = 'none';
+                                    // Accept Images and Docs. Enable Multiple!
+                                    input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
+                                    input.multiple = true;
+                                    document.body.appendChild(input);
 
-            input.onchange = (e) => {
-                if (e.target.files.length > 0) {
-                    // Loop through all selected files
-                    Array.from(e.target.files).forEach(file => {
-                        this.uploadFile(userId, file);
-                    });
-                }
-                input.value = ''; // Reset
-            };
-        }
-        input.click();
-    }
+                                    input.onchange = (e) => {
+                                        if (e.target.files.length > 0) {
+                                            // Loop through all selected files
+                                            Array.from(e.target.files).forEach(file => {
+                                                this.uploadFile(userId, file);
+                                            });
+                                        }
+                                        input.value = ''; // Reset
+                                    };
+                                }
+                                input.click();
+                            }
 
     async uploadFile(userId, file) {
-        if (!file) return;
+                                if (!file) return;
 
-        // Optimistic UI feedback could go here (e.g. spinner)
-        const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
-        if (btn) btn.style.opacity = '0.5';
+                                // Optimistic UI feedback could go here (e.g. spinner)
+                                const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
+                                if (btn) btn.style.opacity = '0.5';
 
-        try {
-            const token = localStorage.getItem('authToken');
-            const formData = new FormData();
-            formData.append('file', file);
+                                try {
+                                    const token = localStorage.getItem('authToken');
+                                    const formData = new FormData();
+                                    formData.append('file', file);
 
-            // 1. Upload
-            const res = await fetch(`${this.baseUrl}/chat/upload`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
+                                    // 1. Upload
+                                    const res = await fetch(`${this.baseUrl}/chat/upload`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` },
+                                        body: formData
+                                    });
 
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || `Server Error: ${res.status}`);
-            }
-            const data = await res.json();
+                                    if (!res.ok) {
+                                        const errData = await res.json().catch(() => ({}));
+                                        throw new Error(errData.error || `Server Error: ${res.status}`);
+                                    }
+                                    const data = await res.json();
 
-            // 2. STAGE THE FILE (Do not send yet)
-            // Lazy Init safety check
-            if (!this.stagedFiles) this.stagedFiles = new Map();
+                                    // 2. STAGE THE FILE (Do not send yet)
+                                    // Lazy Init safety check
+                                    if (!this.stagedFiles) this.stagedFiles = new Map();
 
-            // Get existing or init array
-            let currentStaged = this.stagedFiles.get(userId) || [];
-            // Ensure it's an array (migration safety from Phase D)
-            if (!Array.isArray(currentStaged)) currentStaged = [currentStaged];
+                                    // Get existing or init array
+                                    let currentStaged = this.stagedFiles.get(userId) || [];
+                                    // Ensure it's an array (migration safety from Phase D)
+                                    if (!Array.isArray(currentStaged)) currentStaged = [currentStaged];
 
-            currentStaged.push({
-                fileUrl: data.fileUrl,
-                fileType: data.fileType,
-                fileName: file.name
-            });
-            this.stagedFiles.set(userId, currentStaged);
+                                    currentStaged.push({
+                                        fileUrl: data.fileUrl,
+                                        fileType: data.fileType,
+                                        fileName: file.name
+                                    });
+                                    this.stagedFiles.set(userId, currentStaged);
 
-            // 3. Update UI
-            this.renderStagingArea(userId);
+                                    // 3. Update UI
+                                    this.renderStagingArea(userId);
 
-            // Focus input
-            const chatInput = document.getElementById(`chat-input-${userId}`);
-            if (chatInput) chatInput.focus();
+                                    // Focus input
+                                    const chatInput = document.getElementById(`chat-input-${userId}`);
+                                    if (chatInput) chatInput.focus();
 
-        } catch (error) {
-            console.error('Upload Error:', error);
-            alert(`Error subiendo archivo: ${error.message}`);
-        } finally {
-            if (btn) btn.style.opacity = '1';
-        }
-    }
+                                } catch (error) {
+                                    console.error('Upload Error:', error);
+                                    alert(`Error subiendo archivo: ${error.message}`);
+                                } finally {
+                                    if (btn) btn.style.opacity = '1';
+                                }
+                            }
 
-    renderStagingArea(userId) {
-        const stagingArea = document.getElementById(`chat-staging-${userId}`);
-        const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
-        const files = this.stagedFiles.get(userId) || [];
+                            renderStagingArea(userId) {
+                                const stagingArea = document.getElementById(`chat-staging-${userId}`);
+                                const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
+                                const files = this.stagedFiles.get(userId) || [];
 
-        if (!files.length) {
-            if (stagingArea) stagingArea.style.display = 'none';
-            return;
-        }
+                                if (!files.length) {
+                                    if (stagingArea) stagingArea.style.display = 'none';
+                                    return;
+                                }
 
-        if (stagingArea && stagingContent) {
-            stagingArea.style.display = 'flex';
-            stagingContent.innerHTML = ''; // Clear current
-            stagingContent.style.overflowX = 'auto'; // Horizontal scroll
+                                if (stagingArea && stagingContent) {
+                                    stagingArea.style.display = 'flex';
+                                    stagingContent.innerHTML = ''; // Clear current
+                                    stagingContent.style.overflowX = 'auto'; // Horizontal scroll
 
-            files.forEach((file, index) => {
-                const thumb = document.createElement('div');
-                thumb.style.cssText = 'position: relative; display: inline-block; margin-right: 8px; flex-shrink: 0;';
+                                    files.forEach((file, index) => {
+                                        const thumb = document.createElement('div');
+                                        thumb.style.cssText = 'position: relative; display: inline-block; margin-right: 8px; flex-shrink: 0;';
 
-                let innerHTML = '';
-                if (file.fileType === 'image') {
-                    innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;">`;
-                } else {
-                    innerHTML = `
+                                        let innerHTML = '';
+                                        if (file.fileType === 'image') {
+                                            innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;">`;
+                                        } else {
+                                            innerHTML = `
                         <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
                             📄
                         </div>`;
-                }
+                                        }
 
-                // Add Close Button (X)
-                innerHTML += `
+                                        // Add Close Button (X)
+                                        innerHTML += `
                     <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">&times;</div>
                 `;
 
-                thumb.innerHTML = innerHTML;
-                stagingContent.appendChild(thumb);
-            });
-        }
-    }
+                                        thumb.innerHTML = innerHTML;
+                                        stagingContent.appendChild(thumb);
+                                    });
+                                }
+                            }
 
-    removeStagedFile(userId, index) {
-        let files = this.stagedFiles.get(userId) || [];
-        if (files.length > index) {
-            files.splice(index, 1);
-            this.stagedFiles.set(userId, files);
-            this.renderStagingArea(userId);
-        }
-    }
+                            removeStagedFile(userId, index) {
+                                let files = this.stagedFiles.get(userId) || [];
+                                if (files.length > index) {
+                                    files.splice(index, 1);
+                                    this.stagedFiles.set(userId, files);
+                                    this.renderStagingArea(userId);
+                                }
+                            }
 
-    clearStaging(userId) {
-        this.stagedFiles.delete(userId);
-        this.renderStagingArea(userId); // Update UI after clearing
-    }
+                            clearStaging(userId) {
+                                this.stagedFiles.delete(userId);
+                                this.renderStagingArea(userId); // Update UI after clearing
+                            }
 
     async sendStagedMessage(userId) {
-        const input = document.getElementById(`chat-input-${userId}`);
-        if (!input) return;
+                                const input = document.getElementById(`chat-input-${userId}`);
+                                if (!input) return;
 
-        const text = input.value.trim();
-        // Safety check
-        if (!this.stagedFiles) this.stagedFiles = new Map();
+                                const text = input.value.trim();
+                                // Safety check
+                                if (!this.stagedFiles) this.stagedFiles = new Map();
 
-        let staged = this.stagedFiles.get(userId);
-        if (staged && !Array.isArray(staged)) staged = [staged]; // Safety
+                                let staged = this.stagedFiles.get(userId);
+                                if (staged && !Array.isArray(staged)) staged = [staged]; // Safety
 
-        if (!text && (!staged || staged.length === 0)) return; // Nothing to send
+                                if (!text && (!staged || staged.length === 0)) return; // Nothing to send
 
-        // Logic: Send text with FIRST file, then send remaining files
-        // If no files, just send text.
+                                // Logic: Send text with FIRST file, then send remaining files
+                                // If no files, just send text.
 
-        if (staged && staged.length > 0) {
-            // Message 1: Text + File 1
-            await this.sendMiniMessage(userId, text, staged[0].fileUrl, staged[0].fileType);
+                                if (staged && staged.length > 0) {
+                                    // Message 1: Text + File 1
+                                    await this.sendMiniMessage(userId, text, staged[0].fileUrl, staged[0].fileType);
 
-            // Remaining files
-            for (let i = 1; i < staged.length; i++) {
-                await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);
-            }
-        } else {
-            // Just text
-            await this.sendMiniMessage(userId, text);
-        }
+                                    // Remaining files
+                                    for (let i = 1; i < staged.length; i++) {
+                                        await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);
+                                    }
+                                } else {
+                                    // Just text
+                                    await this.sendMiniMessage(userId, text);
+                                }
 
-        // Cleanup
-        input.value = '';
-        this.clearStaging(userId);
-    }
+                                // Cleanup
+                                input.value = '';
+                                this.clearStaging(userId);
+                            }
 
     // Updated send method to support attachments
     async sendMiniMessage(receiverId, text, fileUrl = null, fileType = null) {
-        try {
-            if (!text && !fileUrl) return;
+                                try {
+                                    if (!text && !fileUrl) return;
 
-            const token = localStorage.getItem('authToken');
-            const res = await fetch(`${this.baseUrl}/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    receiverId,
-                    message: text,
-                    fileUrl: fileUrl,  // Phase B
-                    fileType: fileType // Phase B
-                })
-            });
+                                    const token = localStorage.getItem('authToken');
+                                    const res = await fetch(`${this.baseUrl}/chat`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`
+                                        },
+                                        body: JSON.stringify({
+                                            receiverId,
+                                            message: text,
+                                            fileUrl: fileUrl,  // Phase B
+                                            fileType: fileType // Phase B
+                                        })
+                                    });
 
-            if (!res.ok) throw new Error('Failed to send');
+                                    if (!res.ok) throw new Error('Failed to send');
 
-            const { message } = await res.json();
+                                    const { message } = await res.json();
 
-            // UI Update is handled by Socket event 'private-message'
-            // But we can append locally for instant feedback if needed
-        } catch (error) {
-            console.error('Send Error:', error);
-        }
-    }
+                                    // UI Update is handled by Socket event 'private-message'
+                                    // But we can append locally for instant feedback if needed
+                                } catch (error) {
+                                    console.error('Send Error:', error);
+                                }
+                            }
 
     // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
     async downloadFile(url, filename) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
+                                try {
+                                    const response = await fetch(url);
+                                    if (!response.ok) throw new Error('Network response was not ok');
+                                    const blob = await response.blob();
+                                    const blobUrl = window.URL.createObjectURL(blob);
 
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = blobUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
+                                    const a = document.createElement('a');
+                                    a.style.display = 'none';
+                                    a.href = blobUrl;
+                                    a.download = filename;
+                                    document.body.appendChild(a);
+                                    a.click();
 
-            window.URL.revokeObjectURL(blobUrl);
-            document.body.removeChild(a);
-        } catch (error) {
-            console.error('Download failed:', error);
-            // Fallback
-            window.open(url, '_blank');
-        }
-    }
+                                    window.URL.revokeObjectURL(blobUrl);
+                                    document.body.removeChild(a);
+                                } catch (error) {
+                                    console.error('Download failed:', error);
+                                    // Fallback
+                                    window.open(url, '_blank');
+                                }
+                            }
 
-    // ==========================================
-    // Lightbox Logic (Phase F)
-    // ==========================================
-    // ==========================================
-    // Lightbox Logic (Phase G - Carousel)
-    // ==========================================
-    openLightbox(currentUrl, userId) {
-        // 1. Get all images in conversation
-        let conversation = this.conversations.find(c => c.otherUser.id == userId);
-        // If not found in active list, try to find in messagesPageContainer or fallback
-        // Fallback: Scan DOM if needed, but state is better. 
-        // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
-        // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
-        // Let's use the DOM-rendered images to be 100% sync with what the user sees.
+                            // ==========================================
+                            // Lightbox Logic (Phase F)
+                            // ==========================================
+                            // ==========================================
+                            // Lightbox Logic (Phase G - Carousel)
+                            // ==========================================
+                            openLightbox(currentUrl, userId) {
+                                // 1. Get all images in conversation
+                                let conversation = this.conversations.find(c => c.otherUser.id == userId);
+                                // If not found in active list, try to find in messagesPageContainer or fallback
+                                // Fallback: Scan DOM if needed, but state is better. 
+                                // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
+                                // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
+                                // Let's use the DOM-rendered images to be 100% sync with what the user sees.
 
-        const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
-        let currentIndex = allImages.indexOf(currentUrl);
-        if (currentIndex === -1) {
-            // Fallback if URL mismatch (e.g. query params)
-            currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
-        }
-        if (currentIndex === -1) {
-            // Just show single if not found in list
-            allImages.push(currentUrl);
-            currentIndex = 0;
-        }
+                                const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
+                                let currentIndex = allImages.indexOf(currentUrl);
+                                if (currentIndex === -1) {
+                                    // Fallback if URL mismatch (e.g. query params)
+                                    currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
+                                }
+                                if (currentIndex === -1) {
+                                    // Just show single if not found in list
+                                    allImages.push(currentUrl);
+                                    currentIndex = 0;
+                                }
 
-        let lightbox = document.getElementById('chat-lightbox');
-        if (lightbox) lightbox.remove(); // Re-create to ensure clean state
+                                let lightbox = document.getElementById('chat-lightbox');
+                                if (lightbox) lightbox.remove(); // Re-create to ensure clean state
 
-        lightbox = document.createElement('div');
-        lightbox.id = 'chat-lightbox';
-        lightbox.style.cssText = `
+                                lightbox = document.createElement('div');
+                                lightbox.id = 'chat-lightbox';
+                                lightbox.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 10000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             user-select: none; opacity: 0; transition: opacity 0.2s;
         `;
-        document.body.appendChild(lightbox);
+                                document.body.appendChild(lightbox);
 
-        // --- RENDER FUNCTION ---
-        const renderContent = () => {
-            lightbox.innerHTML = '';
+                                // --- RENDER FUNCTION ---
+                                const renderContent = () => {
+                                    lightbox.innerHTML = '';
 
-            // Close Button
-            const closeBtn = document.createElement('div');
-            closeBtn.innerHTML = '&times;';
-            closeBtn.style.cssText = `
+                                    // Close Button
+                                    const closeBtn = document.createElement('div');
+                                    closeBtn.innerHTML = '&times;';
+                                    closeBtn.style.cssText = `
                 position: absolute; top: 10px; right: 20px; color: #fff; font-size: 40px; 
                 cursor: pointer; z-index: 10002; opacity: 0.8;
             `;
-            closeBtn.onclick = () => close();
-            lightbox.appendChild(closeBtn);
+                                    closeBtn.onclick = () => close();
+                                    lightbox.appendChild(closeBtn);
 
-            // Container for Main Image + Arrows
-            const mainContainer = document.createElement('div');
-            mainContainer.style.cssText = `
+                                    // Container for Main Image + Arrows
+                                    const mainContainer = document.createElement('div');
+                                    mainContainer.style.cssText = `
                 flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;
             `;
 
-            // Prev Arrow
-            if (allImages.length > 1) {
-                const prevBtn = document.createElement('div');
-                prevBtn.innerHTML = '&#10094;';
-                prevBtn.style.cssText = `
+                                    // Prev Arrow
+                                    if (allImages.length > 1) {
+                                        const prevBtn = document.createElement('div');
+                                        prevBtn.innerHTML = '&#10094;';
+                                        prevBtn.style.cssText = `
                     position: absolute; left: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-                prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
-                mainContainer.appendChild(prevBtn);
-            }
+                                        prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
+                                        mainContainer.appendChild(prevBtn);
+                                    }
 
-            // Image
-            const img = document.createElement('img');
-            img.src = allImages[currentIndex];
-            img.style.cssText = `
+                                    // Image
+                                    const img = document.createElement('img');
+                                    img.src = allImages[currentIndex];
+                                    img.style.cssText = `
                 max-width: 90%; max-height: 80vh; border-radius: 4px; 
                 box-shadow: 0 0 30px rgba(0,0,0,0.5); transition: transform 0.2s;
             `;
-            mainContainer.appendChild(img);
+                                    mainContainer.appendChild(img);
 
-            // Next Arrow
-            if (allImages.length > 1) {
-                const nextBtn = document.createElement('div');
-                nextBtn.innerHTML = '&#10095;';
-                nextBtn.style.cssText = `
+                                    // Next Arrow
+                                    if (allImages.length > 1) {
+                                        const nextBtn = document.createElement('div');
+                                        nextBtn.innerHTML = '&#10095;';
+                                        nextBtn.style.cssText = `
                     position: absolute; right: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-                nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
-                mainContainer.appendChild(nextBtn);
-            }
-            lightbox.appendChild(mainContainer);
+                                        nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
+                                        mainContainer.appendChild(nextBtn);
+                                    }
+                                    lightbox.appendChild(mainContainer);
 
-            // Thumbnails Strip
-            if (allImages.length > 1) {
-                const strip = document.createElement('div');
-                strip.style.cssText = `
+                                    // Thumbnails Strip
+                                    if (allImages.length > 1) {
+                                        const strip = document.createElement('div');
+                                        strip.style.cssText = `
                     height: 80px; width: 100%; background: rgba(0,0,0,0.5); 
                     display: flex; align-items: center; justify-content: center; gap: 10px; 
                     overflow-x: auto; padding: 10px; box-sizing: border-box;
                 `;
 
-                allImages.forEach((src, idx) => {
-                    const thumb = document.createElement('img');
-                    thumb.src = src;
-                    const isActive = idx === currentIndex;
-                    thumb.style.cssText = `
+                                        allImages.forEach((src, idx) => {
+                                            const thumb = document.createElement('img');
+                                            thumb.src = src;
+                                            const isActive = idx === currentIndex;
+                                            thumb.style.cssText = `
                         height: 50px; width: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; 
                         border: 2px solid ${isActive ? 'var(--accent-purple)' : 'transparent'};
                         opacity: ${isActive ? '1' : '0.6'}; transition: all 0.2s;
                     `;
-                    thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
-                    strip.appendChild(thumb);
-                });
-                lightbox.appendChild(strip);
-            }
+                                            thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
+                                            strip.appendChild(thumb);
+                                        });
+                                        lightbox.appendChild(strip);
+                                    }
 
-            // Click BG to close
-            lightbox.onclick = (e) => {
-                if (e.target === lightbox || e.target === mainContainer) close();
-            };
-        };
+                                    // Click BG to close
+                                    lightbox.onclick = (e) => {
+                                        if (e.target === lightbox || e.target === mainContainer) close();
+                                    };
+                                };
 
-        // --- HELPERS ---
-        const navigate = (dir) => {
-            currentIndex += dir;
-            if (currentIndex < 0) currentIndex = allImages.length - 1;
-            if (currentIndex >= allImages.length) currentIndex = 0;
-            renderContent();
-        };
+                                // --- HELPERS ---
+                                const navigate = (dir) => {
+                                    currentIndex += dir;
+                                    if (currentIndex < 0) currentIndex = allImages.length - 1;
+                                    if (currentIndex >= allImages.length) currentIndex = 0;
+                                    renderContent();
+                                };
 
-        const close = () => {
-            lightbox.style.opacity = '0';
-            setTimeout(() => lightbox.remove(), 200);
-            document.removeEventListener('keydown', keyHandler);
-        };
+                                const close = () => {
+                                    lightbox.style.opacity = '0';
+                                    setTimeout(() => lightbox.remove(), 200);
+                                    document.removeEventListener('keydown', keyHandler);
+                                };
 
-        const keyHandler = (e) => {
-            if (e.key === 'Escape') close();
-            if (e.key === 'ArrowLeft') navigate(-1);
-            if (e.key === 'ArrowRight') navigate(1);
-        };
-        document.addEventListener('keydown', keyHandler);
+                                const keyHandler = (e) => {
+                                    if (e.key === 'Escape') close();
+                                    if (e.key === 'ArrowLeft') navigate(-1);
+                                    if (e.key === 'ArrowRight') navigate(1);
+                                };
+                                document.addEventListener('keydown', keyHandler);
 
-        // Init
-        renderContent();
-        requestAnimationFrame(() => lightbox.style.opacity = '1');
-    }
+                                // Init
+                                renderContent();
+                                requestAnimationFrame(() => lightbox.style.opacity = '1');
+                            }
 
-    // ==========================================
-    // Emoji Picker Logic (Inline - No Dependencies)
-    // ==========================================
-    toggleEmojiPicker(triggerBtn, userId) {
-        // Close if open
-        const existing = document.getElementById(`emoji-picker-${userId}`);
-        if (existing) {
-            existing.remove();
-            return;
-        }
+                            // ==========================================
+                            // Emoji Picker Logic (Inline - No Dependencies)
+                            // ==========================================
+                            toggleEmojiPicker(triggerBtn, userId) {
+                                // Close if open
+                                const existing = document.getElementById(`emoji-picker-${userId}`);
+                                if (existing) {
+                                    existing.remove();
+                                    return;
+                                }
 
-        // Create Picker
-        const picker = document.createElement('div');
-        picker.id = `emoji-picker-${userId}`;
-        picker.style.cssText = `
+                                // Create Picker
+                                const picker = document.createElement('div');
+                                picker.id = `emoji-picker-${userId}`;
+                                picker.style.cssText = `
             position: absolute;
             bottom: 60px;
             right: 10px;
@@ -1669,55 +1669,55 @@ class ChatManager {
             scrollbar-color: #555 #222;
         `;
 
-        // Webkit Scrollbar style injection (inline)
-        const style = document.createElement('style');
-        style.textContent = `
+                                // Webkit Scrollbar style injection (inline)
+                                const style = document.createElement('style');
+                                style.textContent = `
             #emoji-picker-${userId}::-webkit-scrollbar { width: 6px; }
             #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222; }
             #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
         `;
-        picker.appendChild(style);
+                                picker.appendChild(style);
 
-        const emojis = [
-            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-            '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
-        ];
+                                const emojis = [
+                                    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+                                    '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+                                    '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+                                    '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+                                    '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
+                                ];
 
-        emojis.forEach(emoji => {
-            const span = document.createElement('span');
-            span.textContent = emoji;
-            span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
-            span.onmouseover = () => span.style.background = '#333';
-            span.onmouseout = () => span.style.background = 'transparent';
-            span.onclick = () => {
-                const input = document.getElementById(`chat-input-${userId}`);
-                if (input) {
-                    input.value += emoji;
-                    input.focus();
-                }
-                // Keep open or close? Usually close
-                // picker.remove(); 
-            };
-            picker.appendChild(span);
-        });
+                                emojis.forEach(emoji => {
+                                    const span = document.createElement('span');
+                                    span.textContent = emoji;
+                                    span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
+                                    span.onmouseover = () => span.style.background = '#333';
+                                    span.onmouseout = () => span.style.background = 'transparent';
+                                    span.onclick = () => {
+                                        const input = document.getElementById(`chat-input-${userId}`);
+                                        if (input) {
+                                            input.value += emoji;
+                                            input.focus();
+                                        }
+                                        // Keep open or close? Usually close
+                                        // picker.remove(); 
+                                    };
+                                    picker.appendChild(span);
+                                });
 
-        // Close on click outside
-        const closeHandler = (e) => {
-            if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
-                picker.remove();
-                document.removeEventListener('click', closeHandler);
-            }
-        };
-        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+                                // Close on click outside
+                                const closeHandler = (e) => {
+                                    if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
+                                        picker.remove();
+                                        document.removeEventListener('click', closeHandler);
+                                    }
+                                };
+                                setTimeout(() => document.addEventListener('click', closeHandler), 0);
 
-        // Append to footer or body? Footer is safer for positioning
-        triggerBtn.parentElement.parentElement.style.position = 'relative';
-        triggerBtn.parentElement.parentElement.appendChild(picker);
-    }
-}
+                                // Append to footer or body? Footer is safer for positioning
+                                triggerBtn.parentElement.parentElement.style.position = 'relative';
+                                triggerBtn.parentElement.parentElement.appendChild(picker);
+                            }
+                        }
 
-// Make globally available
-window.ChatManager = ChatManager;
+                        // Make globally available
+                        window.ChatManager = ChatManager;
