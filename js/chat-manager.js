@@ -591,8 +591,11 @@ class ChatManager {
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
                         <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name}</span>
-                            <span class="user-status-text" style="font-size: 0.7rem; color: ${user.isOnline ? '#4ade80' : '#aaa'}; line-height: 1; margin-top: 2px;">${user.isOnline ? 'En línea' : 'Desconectado'}</span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name}</span>
+                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${user.isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
+                            </div>
+                            <span class="user-status-text" style="font-size: 0.7rem; color: ${user.isOnline ? '#4ade80' : 'transparent'}; line-height: 1; margin-top: 2px; height: 10px;">${user.isOnline ? 'En línea' : ''}</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
@@ -850,16 +853,22 @@ class ChatManager {
         if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
             const headerStatus = document.querySelector('#chatHeader span');
             if (headerStatus) {
-                headerStatus.textContent = isOnline ? 'En línea' : 'Desconectado';
+                headerStatus.textContent = isOnline ? 'En línea' : '';
                 headerStatus.style.color = isOnline ? 'var(--success-green)' : '#999';
             }
         }
 
         // Update UI (Widget Tab) - Rerender just the header if possible or full tab
         const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
+        const statusDot = document.querySelector(`#chat-tab-${userId} .status-dot`);
+
         if (tabHeader) {
-            tabHeader.textContent = isOnline ? 'En línea' : 'Desconectado';
-            tabHeader.style.color = isOnline ? '#4ade80' : '#aaa';
+            tabHeader.textContent = isOnline ? 'En línea' : '';
+            tabHeader.style.color = isOnline ? '#4ade80' : 'transparent';
+        }
+        if (statusDot) {
+            statusDot.style.background = isOnline ? '#4ade80' : 'transparent';
+            statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';
         }
     }
 
@@ -888,6 +897,95 @@ class ChatManager {
         } catch (e) {
             console.error("Audio error", e);
         }
+    }
+
+    // Helper for Input Focus (Read Receipt + Stop Flash + Stop Title Blink)
+    handleInputFocus(userId) {
+        // 1. Mark Read
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (conv) {
+            if (conv.unreadCount > 0) {
+                conv.unreadCount = 0;
+                this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
+                // Re-render to clear badge
+                this.renderWidgetTabs();
+            }
+        }
+
+        // 2. Stop Flash
+        const tab = document.getElementById(`chat-tab-${userId}`);
+        if (tab) {
+            tab.classList.remove('flash-animation');
+        }
+
+        // 3. Stop Title Blink
+        this.stopTitleBlink();
+    }
+
+    startTitleBlink(userName) {
+        if (this.titleInterval) clearInterval(this.titleInterval);
+
+        let isOriginal = false;
+        const originalTitle = "DeskShare - Alquila Computadoras Potentes";
+        const newTitle = `💬 Nuevo mensaje de ${userName}`;
+
+        this.titleInterval = setInterval(() => {
+            document.title = isOriginal ? newTitle : originalTitle;
+            isOriginal = !isOriginal;
+        }, 1000);
+    }
+
+    stopTitleBlink() {
+        if (this.titleInterval) {
+            clearInterval(this.titleInterval);
+            this.titleInterval = null;
+            document.title = "DeskShare - Alquila Computadoras Potentes";
+        }
+    }
+
+    renderChatTab(conv) {
+        const userId = conv.otherUser.id;
+        const isMinimized = this.minimizedConversations.has(userId);
+        const unreadCount = conv.unreadCount || 0;
+        const isOnline = conv.otherUser.isOnline;
+
+        const statusDotStyle = `background: ${isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${isOnline ? '0 0 5px #4ade80' : 'none'};`;
+        const statusTextStyle = `color: ${isOnline ? '#4ade80' : 'transparent'};`;
+        const statusText = isOnline ? 'En línea' : '';
+
+        return `
+            <div class="chat-tab ${unreadCount > 0 ? 'flash-animation' : ''}" id="chat-tab-${userId}" style="height: ${isMinimized ? '50px' : '400px'}; border-radius: ${isMinimized ? '8px' : '8px 8px 0 0'};">
+                <div class="chat-tab-header" onclick="window.ChatManager.toggleMinimize('${userId}')">
+                    <div class="user-info">
+                        <img src="${conv.otherUser.profilePicture || '/images/default-avatar.png'}" alt="${conv.otherUser.username}" class="user-avatar">
+                        <span class="username">${conv.otherUser.username}</span>
+                        <span class="status-dot" style="${statusDotStyle}"></span>
+                        <span class="user-status-text" style="${statusTextStyle}">${statusText}</span>
+                    </div>
+                    <div class="header-controls">
+                        ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
+                        <span class="minimize-icon">${isMinimized ? '' : '−'}</span>
+                        <span class="close-icon" onclick="event.stopPropagation(); window.ChatManager.closeTab('${userId}')">×</span>
+                    </div>
+                </div>
+                <div class="chat-tab-body">
+                    <div class="messages-area mini-messages-area" id="msg-area-${userId}">
+                        ${conv.messages && conv.messages.length > 0 ? conv.messages.map(msg => `
+                            <div class="message-bubble-wrapper ${msg.senderId === this.currentUser.id ? 'sent' : 'received'}">
+                                <div class="message-bubble">
+                                    ${msg.message}
+                                </div>
+                            </div>
+                        `).join('') : '<p class="no-messages">No hay mensajes aún.</p>'}
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" placeholder="Escribe un mensaje..." 
+                               onkeydown="if(event.key === 'Enter') { window.ChatManager.sendMiniMessage('${userId}', this.value); this.value=''; }"
+                               onfocus="window.ChatManager.handleInputFocus('${userId}')">
+                    </div>
+                </div>
+            </div>
+        `;
     }
 }
 
