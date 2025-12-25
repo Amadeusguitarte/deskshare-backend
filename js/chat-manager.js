@@ -1286,32 +1286,74 @@ class ChatManager {
     }
 
     // ==========================================
-    // Emoji Picker Logic (Phase C)
+    // Emoji Picker Logic (Inline - No Dependencies)
     // ==========================================
     toggleEmojiPicker(triggerBtn, userId) {
-        if (!window.EmojiButton) {
-            alert('Emoji Library not loaded. Check internet connection.');
+        // Close if open
+        const existing = document.getElementById(`emoji-picker-${userId}`);
+        if (existing) {
+            existing.remove();
             return;
         }
 
-        if (!this.picker) {
-            this.picker = new EmojiButton({
-                theme: 'dark',
-                autoHide: false,
-                position: 'top-start'
-            });
+        // Create Picker
+        const picker = document.createElement('div');
+        picker.id = `emoji-picker-${userId}`;
+        picker.style.cssText = `
+            position: absolute;
+            bottom: 60px;
+            right: 10px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            max-height: 200px;
+            overflow-y: auto;
+        `;
 
-            this.picker.on('emoji', selection => {
-                const input = document.getElementById(`chat-input-${this.activePickerUserId}`);
+        const emojis = [
+            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+            '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
+        ];
+
+        emojis.forEach(emoji => {
+            const span = document.createElement('span');
+            span.textContent = emoji;
+            span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
+            span.onmouseover = () => span.style.background = '#333';
+            span.onmouseout = () => span.style.background = 'transparent';
+            span.onclick = () => {
+                const input = document.getElementById(`chat-input-${userId}`);
                 if (input) {
-                    input.value += selection.emoji;
+                    input.value += emoji;
                     input.focus();
                 }
-            });
-        }
+                // Keep open or close? Usually close
+                // picker.remove(); 
+            };
+            picker.appendChild(span);
+        });
 
-        this.activePickerUserId = userId;
-        this.picker.togglePicker(triggerBtn);
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+
+        // Append to footer or body? Footer is safer for positioning
+        triggerBtn.parentElement.parentElement.style.position = 'relative';
+        triggerBtn.parentElement.parentElement.appendChild(picker);
     }
 }
 
