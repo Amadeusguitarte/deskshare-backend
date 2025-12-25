@@ -1152,7 +1152,7 @@ class ChatManager {
 
                                 contentHtml += `
                                             <div style="margin-bottom: 6px;">
-                                                <div onclick="window.chatManagerInstance.downloadFile('${msg.fileUrl}', '${cleanName}')" style="
+                                                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
                                                     display: flex; align-items: center; gap: 12px; cursor: pointer;
                                                     background: #242526; padding: 10px 14px; 
                                                     border-radius: 18px; text-decoration: none; color: white; 
