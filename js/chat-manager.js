@@ -1178,7 +1178,5 @@ class ChatManager {
         }
     }
 
-}
-
 // Make globally available
 window.ChatManager = ChatManager;
