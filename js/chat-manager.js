@@ -1187,14 +1187,14 @@ class ChatManager {
                         const bubblePad = isStandAlone ? '0' : '8px 12px';
 
                         return `
-                                    < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};" >
+                                    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                                         <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
                                             <span style="background: ${bubbleBg}; color: white; padding: ${bubblePad}; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
                                                 ${contentHtml}
                                             </span>
                                             ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                                         </div>
-                                    </div >
+                                    </div>
                                     `;
                     }).join('');
 
