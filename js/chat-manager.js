@@ -1057,8 +1057,10 @@ class ChatManager {
                     
                     <!-- STAGING AREA (Preview) -->
                     <div id="chat-staging-${user.id}" style="display: none; padding: 8px; background: #333; border-radius: 8px; margin-bottom: 4px; align-items: center; justify-content: space-between;">
-                        <span id="chat-staging-name-${user.id}" style="color: #fff; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;"></span>
-                        <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer;">✕</button>
+                        <div id="chat-staging-content-${user.id}" style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                            <!-- Content injected by JS -->
+                        </div>
+                        <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.2em;">&times;</button>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
@@ -1159,11 +1161,26 @@ class ChatManager {
 
             // 3. Update UI
             const stagingArea = document.getElementById(`chat-staging-${userId}`);
-            const stagingName = document.getElementById(`chat-staging-name-${userId}`);
-            if (stagingArea && stagingName) {
+            const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
+
+            if (stagingArea && stagingContent) {
                 stagingArea.style.display = 'flex';
-                let icon = data.fileType === 'image' ? '📷' : '📄';
-                stagingName.textContent = `${icon} ${file.name}`;
+
+                if (data.fileType === 'image') {
+                    stagingContent.innerHTML = `
+                        <img src="${data.fileUrl}" style="height: 50px; width: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #555;">
+                        <span style="font-size: 0.8em; color: #ccc;">Imagen lista para enviar</span>
+                    `;
+                } else {
+                    stagingContent.innerHTML = `
+                        <div style="height: 50px; width: 50px; background: #444; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
+                            📄
+                        </div>
+                        <span style="font-size: 0.8em; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;">
+                            ${file.name}
+                        </span>
+                    `;
+                }
             }
 
             // Focus input
