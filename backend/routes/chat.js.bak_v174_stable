@@ -7,33 +7,8 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
-const uploadChat = require('../middleware/uploadChat');
 
 const prisma = new PrismaClient();
-
-// ========================================
-// POST /api/chat/upload
-// Upload a file for chat
-// ========================================
-router.post('/upload', auth, uploadChat.single('file'), (req, res, next) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        // Determine simple type for frontend
-        const isImage = req.file.mimetype.startsWith('image/');
-        const fileType = isImage ? 'image' : 'document';
-
-        res.json({
-            fileUrl: req.file.path,
-            fileType: fileType,
-            originalName: req.file.originalname
-        });
-    } catch (error) {
-        next(error);
-    }
-});
 
 // ========================================
 // GET /api/chat/conversations
@@ -181,10 +156,10 @@ router.get('/history/:userId', auth, async (req, res, next) => {
 // ========================================
 router.post('/', auth, async (req, res, next) => {
     try {
-        const { receiverId, computerId, message, fileUrl, fileType } = req.body;
+        const { receiverId, computerId, message } = req.body;
 
-        if ((!message || !message.trim()) && !fileUrl) {
-            return res.status(400).json({ error: 'Message cannot be empty (unless sending file)' });
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'Message cannot be empty' });
         }
 
         const newMessage = await prisma.message.create({
@@ -192,9 +167,7 @@ router.post('/', auth, async (req, res, next) => {
                 senderId: req.user.userId || req.user.id,
                 receiverId: parseInt(receiverId),
                 computerId: computerId ? parseInt(computerId) : null,
-                message: message ? message.trim() : '',
-                fileUrl: fileUrl || null,
-                fileType: fileType || null
+                message: message.trim(),
             },
             include: {
                 sender: { select: { id: true, name: true, avatarUrl: true } },

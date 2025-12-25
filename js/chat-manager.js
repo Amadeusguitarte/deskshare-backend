@@ -282,7 +282,7 @@ class ChatManager {
         }
     }
 
-    async sendMessage(receiverId, text, computerId = null) {
+    async sendMessage(receiverId, text, computerId = null, fileUrl = null, fileType = null) {
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -294,7 +294,9 @@ class ChatManager {
                 body: JSON.stringify({
                     receiverId,
                     message: text,
-                    computerId
+                    computerId,
+                    fileUrl,
+                    fileType
                 })
             });
 
@@ -519,7 +521,10 @@ class ChatManager {
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
                     ${this.conversations.length > 0 ? this.conversations.map(conv => `
                         <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
-                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
+                            <div style="position: relative;">
+                                <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
+                                <div class="status-dot" style="position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; border-radius: 50%; background: ${conv.otherUser.isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${conv.otherUser.isOnline ? '0 0 5px #4ade80' : 'none'}; border: 1px solid #1a1a1a; transition: all 0.3s;"></div>
+                            </div>
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
                                 <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
@@ -983,6 +988,9 @@ class ChatManager {
         const statusText = user.isOnline ? 'En línea' : '';
         const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
+        // BIND EVENTS LATER
+        setTimeout(() => this.bindEventsAfterRender(user.id), 100);
+
         return `
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!-- HEADER -->
@@ -1065,6 +1073,107 @@ class ChatManager {
             </div>
         `;
     }
+    // ===========================================
+    // Attachments & Emojis
+    // ===========================================
+
+    triggerFileUpload(userId) {
+        // Create hidden input
+        let input = document.getElementById(`chat-upload-${userId}`);
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = `chat-upload-${userId}`;
+            input.style.display = 'none';
+            // Accept diverse types
+            input.accept = 'image/*,application/pdf,.doc,.docx,.txt,.zip';
+            input.onchange = (e) => this.uploadFile(userId, e.target.files[0]);
+            document.body.appendChild(input);
+        }
+        input.click();
+    }
+
+    async uploadFile(userId, file) {
+        if (!file) return;
+
+        // Optimistic UI? Maybe just "Uploading..." in input
+        const tab = document.getElementById(`chat-tab-${userId}`);
+        const inputField = tab ? tab.querySelector('input') : null;
+        const originalPlaceholder = inputField ? inputField.placeholder : '';
+
+        if (inputField) {
+            inputField.disabled = true;
+            inputField.placeholder = "Subiendo archivo... (0%)";
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/chat/upload`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Upload failed');
+
+            const data = await response.json();
+            // { fileUrl, fileType, originalName }
+
+            // Send actual message with attachment
+            await this.sendMessage(userId, "", null, data.fileUrl, data.fileType);
+
+            // Clean up UI
+            if (inputField) {
+                inputField.value = '';
+                inputField.placeholder = originalPlaceholder;
+                inputField.disabled = false;
+                inputField.focus(); // Restore focus!
+            }
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error subiendo archivo: ' + error.message);
+            if (inputField) {
+                inputField.placeholder = originalPlaceholder;
+                inputField.disabled = false;
+            }
+        }
+    }
+
+    bindEventsAfterRender(userId) {
+        // Bind Emoji Picker
+        const btn = document.getElementById(`emoji-btn-${userId}`);
+        if (btn && window.EmojiButton) {
+            if (!this.pickers) this.pickers = {};
+
+            if (!this.pickers[userId]) {
+                const picker = new EmojiButton({
+                    position: 'top-start',
+                    theme: 'dark',
+                    autoHide: false
+                });
+
+                picker.on('emoji', selection => {
+                    const tab = document.getElementById(`chat-tab-${userId}`);
+                    const input = tab.querySelector('input');
+                    if (input) {
+                        input.value += selection.emoji;
+                        input.focus();
+                    }
+                });
+
+                this.pickers[userId] = picker;
+            }
+
+            btn.onclick = () => this.pickers[userId].togglePicker(btn);
+        }
+    }
+
 }
 
 // Make globally available
