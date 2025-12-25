@@ -1172,14 +1172,14 @@ class ChatManager {
                                                             display: block; width: 100%;
                                                         ">${cleanName}</span>
                                                     </div>
-                                                </div> // Was </a>, now </div>
+                                                </div>
                                             </div>
                                         `;
                             }
                         }
 
                         if (msg.message && msg.message.trim()) {
-                            contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
+                            contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                         }
 
                         const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
