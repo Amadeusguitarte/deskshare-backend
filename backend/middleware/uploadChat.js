@@ -34,10 +34,11 @@ const fileFilter = (req, file, cb) => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'text/plain',
         'application/zip',
-        'application/x-zip-compressed'
+        'application/x-zip-compressed',
         'image/webp', 'image/bmp',
         'application/octet-stream', // Generic fallback
         'application/x-rar-compressed'
+    ];
 
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
