@@ -1132,9 +1132,9 @@ class ChatManager {
                             if (msg.fileType === 'image') {
                                 contentHtml += `
                                             <div style="margin-bottom: 0;">
-                                                <div onclick="event.stopPropagation(); chatManager.openLightbox('${msg.fileUrl}', '${user.id}')" 
+                                                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')" 
                                                      style="cursor: zoom-in; display: block; position: relative;">
-                                                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 220px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
+                                                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 220px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: select;">
                                                 </div>
                                             </div>
                                         `;
