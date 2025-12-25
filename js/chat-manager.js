@@ -1040,9 +1040,12 @@ class ChatManager {
                     // 2. Different sender
                     // 3. Current is not Image (break the chain)
                     // 4. Previous was not Image (break chain)
-                    // 5. Time gap > 2 mins (optional, but good for UX)
+                    // 5. Time gap > 5 seconds (Strict batch detection)
 
-                    const shouldContinueGroup = isImage && isSameSender && isPrevImage;
+                    const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
+                    const isRapidSequence = timeDiff < 5000; // 5 seconds threshold for "Batch"
+
+                    const shouldContinueGroup = isImage && isSameSender && isPrevImage && isRapidSequence;
 
                     if (shouldContinueGroup) {
                         currentGroup.push(msg);
