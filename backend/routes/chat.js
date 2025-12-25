@@ -7,19 +7,8 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
-const uploadChat = require('../middleware/uploadChat');
 
 const prisma = new PrismaClient();
-
-// Upload endpoint
-router.post('/upload', auth, uploadChat.single('file'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    res.json({
-        fileUrl: req.file.path,
-        fileType: req.file.mimetype.startsWith('image/') ? 'image' : 'document'
-    });
-});
-
 
 // ========================================
 // GET /api/chat/conversations
@@ -178,7 +167,7 @@ router.post('/', auth, async (req, res, next) => {
                 senderId: req.user.userId || req.user.id,
                 receiverId: parseInt(receiverId),
                 computerId: computerId ? parseInt(computerId) : null,
-                message: message.trim()
+                message: message.trim(),
             },
             include: {
                 sender: { select: { id: true, name: true, avatarUrl: true } },

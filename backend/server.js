@@ -108,8 +108,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
 
-// Server Entry Point (v184 ROLLBACK - Restore Data)
-// Serve static files from the root directory (Project Root)
+// Server Entry Point (v180 RESTORED - GOLDEN STATE)(Project Root)
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../')));
 
