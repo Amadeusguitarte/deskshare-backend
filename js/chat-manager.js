@@ -1043,9 +1043,14 @@ class ChatManager {
                     // 5. Time gap > 5 seconds (Strict batch detection)
 
                     const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
-                    const isRapidSequence = timeDiff < 5000; // 5 seconds threshold for "Batch"
+                    const isRapidSequence = timeDiff < 5000;
 
-                    const shouldContinueGroup = isImage && isSameSender && isPrevImage && isRapidSequence;
+                    const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
+                    const isSameType = (!!isImage) === (!!isPrevImage);
+
+                    // Strictly group only if SAME type (All Images OR All Text/Doc)
+                    // This forces mixed batches to split into [Grid] and [Bubble] components
+                    const shouldContinueGroup = isSameSender && isRapidSequence && isSameType && isImage;
 
                     if (shouldContinueGroup) {
                         currentGroup.push(msg);
