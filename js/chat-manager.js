@@ -1031,11 +1031,44 @@ class ChatManager {
                 if (!newerMyMsg) showRead = true;
             }
 
+            let contentHtml = '';
+
+            // 1. Render Attachment (if any)
+            if (msg.fileUrl) {
+                if (msg.fileType === 'image') {
+                    contentHtml += `
+                        <div style="margin-bottom: 6px;">
+                            <a href="${msg.fileUrl}" target="_blank" style="cursor: zoom-in;">
+                                <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
+                    contentHtml += `
+                        <div style="margin-bottom: 6px;">
+                            <a href="${msg.fileUrl}" target="_blank" download style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-decoration: none; color: inherit; border: 1px solid rgba(255,255,255,0.1); hover:background: rgba(255,255,255,0.1);">
+                                <span style="font-size: 1.5em;">📄</span>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 0.85em; font-weight: 600; text-decoration: underline;">${cleanName}</span>
+                                    <span style="font-size: 0.7em; opacity: 0.7;">Click para abrir</span>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                }
+            }
+
+            // 2. Render Text (if any)
+            if (msg.message && msg.message.trim()) {
+                contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+            }
+
             return `
                         <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                             <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
-                                <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
-                                    ${msg.message}
+                                <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
+                                    ${contentHtml}
                                 </span>
                                 ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                             </div>
