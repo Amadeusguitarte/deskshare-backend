@@ -1038,7 +1038,7 @@ class ChatManager {
                 if (msg.fileType === 'image') {
                     contentHtml += `
                         <div style="margin-bottom: 6px;">
-                            <a href="${msg.fileUrl}" target="_blank" style="cursor: zoom-in;">
+                            <a href="javascript:void(0)" onclick="chatManager.openLightbox('${msg.fileUrl}')" style="cursor: zoom-in;">
                                 <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
                             </a>
                         </div>
@@ -1049,9 +1049,9 @@ class ChatManager {
                         <div style="margin-bottom: 6px;">
                             <a href="${msg.fileUrl}" target="_blank" download style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-decoration: none; color: inherit; border: 1px solid rgba(255,255,255,0.1); hover:background: rgba(255,255,255,0.1);">
                                 <span style="font-size: 1.5em;">📄</span>
-                                <div style="display: flex; flex-direction: column;">
-                                    <span style="font-size: 0.85em; font-weight: 600; text-decoration: underline;">${cleanName}</span>
-                                    <span style="font-size: 0.7em; opacity: 0.7;">Click para abrir</span>
+                                <div style="display: flex; flex-direction: column; max-width: 150px;">
+                                    <span style="font-size: 0.85em; font-weight: 600; text-decoration: underline; word-break: break-all;">${cleanName}</span>
+                                    <span style="font-size: 0.7em; opacity: 0.7;">Click para descargar</span>
                                 </div>
                             </a>
                         </div>
@@ -1286,6 +1286,39 @@ class ChatManager {
     }
 
     // ==========================================
+    // Lightbox Logic (Phase F)
+    // ==========================================
+    openLightbox(url) {
+        let lightbox = document.getElementById('chat-lightbox');
+        if (!lightbox) {
+            lightbox = document.createElement('div');
+            lightbox.id = 'chat-lightbox';
+            lightbox.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.9); z-index: 10000;
+                display: flex; align-items: center; justify-content: center;
+                cursor: pointer; opacity: 0; transition: opacity 0.3s;
+            `;
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox || e.target.tagName === 'IMG') { // Close on click anywhere
+                    lightbox.style.opacity = '0';
+                    setTimeout(() => lightbox.remove(), 300);
+                }
+            };
+            document.body.appendChild(lightbox);
+        }
+
+        lightbox.innerHTML = `<img src="${url}" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); transform: scale(0.9); transition: transform 0.3s;">`;
+        document.body.appendChild(lightbox); // Ensure top
+
+        // Animate in
+        requestAnimationFrame(() => {
+            lightbox.style.opacity = '1';
+            lightbox.querySelector('img').style.transform = 'scale(1)';
+        });
+    }
+
+    // ==========================================
     // Emoji Picker Logic (Inline - No Dependencies)
     // ==========================================
     toggleEmojiPicker(triggerBtn, userId) {
@@ -1314,7 +1347,19 @@ class ChatManager {
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             max-height: 200px;
             overflow-y: auto;
+            /* Scrollbar Style */
+            scrollbar-width: thin;
+            scrollbar-color: #555 #222;
         `;
+
+        // Webkit Scrollbar style injection (inline)
+        const style = document.createElement('style');
+        style.textContent = `
+            #emoji-picker-${userId}::-webkit-scrollbar { width: 6px; }
+            #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222; }
+            #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        `;
+        picker.appendChild(style);
 
         const emojis = [
             '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
