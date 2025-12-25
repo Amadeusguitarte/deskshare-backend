@@ -1078,12 +1078,10 @@ class ChatManager {
                         // Grid Templates
                         if (count === 2) {
                             gridContainerStyle += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2/1;';
-                        } else if (count === 3) {
-                            // "3 Pequeñas" -> Row of 3 equal images
-                            gridContainerStyle += 'grid-template-columns: 1fr 1fr 1fr; aspect-ratio: 3/1;';
                         } else {
-                            // 4+ (2-column stack)
-                            gridContainerStyle += 'grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr;';
+                            // 3 or 4+ -> 3 columns (small images)
+                            // This ensures 3 is a single row, and 4 starts a new row below
+                            gridContainerStyle += 'grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr;';
                         }
 
                         // Render Images
@@ -1091,10 +1089,10 @@ class ChatManager {
                             let itemStyle = 'width: 100%; height: 100%; object-fit: cover;';
                             // No special container style needed for simple grids
 
-                            // Explicit Click Handler Check
+                            // Explicit Click Handler Check (Global Instance)
                             return `
-                                <div onclick="event.stopPropagation(); chatManager.openLightbox('${msg.fileUrl}', '${user.id}')" 
-                                     style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 80px;">
+                                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')" 
+                                     style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
                                     <img src="${msg.fileUrl}" style="${itemStyle}">
                                 </div>
                             `;
