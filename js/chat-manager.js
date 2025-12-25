@@ -168,10 +168,8 @@ class ChatManager {
             // SOUND
             this.playSound();
 
-            // TAB NOTIFICATION
-            const oldTitle = document.title;
-            document.title = `💬 Nuevo mensaje de ${conv.otherUser.name}`;
-            setTimeout(() => document.title = oldTitle, 3000);
+            // TAB NOTIFICATION (Blink Title)
+            this.startTitleBlink(conv.otherUser.name);
 
             // Ensure tab is open
             if (!this.openConversationIds.includes(msg.senderId)) {
@@ -201,10 +199,10 @@ class ChatManager {
                             tab.classList.remove('flash-animation'); // reset
                             void tab.offsetWidth; // trigger reflow
                             tab.classList.add('flash-animation');
-                            // Remove after a few seconds? User said "titilando" (blinking), implies continuous until interaction.
-                            // But usually we stop after interaction. For now, infinite until click.
-                            // We can remove it on click (already handled in focus logic?) - no, let's add listener
-                            tab.addEventListener('click', () => tab.classList.remove('flash-animation'), { once: true });
+
+                            // PERSISTENT FLASH: Only remove on interaction (Clicking Input)
+                            // We do NOT remove on just clicking the header or body, user must "enter" (focus) to stop it
+                            // Logic moved to renderChatTab input event
                         }
                     }, 50);
                 }
@@ -654,6 +652,7 @@ class ChatManager {
                     <!-- Input Container -->
                     <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
                         <input type="text" placeholder="Escribe un mensaje..." 
+                               onfocus="chatManager.handleInputFocus(${user.id})"
                                onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; } else { chatManager.emitTyping(${user.id}); }"
                                style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
                         
@@ -715,11 +714,9 @@ class ChatManager {
                 // SAFE MERGE STRATEGY:
                 // Don't just overwrite. DB might be slightly behind local optimistic state.
                 const currentMsgs = conv.messages || [];
-                // Mark as Read (Widget)
-                if (conv.unreadCount > 0) {
-                    conv.unreadCount = 0;
-                    this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
-                }
+
+                // NOTE: We REMOVED the automatic mark-read here.
+                // It is now strictly handled in handleInputFocus()
 
                 const mergedMap = new Map();
 
