@@ -405,30 +405,30 @@ p {
   background-position: center;
   background-color: transparent;
   width: 10px;
-  height: 10px;
-  /* Square button = minimal gap to scrollbar */
+  height: 8px;
+  /* Ultra-tight height to pull scrollbar closer */
 }
 
-/* Vertical Arrows - Solid Rounded Triangles (Closed Path) */
+/* Vertical Arrows - Ultra Wide Solid Triangles */
 ::-webkit-scrollbar-button:vertical:start:decrement {
-  /* Up Triangle (Solid) */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M4 18 L12 6 L20 18 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* Up Triangle (Wide Base) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 20 L12 4 L24 20 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 ::-webkit-scrollbar-button:vertical:end:increment {
-  /* Down Triangle (Solid) */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M4 6 L12 18 L20 6 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* Down Triangle (Wide Base) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 4 L12 20 L24 4 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Horizontal Arrows - Solid Rounded Triangles (Closed Path) */
+/* Horizontal Arrows - Ultra Wide Solid Triangles */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
-  /* Left Triangle (Solid) */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M18 20 L6 12 L18 4 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* Left Triangle (Wide Base) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M20 24 L4 12 L20 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 ::-webkit-scrollbar-button:horizontal:end:increment {
-  /* Right Triangle (Solid) */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M6 20 L18 12 L6 4 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* Right Triangle (Wide Base) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M4 24 L20 12 L4 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .computer-image {
