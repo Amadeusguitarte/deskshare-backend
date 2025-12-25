@@ -37,6 +37,12 @@ class ChatManager {
         // Load data
         await this.loadConversations();
 
+        // Check Online Status (Now that we have users)
+        if (this.socket && this.conversations.length > 0) {
+            const ids = this.conversations.map(c => c.otherUser.id);
+            this.socket.emit('check-status', { userIds: ids });
+        }
+
         // Render
         if (this.messagesPageContainer) {
             this.renderFullPage();
@@ -73,12 +79,6 @@ class ChatManager {
                 this.updateUserStatus(uid, statuses[uid]);
             });
         });
-
-        // Request initial status for all known users
-        if (this.conversations.length > 0) {
-            const ids = this.conversations.map(c => c.otherUser.id);
-            this.socket.emit('check-status', { userIds: ids });
-        }
 
         // Typing Indicators
         this.socket.on('typing', ({ senderId }) => {
