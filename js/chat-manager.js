@@ -1096,11 +1096,28 @@ class ChatManager {
     // Attachments Logic (Phase B)
     // ==========================================
 
+    // ==========================================
+    // File Upload & Staging (Phase D)
+    // ==========================================
     triggerFileUpload(userId) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*,.pdf,.doc,.docx,.txt,.zip';
-        input.onchange = (e) => this.uploadFile(userId, e.target.files[0]);
+        // Create hidden input dynamically if not exists
+        let input = document.getElementById(`file-input-${userId}`);
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = `file-input-${userId}`;
+            input.style.display = 'none';
+            // Accept Images and Docs
+            input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
+            document.body.appendChild(input);
+
+            input.onchange = (e) => {
+                if (e.target.files.length > 0) {
+                    this.uploadFile(userId, e.target.files[0]);
+                }
+                input.value = ''; // Reset
+            };
+        }
         input.click();
     }
 
@@ -1129,8 +1146,25 @@ class ChatManager {
             }
             const data = await res.json();
 
-            // 2. Send Message with File URL
-            await this.sendMiniMessage(userId, '', data.fileUrl, data.fileType);
+            // 2. STAGE THE FILE (Do not send yet)
+            this.stagedFiles.set(userId, {
+                fileUrl: data.fileUrl,
+                fileType: data.fileType,
+                fileName: file.name
+            });
+
+            // 3. Update UI
+            const stagingArea = document.getElementById(`chat-staging-${userId}`);
+            const stagingName = document.getElementById(`chat-staging-name-${userId}`);
+            if (stagingArea && stagingName) {
+                stagingArea.style.display = 'flex';
+                let icon = data.fileType === 'image' ? '📷' : '📄';
+                stagingName.textContent = `${icon} ${file.name}`;
+            }
+
+            // Focus input
+            const chatInput = document.getElementById(`chat-input-${userId}`);
+            if (chatInput) chatInput.focus();
 
         } catch (error) {
             console.error('Upload Error:', error);
@@ -1138,6 +1172,29 @@ class ChatManager {
         } finally {
             if (btn) btn.style.opacity = '1';
         }
+    }
+
+    clearStaging(userId) {
+        this.stagedFiles.delete(userId);
+        const stagingArea = document.getElementById(`chat-staging-${userId}`);
+        if (stagingArea) stagingArea.style.display = 'none';
+    }
+
+    async sendStagedMessage(userId) {
+        const input = document.getElementById(`chat-input-${userId}`);
+        if (!input) return;
+
+        const text = input.value.trim();
+        const staged = this.stagedFiles.get(userId);
+
+        if (!text && !staged) return; // Nothing to send
+
+        // Send
+        await this.sendMiniMessage(userId, text, staged?.fileUrl, staged?.fileType);
+
+        // Cleanup
+        input.value = '';
+        this.clearStaging(userId);
     }
 
     // Updated send method to support attachments
