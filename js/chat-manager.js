@@ -944,45 +944,95 @@ class ChatManager {
     }
 
     renderChatTab(conv) {
-        const userId = conv.otherUser.id;
-        const isMinimized = this.minimizedConversations.has(userId);
-        const unreadCount = conv.unreadCount || 0;
-        const isOnline = conv.otherUser.isOnline;
+        const user = conv.otherUser;
+        const tabId = `chat-tab-${user.id}`;
+        // Check state to persist minimization
+        const isMin = this.minimizedConversations.has(user.id);
+        const height = isMin ? '50px' : '400px';
+        const borderRadius = isMin ? '8px' : '8px 8px 0 0';
+        const minIcon = isMin ? '' : '−';
 
-        const statusDotStyle = `background: ${isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${isOnline ? '0 0 5px #4ade80' : 'none'};`;
-        const statusTextStyle = `color: ${isOnline ? '#4ade80' : 'transparent'};`;
-        const statusText = isOnline ? 'En línea' : '';
+        // SORT MESSAGES: Oldest -> Newest
+        const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const unreadCount = conv.unreadCount || 0;
 
         return `
-            <div class="chat-tab ${unreadCount > 0 ? 'flash-animation' : ''}" id="chat-tab-${userId}" style="height: ${isMinimized ? '50px' : '400px'}; border-radius: ${isMinimized ? '8px' : '8px 8px 0 0'};">
-                <div class="chat-tab-header" onclick="window.ChatManager.toggleMinimize('${userId}')">
-                    <div class="user-info">
-                        <img src="${conv.otherUser.profilePicture || '/images/default-avatar.png'}" alt="${conv.otherUser.username}" class="user-avatar">
-                        <span class="username">${conv.otherUser.username}</span>
-                        <span class="status-dot" style="${statusDotStyle}"></span>
-                        <span class="user-status-text" style="${statusTextStyle}">${statusText}</span>
+            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+                 <!-- HEADER -->
+                <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                        <div style="display: flex; flex-direction: column;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>
+                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${user.isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
+                            </div>
+                            <span class="user-status-text" style="font-size: 0.7rem; color: ${user.isOnline ? '#4ade80' : 'transparent'}; line-height: 1; margin-top: 2px; height: 10px;">${user.isOnline ? 'En línea' : ''}</span>
+                        </div>
                     </div>
-                    <div class="header-controls">
-                        ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
-                        <span class="minimize-icon">${isMinimized ? '' : '−'}</span>
-                        <span class="close-icon" onclick="event.stopPropagation(); window.ChatManager.closeTab('${userId}')">×</span>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
+                        <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
                 </div>
-                <div class="chat-tab-body">
-                    <div class="messages-area mini-messages-area" id="msg-area-${userId}">
-                        ${conv.messages && conv.messages.length > 0 ? conv.messages.map(msg => `
-                            <div class="message-bubble-wrapper ${msg.senderId === this.currentUser.id ? 'sent' : 'received'}">
-                                <div class="message-bubble">
+                
+                <!-- MESSAGES AREA -->
+                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
+                    ${sortedMessages.map((msg, idx, arr) => {
+            // SMART VISTO LOGIC
+            const isMe = msg.senderId === this.currentUser.id;
+            let showRead = false;
+            if (isMe && msg.isRead) {
+                const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
+                if (!newerMyMsg) showRead = true;
+            }
+
+            return `
+                        <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
+                            <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
+                                <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
                                     ${msg.message}
-                                </div>
+                                </span>
+                                ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                             </div>
-                        `).join('') : '<p class="no-messages">No hay mensajes aún.</p>'}
-                    </div>
-                    <div class="chat-input-area">
+                        </div>
+                        `;
+        }).join('')}
+                    
+                    ${this.typingUsers.has(user.id) ? `
+                        <div style="display: flex; justify-content: flex-start;">
+                            <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
+                                Escribiendo...
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <!-- FOOTER -->
+                <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
+                     <!-- Attach Icon -->
+                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
+                    
+                    <!-- Input Container -->
+                    <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
                         <input type="text" placeholder="Escribe un mensaje..." 
-                               onkeydown="if(event.key === 'Enter') { window.ChatManager.sendMiniMessage('${userId}', this.value); this.value=''; }"
-                               onfocus="window.ChatManager.handleInputFocus('${userId}')">
+                               onfocus="chatManager.handleInputFocus(${user.id})"
+                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; } else { chatManager.emitTyping(${user.id}); }"
+                               style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
+                        
+                        <!-- Emoji Icon -->
+                        <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                        </button>
                     </div>
+
+                    <!-- Send Icon -->
+                    <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }" 
+                            style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
                 </div>
             </div>
         `;
