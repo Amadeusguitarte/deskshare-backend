@@ -399,15 +399,16 @@ p {
 /* Scrollbar Arrows (Buttons) */
 ::-webkit-scrollbar-button {
   display: block;
-  background-size: 10px;
+  background-size: 100%;
+  /* Maximize arrow size within the container */
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
   /* Transparent background as requested */
   width: 10px;
   /* Match scrollbar width */
-  height: 16px;
-  /* Taller for better visibility */
+  height: 12px;
+  /* Tighter height to minimize gap (void) */
 }
 
 /* Vertical Scrollbar Arrows */
