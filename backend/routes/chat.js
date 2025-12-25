@@ -8,6 +8,8 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
 
+const uploadChat = require('../middleware/uploadChat');
+
 const prisma = new PrismaClient();
 
 // ========================================
@@ -59,6 +61,30 @@ router.get('/conversations', auth, async (req, res, next) => {
         });
 
         res.json({ conversations: Object.values(conversations) });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
+// POST /api/chat/upload
+// Upload a file for chat
+// ========================================
+router.post('/upload', auth, uploadChat.single('file'), (req, res, next) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        // Determine simple type for frontend
+        const isImage = req.file.mimetype.startsWith('image/');
+        const fileType = isImage ? 'image' : 'document';
+
+        res.json({
+            fileUrl: req.file.path,
+            fileType: fileType,
+            originalName: req.file.originalname
+        });
     } catch (error) {
         next(error);
     }
@@ -150,16 +176,12 @@ router.get('/history/:userId', auth, async (req, res, next) => {
 // POST /api/chat
 // Send a new message
 // ========================================
-// ========================================
-// POST /api/chat
-// Send a new message
-// ========================================
 router.post('/', auth, async (req, res, next) => {
     try {
-        const { receiverId, computerId, message } = req.body;
+        const { receiverId, computerId, message, fileUrl, fileType } = req.body;
 
-        if (!message || !message.trim()) {
-            return res.status(400).json({ error: 'Message cannot be empty' });
+        if ((!message || !message.trim()) && !fileUrl) {
+            return res.status(400).json({ error: 'Message cannot be empty (unless sending file)' });
         }
 
         const newMessage = await prisma.message.create({
@@ -167,7 +189,9 @@ router.post('/', auth, async (req, res, next) => {
                 senderId: req.user.userId || req.user.id,
                 receiverId: parseInt(receiverId),
                 computerId: computerId ? parseInt(computerId) : null,
-                message: message.trim(),
+                message: message ? message.trim() : '',
+                fileUrl: fileUrl || null,
+                fileType: fileType || null
             },
             include: {
                 sender: { select: { id: true, name: true, avatarUrl: true } },

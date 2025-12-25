@@ -282,7 +282,7 @@ class ChatManager {
         }
     }
 
-    async sendMessage(receiverId, text, computerId = null) {
+    async sendMessage(receiverId, text, computerId = null, fileUrl = null, fileType = null) {
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -294,7 +294,9 @@ class ChatManager {
                 body: JSON.stringify({
                     receiverId,
                     message: text,
-                    computerId
+                    computerId,
+                    fileUrl,
+                    fileType
                 })
             });
 
@@ -303,15 +305,27 @@ class ChatManager {
                 throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
             }
             const data = await response.json();
-            // FIX: Backend returns { message: { ... } }, so we must unwrap it
-            if (data.message && typeof data.message === 'object' && !Array.isArray(data.message)) {
-                return data.message;
+
+            // FIX: Robust unwrapping to prevent "No messages" error
+            if (data.conversations && Array.isArray(data.conversations)) {
+                this.conversations = data.conversations;
+            } else if (data.message && Array.isArray(data.message)) {
+                // For endpoints that return { message: [...] } like history/
+                // But loadConversations calls /conversations which returns { conversations: [] }
+                this.conversations = data.message;
+            } else if (Array.isArray(data)) {
+                this.conversations = data;
+            } else {
+                // Should not happen, but don't crash the UI
+                console.warn("Unexpected API format:", data);
+                this.conversations = [];
             }
-            return data;
+            // this.conversations = data.conversations || []; // Original logic was too simple?
+
         } catch (error) {
             console.error('Send error:', error);
-            alert(`Error: ${error.message}`);
-            throw error; // Re-throw so caller knows it failed
+            // alert(`Error: ${error.message}`); // Silent fail better than alert loop
+            this.conversations = []; // Ensure empty array so render doesn't crash
         }
     }
 
@@ -519,7 +533,10 @@ class ChatManager {
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
                     ${this.conversations.length > 0 ? this.conversations.map(conv => `
                         <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
-                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
+                            <div style="position: relative;">
+                                <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
+                                <div class="status-dot" style="position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; border-radius: 50%; background: ${conv.otherUser.isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${conv.otherUser.isOnline ? '0 0 5px #4ade80' : 'none'}; border: 1px solid #1a1a1a; transition: all 0.3s;"></div>
+                            </div>
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
                                 <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
@@ -597,6 +614,9 @@ class ChatManager {
         const statusText = user.isOnline ? 'En línea' : '';
         const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
+        // BIND EVENTS LATER
+        setTimeout(() => this.bindEventsAfterRender(user.id), 100);
+
         return `
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!-- HEADER -->
@@ -629,11 +649,24 @@ class ChatManager {
                 if (!newerMyMsg) showRead = true;
             }
 
+            // ATTACHMENT RENDERING
+            let contentHtml = msg.message;
+            if (msg.fileUrl) {
+                if (msg.fileType === 'image') {
+                    contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-bottom: 4px; cursor: pointer;" onclick="window.open(this.src, '_blank')">` + (msg.message || '');
+                } else {
+                    contentHtml = `<a href="${msg.fileUrl}" target="_blank" style="color: white; text-decoration: underline; display: flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        ${msg.message || 'Ver documento'}
+                    </a>`;
+                }
+            }
+
             return `
                         <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                             <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
                                 <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
-                                    ${msg.message}
+                                    ${contentHtml || ''}
                                 </span>
                                 ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                             </div>
@@ -653,7 +686,7 @@ class ChatManager {
                 <!-- FOOTER -->
                 <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
                      <!-- Attach Icon -->
-                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                    <button onclick="chatManager.triggerFileUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     </button>
                     
@@ -665,7 +698,7 @@ class ChatManager {
                                style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
                         
                         <!-- Emoji Icon -->
-                        <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                        <button id="emoji-btn-${user.id}" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
                         </button>
                     </div>
@@ -1015,11 +1048,24 @@ class ChatManager {
                 if (!newerMyMsg) showRead = true;
             }
 
+            // ATTACHMENT RENDERING
+            let contentHtml = msg.message;
+            if (msg.fileUrl) {
+                if (msg.fileType === 'image') {
+                    contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-bottom: 4px; cursor: pointer;" onclick="window.open(this.src, '_blank')">` + (msg.message || '');
+                } else {
+                    contentHtml = `<a href="${msg.fileUrl}" target="_blank" style="color: white; text-decoration: underline; display: flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        ${msg.message || 'Ver documento'}
+                    </a>`;
+                }
+            }
+
             return `
                         <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
                             <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
                                 <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
-                                    ${msg.message}
+                                    ${contentHtml || ''}
                                 </span>
                                 ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                             </div>
@@ -1065,6 +1111,89 @@ class ChatManager {
             </div>
         `;
     }
+    // ===========================================
+    // Attachments & Emojis
+    // ===========================================
+
+    triggerFileUpload(userId) {
+        let input = document.getElementById(`chat-upload-${userId}`);
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = `chat-upload-${userId}`;
+            input.style.display = 'none';
+            input.accept = 'image/*,application/pdf,.doc,.docx,.txt,.zip';
+            input.onchange = (e) => this.uploadFile(userId, e.target.files[0]);
+            document.body.appendChild(input);
+        }
+        input.click();
+    }
+
+    async uploadFile(userId, file) {
+        if (!file) return;
+
+        const tab = document.getElementById(`chat-tab-${userId}`);
+        const inputField = tab ? tab.querySelector('input') : null;
+        const originalPlaceholder = inputField ? inputField.placeholder : '';
+
+        if (inputField) {
+            inputField.disabled = true;
+            inputField.placeholder = "Subiendo archivo...";
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/chat/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Upload failed');
+
+            const data = await response.json();
+            await this.sendMessage(userId, "", null, data.fileUrl, data.fileType);
+
+            if (inputField) {
+                inputField.value = '';
+                inputField.placeholder = originalPlaceholder;
+                inputField.disabled = false;
+                inputField.focus();
+            }
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error subiendo archivo: ' + error.message);
+            if (inputField) {
+                inputField.placeholder = originalPlaceholder;
+                inputField.disabled = false;
+            }
+        }
+    }
+
+    bindEventsAfterRender(userId) {
+        const btn = document.getElementById(`emoji-btn-${userId}`);
+        if (btn && window.EmojiButton) {
+            if (!this.pickers) this.pickers = {};
+            if (!this.pickers[userId]) {
+                const picker = new EmojiButton({ position: 'top-start', theme: 'dark', autoHide: false });
+                picker.on('emoji', selection => {
+                    const tab = document.getElementById(`chat-tab-${userId}`);
+                    const input = tab.querySelector('input');
+                    if (input) {
+                        input.value += selection.emoji;
+                        input.focus();
+                    }
+                });
+                this.pickers[userId] = picker;
+            }
+            btn.onclick = () => this.pickers[userId].togglePicker(btn);
+        }
+    }
+
 }
 
 // Make globally available
