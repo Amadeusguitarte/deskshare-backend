@@ -128,6 +128,9 @@ app.use(errorHandler);
 // Socket.io for Real-time Chat
 // ========================================
 
+// Track active users: userId -> Set<socketId>
+const connectedUsers = new Map();
+
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
@@ -139,8 +142,30 @@ io.on('connection', (socket) => {
 
     // Join my private user room (for global chat)
     socket.on('join-user-room', (userId) => {
+        userId = String(userId); // Normalize
         socket.join(`user-${userId}`);
+
+        // Track Online Status
+        if (!connectedUsers.has(userId)) {
+            connectedUsers.set(userId, new Set());
+            // Broadcast ONLINE status to everyone
+            io.emit('user-online', { userId });
+        }
+        connectedUsers.get(userId).add(socket.id);
+        socket.userId = userId; // Store for disconnect
+
         console.log(`Socket ${socket.id} joined user room user-${userId}`);
+    });
+
+    // Check Status (Bulk)
+    socket.on('check-status', ({ userIds }) => {
+        const statuses = {};
+        if (Array.isArray(userIds)) {
+            userIds.forEach(id => {
+                statuses[id] = connectedUsers.has(String(id));
+            });
+        }
+        socket.emit('users-status', statuses);
     });
 
     // Send message
@@ -176,6 +201,18 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+
+        // Handle Online Status Removal
+        if (socket.userId && connectedUsers.has(socket.userId)) {
+            const userSockets = connectedUsers.get(socket.userId);
+            userSockets.delete(socket.id);
+
+            if (userSockets.size === 0) {
+                connectedUsers.delete(socket.userId);
+                // Broadcast OFFLINE status
+                io.emit('user-offline', { userId: socket.userId });
+            }
+        }
     });
 });
 

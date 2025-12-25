@@ -171,9 +171,19 @@ class ChatManager {
             // TAB NOTIFICATION (Blink Title)
             this.startTitleBlink(conv.otherUser.name);
 
-            // Ensure tab is open
-            if (!this.openConversationIds.includes(msg.senderId)) {
-                this.openConversationIds.push(msg.senderId);
+            // AUTO-OPEN LOGIC (Improved)
+            // If sender is NOT in minimized list, ensure it's in openConversationIds
+            if (!this.minimizedConversations.has(msg.senderId)) {
+                if (!this.openConversationIds.includes(msg.senderId)) {
+                    this.openConversationIds.push(msg.senderId);
+                }
+            } else {
+                // If minimized, DO NOT remove from minimized, DO NOT expand.
+                // The renderWidgetTabs call below will update the badge.
+                // We make sure it is in openConversationIds so it renders at all (minimized)
+                if (!this.openConversationIds.includes(msg.senderId)) {
+                    this.openConversationIds.push(msg.senderId);
+                }
             }
         }
 
@@ -200,9 +210,7 @@ class ChatManager {
                             void tab.offsetWidth; // trigger reflow
                             tab.classList.add('flash-animation');
 
-                            // PERSISTENT FLASH: Only remove on interaction (Clicking Input)
-                            // We do NOT remove on just clicking the header or body, user must "enter" (focus) to stop it
-                            // Logic moved to renderChatTab input event
+                            // PERSISTENT FLASH: Stays until input focus (handled in handleInputFocus)
                         }
                     }, 50);
                 }
@@ -579,49 +587,46 @@ class ChatManager {
         const isMin = this.minimizedConversations.has(user.id);
         const height = isMin ? '50px' : '400px';
         const borderRadius = isMin ? '8px' : '8px 8px 0 0';
-        const minIcon = isMin ? '' : '−'; // No '+' icon per user request
+        const minIcon = isMin ? '' : '−';
 
         // SORT MESSAGES: Oldest -> Newest
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const unreadCount = conv.unreadCount || 0;
+
+        // Ensure "Desconectado" never appears. Use empty string.
+        const statusText = user.isOnline ? 'En línea' : '';
+        const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!-- HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
                         <div style="display: flex; flex-direction: column;">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name}</span>
-                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${user.isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
+                                <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>
+                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
                             </div>
-                            <span class="user-status-text" style="font-size: 0.7rem; color: ${user.isOnline ? '#4ade80' : 'transparent'}; line-height: 1; margin-top: 2px; height: 10px;">${user.isOnline ? 'En línea' : ''}</span>
+                            <span class="user-status-text" style="font-size: 0.7rem; color: ${statusColor}; line-height: 1; margin-top: 2px; height: 10px;">${statusText}</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
+                        ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
                         <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
                         <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
                 </div>
                 
-                <!-- MESSAGES AREA (Visible by default) -->
+                <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${sortedMessages.map((msg, idx, arr) => {
-            // SMART VISTO LOGIC:
-            // Find the LAST message sent by ME (currentUser)
-            // If this current msg IS that last message AND it's read, show 'Visto'
-            // Otherwise show nothing.
-
+            // SMART VISTO LOGIC
             const isMe = msg.senderId === this.currentUser.id;
             let showRead = false;
-
-            // Efficiency: Check if this is the last message sent by me
             if (isMe && msg.isRead) {
-                // Look ahead to see if there are any newer messages from me
                 const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
-                if (!newerMyMsg) {
-                    showRead = true;
-                }
+                if (!newerMyMsg) showRead = true;
             }
 
             return `
@@ -633,7 +638,7 @@ class ChatManager {
                                 ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
                             </div>
                         </div>
-                    `;
+                        `;
         }).join('')}
                     
                     ${this.typingUsers.has(user.id) ? `
@@ -645,7 +650,7 @@ class ChatManager {
                     ` : ''}
                 </div>
                 
-                <!-- FOOTER (Freelancer Style with Icons) -->
+                <!-- FOOTER -->
                 <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
                      <!-- Attach Icon -->
                     <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
@@ -956,6 +961,10 @@ class ChatManager {
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         const unreadCount = conv.unreadCount || 0;
 
+        // Ensure "Desconectado" never appears. Use empty string.
+        const statusText = user.isOnline ? 'En línea' : '';
+        const statusColor = user.isOnline ? '#4ade80' : 'transparent';
+
         return `
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!-- HEADER -->
@@ -965,12 +974,13 @@ class ChatManager {
                         <div style="display: flex; flex-direction: column;">
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>
-                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${user.isOnline ? '#4ade80' : 'transparent'}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
+                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
                             </div>
-                            <span class="user-status-text" style="font-size: 0.7rem; color: ${user.isOnline ? '#4ade80' : 'transparent'}; line-height: 1; margin-top: 2px; height: 10px;">${user.isOnline ? 'En línea' : ''}</span>
+                            <span class="user-status-text" style="font-size: 0.7rem; color: ${statusColor}; line-height: 1; margin-top: 2px; height: 10px;">${statusText}</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
+                        ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
                         <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
                         <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
