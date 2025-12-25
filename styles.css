@@ -399,34 +399,36 @@ p {
 /* Scrollbar Arrows (Buttons) */
 ::-webkit-scrollbar-button {
   display: block;
-  background-size: 100%;
-  /* Maximize arrow size within the container */
+  background-size: 80%;
+  /* Fill most of the space without clipping */
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
-  /* Transparent background as requested */
   width: 10px;
-  /* Match scrollbar width */
-  height: 12px;
-  /* Tighter height to minimize gap (void) */
+  height: 20px;
+  /* Taller hit area */
 }
 
-/* Vertical Scrollbar Arrows */
+/* Vertical Arrows - Rounded Solid Triangles */
 ::-webkit-scrollbar-button:vertical:start:decrement {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z'/%3E%3C/svg%3E");
+  /* Rounded Up Triangle */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M8 15l4-5 4 5' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 ::-webkit-scrollbar-button:vertical:end:increment {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E");
+  /* Rounded Down Triangle */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M8 9l4 5 4-5' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Horizontal Scrollbar Arrows */
+/* Horizontal Arrows - Rounded Solid Triangles */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z'/%3E%3C/svg%3E");
+  /* Rounded Left Triangle */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M15 8l-5 4 5 4' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 ::-webkit-scrollbar-button:horizontal:end:increment {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z'/%3E%3C/svg%3E");
+  /* Rounded Right Triangle */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M9 8l5 4-5 4' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .computer-image {
