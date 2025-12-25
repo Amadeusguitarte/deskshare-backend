@@ -1143,9 +1143,12 @@ class ChatManager {
                                         `;
                             } else {
                                 const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
+                                // Cloudinary Force Download: Inject 'fl_attachment' transformation
+                                const downloadUrl = msg.fileUrl.replace('/upload/', '/upload/fl_attachment/');
+
                                 contentHtml += `
                                             <div style="margin-bottom: 6px;">
-                                                <a href="${msg.fileUrl}" target="_blank" download style="
+                                                <a href="${downloadUrl}" download="${cleanName}" style="
                                                     display: flex; align-items: center; gap: 12px; 
                                                     background: #242526; padding: 10px 14px; 
                                                     border-radius: 18px; text-decoration: none; color: white; 
@@ -1176,9 +1179,9 @@ class ChatManager {
                             contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                         }
 
-                        const isNakedImage = msg.fileUrl && msg.fileType === 'image' && (!msg.message || !msg.message.trim());
-                        const bubbleBg = isNakedImage ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
-                        const bubblePad = isNakedImage ? '0' : '8px 12px';
+                        const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
+                        const bubbleBg = isStandAlone ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
+                        const bubblePad = isStandAlone ? '0' : '8px 12px';
 
                         return `
                                     <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
