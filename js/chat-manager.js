@@ -7,21 +7,14 @@ class ChatManager {
         this.conversations = [];
         // Multi-tab support: Track IDs of open conversations
         this.openConversationIds = [];
-        this.minimizedConversations = new Set(); // Stores IDs of users with minimized tabs
-        this.resizeObserver = null;
-        this.picker = null; // Emoji Picker instance
-        this.fileInput = null; // Reusable file input using closure/event mapping or just dynamic creation
-
-        // Sound
-        this.audioContext = null;
+        this.minimizedConversations = new Set();
+        // New Features
+        this.typingUsers = new Set();
+        this.typingTimeouts = {};
 
         // UI Elements
         this.widgetContainer = null;
         this.messagesPageContainer = null;
-
-        // New Features
-        this.typingUsers = new Set();
-        this.typingTimeouts = {};
 
         this.init();
     }
@@ -289,91 +282,6 @@ class ChatManager {
         }
     }
 
-    // ========================================
-    // LOGIC: Send Message
-    // ========================================
-
-    async sendMiniMessage(receiverId, text, attachment = null) {
-        if ((!text || !text.trim()) && !attachment) return;
-
-        try {
-            const token = localStorage.getItem('token');
-            const payload = {
-                receiverId,
-                message: text || '', // Allow empty text if attachment exists
-            };
-
-            if (attachment) {
-                payload.fileUrl = attachment.fileUrl;
-                payload.fileType = attachment.fileType;
-            }
-
-            const response = await fetch(`${API_BASE_URL}/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error('Failed to send');
-
-            const data = await response.json();
-
-            // Optimistic update
-            this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId });
-
-        } catch (error) {
-            console.error('Send error:', error);
-            alert('Error enviando mensaje');
-        }
-    }
-
-    async uploadFile(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/chat/upload`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-
-        if (!response.ok) throw new Error('Upload failed');
-        return await response.json(); // { fileUrl, fileType, originalName }
-    }
-
-    triggerFileUpload(userId) {
-        // Create a temp input or use existing
-        let input = document.getElementById(`file-input-${userId}`);
-        if (!input) {
-            input = document.createElement('input');
-            input.type = 'file';
-            input.id = `file-input-${userId}`;
-            input.style.display = 'none';
-            input.accept = 'image/*,.pdf,.doc,.docx,.txt,.zip'; // Broad accept
-            document.body.appendChild(input);
-
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                try {
-                    const uploaded = await this.uploadFile(file);
-                    await this.sendMiniMessage(userId, '', uploaded);
-                } catch (err) {
-                    alert('Error subiendo archivo: ' + err.message);
-                }
-                input.value = '';
-            };
-        }
-        input.click();
-    }
-
     async sendMessage(receiverId, text, computerId = null) {
         try {
             const token = localStorage.getItem('authToken');
@@ -639,11 +547,6 @@ class ChatManager {
 
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
-
-        // BIND EVENTS (Emoji Picker)
-        tabsToRender.forEach(id => {
-            this.bindEventsAfterRender(id);
-        });
 
         // RESTORE FOCUS: If we had focus, put it back
         if (focusedTabId) {
