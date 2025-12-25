@@ -1487,13 +1487,35 @@ class ChatManager {
     }
 
     // ==========================================
-    // Helper: Standard Download (Reverted to Safe Mode)
-    // Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
-    downloadFileSecure(url, filename) {
-        // Just open the original signed URL. 
-        // If it opens in a new tab (PDF Viewer), user can save from there.
-        // We cannot inject fl_attachment client-side without invalidating the signature.
-        window.open(url, '_blank');
+    // Helper: Robust Download with Fetch/Blob (Bypassing Cloudinary 401s)
+    async downloadFileSecure(url, filename) {
+        try {
+            // 1. Fetch as Blob (Passes auth headers implicitly if same-origin, or standard GET)
+            // Note: Cloudinary URLs might need CORS enabled. If this fails, we catch it.
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Network response was not ok (${response.status})`);
+
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            // 2. Create invisible link and click
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // 3. Cleanup
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback: Alert user and try new tab
+            // This ensures they aren't stuck if CORS fails
+            alert('Descarga directa falló (Error de Servidor). Abriendo en nueva pestaña...');
+            window.open(url, '_blank');
+        }
     }
 
     // Lightbox Logic (Phase F)
