@@ -1043,7 +1043,7 @@ class ChatManager {
                     // 5. Time gap > 5 seconds (Strict batch detection)
 
                     const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
-                    const isRapidSequence = timeDiff < 5000;
+                    const isRapidSequence = timeDiff < 2000; // 2 seconds (Manual sends separation)
 
                     // const isPrevImage already declared at 1035
                     const isSameType = (!!isImage) === (!!isPrevImage);
@@ -1065,7 +1065,8 @@ class ChatManager {
                 return groups.map(group => {
                     const firstMsg = group[0];
                     const isMe = firstMsg.senderId === this.currentUser.id;
-                    const isImageGroup = group.every(m => m.fileUrl && m.fileType === 'image');
+                    // Robust check: Ensure NO PDFs sneak into Image Groups (even if fileType is wrong)
+                    const isImageGroup = group.every(m => m.fileUrl && m.fileType === 'image' && !m.fileUrl.toLowerCase().includes('.pdf'));
 
                     // 1. IMAGE COLLAGE RENDER
                     // 1. IMAGE COLLAGE RENDER
