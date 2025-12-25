@@ -108,6 +108,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
 
+// Server Entry Point (v183.1 Force Deploy)
 // Serve static files from the root directory (Project Root)
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../')));
