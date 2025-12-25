@@ -1070,7 +1070,7 @@ class ChatManager {
                             gap: 2px; 
                             border-radius: 12px; 
                             overflow: hidden; 
-                            max-width: 250px;
+                            max-width: 220px;
                             width: 100%;
                         `;
 
