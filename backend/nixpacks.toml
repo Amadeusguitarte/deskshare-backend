@@ -8,6 +8,6 @@ cmds = ["npm ci"]
 cmds = ["npx prisma generate"]
 
 [start]
-cmd = "npx prisma db push --accept-data-loss && node server.js"
+cmd = "npx prisma generate && npx prisma db push --accept-data-loss && node server.js"
 
 
