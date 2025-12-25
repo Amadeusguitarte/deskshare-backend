@@ -1074,6 +1074,84 @@ class ChatManager {
             </div>
         `;
     }
+
+    // ==========================================
+    // Attachments Logic (Phase B)
+    // ==========================================
+
+    triggerFileUpload(userId) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,.pdf,.doc,.docx,.txt,.zip';
+        input.onchange = (e) => this.uploadFile(userId, e.target.files[0]);
+        input.click();
+    }
+
+    async uploadFile(userId, file) {
+        if (!file) return;
+
+        // Optimistic UI feedback could go here (e.g. spinner)
+        const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
+        if (btn) btn.style.opacity = '0.5';
+
+        try {
+            const token = localStorage.getItem('authToken');
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // 1. Upload
+            const res = await fetch(`${this.baseUrl}/chat/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (!res.ok) throw new Error('Upload failed');
+            const data = await res.json();
+
+            // 2. Send Message with File URL
+            await this.sendMiniMessage(userId, '', data.fileUrl, data.fileType);
+
+        } catch (error) {
+            console.error('Upload Error:', error);
+            alert('Error subiendo archivo. Intenta de nuevo.');
+        } finally {
+            if (btn) btn.style.opacity = '1';
+        }
+    }
+
+    // Updated send method to support attachments
+    async sendMiniMessage(receiverId, text, fileUrl = null, fileType = null) {
+        try {
+            if (!text && !fileUrl) return;
+
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`${this.baseUrl}/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    receiverId,
+                    message: text,
+                    fileUrl: fileUrl,  // Phase B
+                    fileType: fileType // Phase B
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to send');
+
+            const { message } = await res.json();
+
+            // UI Update is handled by Socket event 'private-message'
+            // But we can append locally for instant feedback if needed
+
+        } catch (error) {
+            console.error('Send Error:', error);
+        }
+    }
+
 }
 
 // Make globally available
