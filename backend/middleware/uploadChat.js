@@ -10,12 +10,18 @@ cloudinary.config({
 });
 
 // Configure Storage
+// Configure Storage
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: {
-        folder: 'deskshare-chat',
-        allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'zip', 'txt'],
-        resource_type: 'auto'
+    params: async (req, file) => {
+        // Determine resource type based on mimetype
+        const isImage = file.mimetype.startsWith('image/');
+        return {
+            folder: 'deskshare-chat',
+            resource_type: isImage ? 'image' : 'raw', // Critical for PDF/Docs
+            format: isImage ? undefined : file.originalname.split('.').pop(), // Keep extension for raw files
+            public_id: `${Date.now()}-${file.originalname.split('.')[0]}`
+        };
     }
 });
 
