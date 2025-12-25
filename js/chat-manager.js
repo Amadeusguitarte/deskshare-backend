@@ -851,6 +851,18 @@ class ChatManager {
             await this.loadConversations();
             this.toggleTab(userId);
         }
+
+        // UX: Auto-Focus Input
+        setTimeout(() => {
+            const tab = document.getElementById(`chat-tab-${userId}`);
+            if (tab) {
+                const input = tab.querySelector('input');
+                if (input) {
+                    input.focus();
+                    this.scrollToBottom(userId);
+                }
+            }
+        }, 100);
     }
 
     updateUserStatus(userId, isOnline) {
