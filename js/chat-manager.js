@@ -1150,33 +1150,34 @@ class ChatManager {
         } catch (error) {
             console.error('Send Error:', error);
         }
-
-        // ==========================================
-        // Emoji Picker Logic (Phase C)
-        // ==========================================
-        toggleEmojiPicker(triggerBtn, userId) {
-            if (!window.EmojiButton) return;
-
-            if (!this.picker) {
-                this.picker = new EmojiButton({
-                    theme: 'dark',
-                    autoHide: false,
-                    position: 'top-start'
-                });
-
-                this.picker.on('emoji', selection => {
-                    const input = document.getElementById(`chat-input-${this.activePickerUserId}`);
-                    if (input) {
-                        input.value += selection.emoji;
-                        input.focus();
-                    }
-                });
-            }
-
-            this.activePickerUserId = userId;
-            this.picker.togglePicker(triggerBtn);
-        }
     }
+
+    // ==========================================
+    // Emoji Picker Logic (Phase C)
+    // ==========================================
+    toggleEmojiPicker(triggerBtn, userId) {
+        if (!window.EmojiButton) return;
+
+        if (!this.picker) {
+            this.picker = new EmojiButton({
+                theme: 'dark',
+                autoHide: false,
+                position: 'top-start'
+            });
+
+            this.picker.on('emoji', selection => {
+                const input = document.getElementById(`chat-input-${this.activePickerUserId}`);
+                if (input) {
+                    input.value += selection.emoji;
+                    input.focus();
+                }
+            });
+        }
+
+        this.activePickerUserId = userId;
+        this.picker.togglePicker(triggerBtn);
+    }
+}
 
 // Make globally available
 window.ChatManager = ChatManager;
