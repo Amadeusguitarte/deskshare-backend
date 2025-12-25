@@ -1045,7 +1045,7 @@ class ChatManager {
                     const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
                     const isRapidSequence = timeDiff < 5000;
 
-                    const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
+                    // const isPrevImage already declared at 1035
                     const isSameType = (!!isImage) === (!!isPrevImage);
 
                     // Strictly group only if SAME type (All Images OR All Text/Doc)
