@@ -59,6 +59,27 @@ class ChatManager {
             this.handleNewMessage(msg);
         });
 
+        // Listeners for Online Status
+        this.socket.on('user-online', ({ userId }) => {
+            this.updateUserStatus(userId, true);
+        });
+
+        this.socket.on('user-offline', ({ userId }) => {
+            this.updateUserStatus(userId, false);
+        });
+
+        this.socket.on('users-status', (statuses) => {
+            Object.keys(statuses).forEach(uid => {
+                this.updateUserStatus(uid, statuses[uid]);
+            });
+        });
+
+        // Request initial status for all known users
+        if (this.conversations.length > 0) {
+            const ids = this.conversations.map(c => c.otherUser.id);
+            this.socket.emit('check-status', { userIds: ids });
+        }
+
         // Typing Indicators
         this.socket.on('typing', ({ senderId }) => {
             this.typingUsers.add(senderId);
@@ -142,6 +163,22 @@ class ChatManager {
             this.conversations.unshift(conv);
         }
 
+        // AUTO-OPEN & FLASH logic
+        if (msg.senderId !== this.currentUser.id) {
+            // SOUND
+            this.playSound();
+
+            // TAB NOTIFICATION
+            const oldTitle = document.title;
+            document.title = `💬 Nuevo mensaje de ${conv.otherUser.name}`;
+            setTimeout(() => document.title = oldTitle, 3000);
+
+            // Ensure tab is open
+            if (!this.openConversationIds.includes(msg.senderId)) {
+                this.openConversationIds.push(msg.senderId);
+            }
+        }
+
         // 7. Render
         if (this.messagesPageContainer) {
             this.renderConversationsList();
@@ -155,6 +192,22 @@ class ChatManager {
             // We SKIP re-rendering to prevent killing the input focus.
             if (!wasMerge) {
                 this.renderWidgetTabs();
+
+                // Add FLASH Class after render
+                if (msg.senderId !== this.currentUser.id) {
+                    setTimeout(() => {
+                        const tab = document.getElementById(`chat-tab-${msg.senderId}`);
+                        if (tab) {
+                            tab.classList.remove('flash-animation'); // reset
+                            void tab.offsetWidth; // trigger reflow
+                            tab.classList.add('flash-animation');
+                            // Remove after a few seconds? User said "titilando" (blinking), implies continuous until interaction.
+                            // But usually we stop after interaction. For now, infinite until click.
+                            // We can remove it on click (already handled in focus logic?) - no, let's add listener
+                            tab.addEventListener('click', () => tab.classList.remove('flash-animation'), { once: true });
+                        }
+                    }, 50);
+                }
             } else {
                 console.log('Skipping render for merge confirmation to preserve focus');
             }
@@ -786,6 +839,57 @@ class ChatManager {
         } else {
             await this.loadConversations();
             this.toggleTab(userId);
+        }
+    }
+
+    updateUserStatus(userId, isOnline) {
+        // Update data
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (conv) {
+            conv.otherUser.isOnline = isOnline;
+        }
+
+        // Update UI (Full Page)
+        if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
+            const headerStatus = document.querySelector('#chatHeader span');
+            if (headerStatus) {
+                headerStatus.textContent = isOnline ? 'En línea' : 'Desconectado';
+                headerStatus.style.color = isOnline ? 'var(--success-green)' : '#999';
+            }
+        }
+
+        // Update UI (Widget Tab) - Rerender just the header if possible or full tab
+        const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
+        if (tabHeader) {
+            tabHeader.textContent = isOnline ? 'En línea' : 'Desconectado';
+            tabHeader.style.color = isOnline ? '#4ade80' : '#aaa';
+        }
+    }
+
+    playSound() {
+        // Simple distinct beep
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            // Nice notification chime
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.3);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        } catch (e) {
+            console.error("Audio error", e);
         }
     }
 }
