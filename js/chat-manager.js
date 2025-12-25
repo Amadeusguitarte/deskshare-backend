@@ -1074,7 +1074,7 @@ class ChatManager {
 
                             // Full Gallery on Click
                             return `
-                                        <div onclick="chatManager.openLightbox('${msg.fileUrl}', '${firstMsg.senderId}')" style="cursor: pointer; position: relative; aspect-ratio: 1; overflow: hidden;">
+                                        <div onclick="chatManager.openLightbox('${msg.fileUrl}', '${user.id}')" style="cursor: pointer; position: relative; aspect-ratio: 1; overflow: hidden;">
                                             <img src="${msg.fileUrl}" style="width: 100%; height: 100%; object-fit: cover;">
                                         </div>
                                     `;
@@ -1115,7 +1115,7 @@ class ChatManager {
                             if (msg.fileType === 'image') {
                                 contentHtml += `
                                             <div style="margin-bottom: 0;">
-                                                <a href="javascript:void(0)" onclick="chatManager.openLightbox('${msg.fileUrl}')" style="cursor: zoom-in; display: block;">
+                                                <a href="javascript:void(0)" onclick="chatManager.openLightbox('${msg.fileUrl}', '${user.id}')" style="cursor: zoom-in; display: block;">
                                                     <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
                                                 </a>
                                             </div>
