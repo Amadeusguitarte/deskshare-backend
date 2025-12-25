@@ -1142,11 +1142,26 @@ class ChatManager {
                                 const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
                                 contentHtml += `
                                             <div style="margin-bottom: 6px;">
-                                                <a href="${msg.fileUrl}" target="_blank" download style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-decoration: none; color: inherit; border: 1px solid rgba(255,255,255,0.1); hover:background: rgba(255,255,255,0.1);">
-                                                    <span style="font-size: 1.5em;">📄</span>
-                                                    <div style="display: flex; flex-direction: column; max-width: 150px;">
-                                                        <span style="font-size: 0.85em; font-weight: 600; text-decoration: underline; word-break: break-all;">${cleanName}</span>
-                                                        <span style="font-size: 0.7em; opacity: 0.7;">Click para descargar</span>
+                                                <a href="${msg.fileUrl}" target="_blank" download style="
+                                                    display: flex; align-items: center; gap: 12px; 
+                                                    background: #242526; padding: 10px 14px; 
+                                                    border-radius: 18px; text-decoration: none; color: white; 
+                                                    border: 1px solid rgba(255,255,255,0.05); 
+                                                    max-width: 220px; transition: background 0.2s;
+                                                ">
+                                                    <div style="
+                                                        background: rgba(255,255,255,0.1); width: 40px; height: 40px; 
+                                                        border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+                                                    ">
+                                                        <span style="font-size: 1.2em;">📄</span>
+                                                    </div>
+                                                    <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                                                        <span style="
+                                                            font-size: 0.85em; fontWeight: 600; 
+                                                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+                                                            display: block; width: 100%;
+                                                        ">${cleanName}</span>
+                                                        <span style="font-size: 0.7em; opacity: 0.6;">PDF • 2 MB</span>
                                                     </div>
                                                 </a>
                                             </div>
