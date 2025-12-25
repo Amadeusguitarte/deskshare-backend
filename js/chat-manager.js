@@ -1106,7 +1106,10 @@ class ChatManager {
                 body: formData
             });
 
-            if (!res.ok) throw new Error('Upload failed');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Server Error: ${res.status}`);
+            }
             const data = await res.json();
 
             // 2. Send Message with File URL
@@ -1114,7 +1117,7 @@ class ChatManager {
 
         } catch (error) {
             console.error('Upload Error:', error);
-            alert('Error subiendo archivo. Intenta de nuevo.');
+            alert(`Error subiendo archivo: ${error.message}`);
         } finally {
             if (btn) btn.style.opacity = '1';
         }
@@ -1156,7 +1159,10 @@ class ChatManager {
     // Emoji Picker Logic (Phase C)
     // ==========================================
     toggleEmojiPicker(triggerBtn, userId) {
-        if (!window.EmojiButton) return;
+        if (!window.EmojiButton) {
+            alert('Emoji Library not loaded. Check internet connection.');
+            return;
+        }
 
         if (!this.picker) {
             this.picker = new EmojiButton({
