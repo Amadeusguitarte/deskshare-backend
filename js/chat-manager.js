@@ -1143,13 +1143,11 @@ class ChatManager {
                                         `;
                             } else {
                                 const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
-                                // Cloudinary Force Download: Inject 'fl_attachment' transformation
-                                const downloadUrl = msg.fileUrl.replace('/upload/', '/upload/fl_attachment/');
 
                                 contentHtml += `
                                             <div style="margin-bottom: 6px;">
-                                                <a href="${downloadUrl}" download="${cleanName}" style="
-                                                    display: flex; align-items: center; gap: 12px; 
+                                                <div onclick="window.chatManagerInstance.downloadFile('${msg.fileUrl}', '${cleanName}')" style="
+                                                    display: flex; align-items: center; gap: 12px; cursor: pointer;
                                                     background: #242526; padding: 10px 14px; 
                                                     border-radius: 18px; text-decoration: none; color: white; 
                                                     border: 1px solid rgba(255,255,255,0.05); 
@@ -1454,9 +1452,32 @@ class ChatManager {
 
             // UI Update is handled by Socket event 'private-message'
             // But we can append locally for instant feedback if needed
-
         } catch (error) {
             console.error('Send Error:', error);
+        }
+    }
+
+    // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
+    async downloadFile(url, filename) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback
+            window.open(url, '_blank');
         }
     }
 
