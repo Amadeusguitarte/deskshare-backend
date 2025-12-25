@@ -11,6 +11,7 @@ class ChatManager {
         // New Features
         this.typingUsers = new Set();
         this.typingTimeouts = {};
+        this.stagedFiles = new Map(); // Init here explicitly
 
         // UI Elements
         this.widgetContainer = null;
@@ -1147,6 +1148,9 @@ class ChatManager {
             const data = await res.json();
 
             // 2. STAGE THE FILE (Do not send yet)
+            // Lazy Init safety check
+            if (!this.stagedFiles) this.stagedFiles = new Map();
+
             this.stagedFiles.set(userId, {
                 fileUrl: data.fileUrl,
                 fileType: data.fileType,
@@ -1185,6 +1189,8 @@ class ChatManager {
         if (!input) return;
 
         const text = input.value.trim();
+        // Safety check
+        if (!this.stagedFiles) this.stagedFiles = new Map();
         const staged = this.stagedFiles.get(userId);
 
         if (!text && !staged) return; // Nothing to send
