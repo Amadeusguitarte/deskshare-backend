@@ -1,0 +1,9 @@
+D:\Downloads\DeskShare\js\chat-manager.js:1113
+        const listDot = document.querySelector(`#widget - list - item - ${userId} .list - status - dot`);
+              ^
+
+SyntaxError: Identifier 'listDot' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+    at checkSyntax (node:internal/main/check_syntax:78:3)
+
+Node.js v22.20.0

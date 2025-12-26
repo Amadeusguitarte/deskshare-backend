@@ -1097,8 +1097,8 @@ class ChatManager {
         }
 
         // Update UI (Widget Tab) - Rerender just the header if possible or full tab
-        const tabHeader = document.querySelector(`#chat - tab - ${userId} .user - status - text`);
-        const statusDot = document.querySelector(`#chat - tab - ${userId} .status - dot`);
+        const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
+        const statusDot = document.querySelector(`#chat-tab-${userId} .status-dot`);
 
         if (tabHeader) {
             tabHeader.textContent = isOnline ? 'En línea' : '';
@@ -1110,9 +1110,9 @@ class ChatManager {
         }
 
         // Update UI (Widget List Item)
-        const listDot = document.querySelector(`#widget - list - item - ${userId} .list - status - dot`);
-        if (listDot) {
-            listDot.style.display = isOnline ? 'block' : 'none';
+        const widgetListDot = document.querySelector(`#widget-list-item-${userId} .list-status-dot`);
+        if (widgetListDot) {
+            widgetListDot.style.display = isOnline ? 'block' : 'none';
         }
     }
 
