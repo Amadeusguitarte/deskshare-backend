@@ -806,11 +806,12 @@ textarea:focus {
 }
 
 /* 
-   Phase AR: Compact Refinement (12px Buttons / Min-Height 50px)
+   Phase AS: Full Bleed Compact (Big Arrow / Zero Void)
    - Width: 16px (Solid)
-   - Buttons: 12px Height (Eliminates Void)
-   - Thumb: Min-Height 50px (Fixes Micro-Pill)
-   Implemented: v274
+   - Buttons: 11px Height (Killer of Voids)
+   - Icons: 13px Width / 9px Height (Forces "Big" look in tight box)
+   - Thumb: Min-Height 50px (Anti-Shrink)
+   Implemented: v275
 */
 
 /* Container */
@@ -831,53 +832,54 @@ textarea:focus {
   border: 2px solid var(--bg-primary);
   background-clip: padding-box;
   min-height: 50px;
-  /* FIX: Prevents tiny thumb in long chats */
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--primary-purple-dark);
 }
 
-/* Buttons (Compact 12px Height) */
+/* Buttons (Ultra Compact 11px Height) */
 ::-webkit-scrollbar-button {
   display: block;
   width: 16px;
-  height: 12px;
-  /* FIX: Reduced to remove void */
+  height: 11px;
+  /* The "Full Bleed" Height */
   background-color: var(--bg-primary);
   background-repeat: no-repeat;
-  background-position: center;
-  background-size: 10px;
-  /* Scaled to fit compact box */
+  /* Size: 13px wide (almost full) x 9px high (almost full) */
+  background-size: 13px 9px;
 }
 
 ::-webkit-scrollbar-button:hover {
   background-color: var(--bg-tertiary);
 }
 
-/* Hide Ghost Buttons (Prevent Extra Spacing) */
+/* Hide Ghost Buttons */
 ::-webkit-scrollbar-button:start:increment,
 ::-webkit-scrollbar-button:end:decrement {
   display: none;
 }
 
-/* Arrows: Fat Rounded Triangles (Stroke-Width: 4, Line-Join: Round) */
-/* Vertical Up */
+/* Vertical Up -> Anchor to Bottom (Kiss the Thumb) */
 ::-webkit-scrollbar-button:vertical:start:decrement {
+  background-position: center bottom;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 6L4 18H20L12 6Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Vertical Down */
+/* Vertical Down -> Anchor to Top (Kiss the Thumb) */
 ::-webkit-scrollbar-button:vertical:end:increment {
+  background-position: center top;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 18L20 6H4L12 18Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Horizontal Left */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
+  background-position: right center;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M6 12L18 4V20L6 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Horizontal Right */
 ::-webkit-scrollbar-button:horizontal:end:increment {
+  background-position: left center;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M18 12L6 20V4L18 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
