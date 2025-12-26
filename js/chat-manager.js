@@ -876,7 +876,7 @@ class ChatManager {
         }
     }
 
-    // Updated toggleTab
+    // Updated toggleTab with Surgical DOM Update
     toggleTab(userId) {
         if (!this.openConversationIds.includes(userId)) {
             this.openConversationIds.push(userId);
@@ -888,18 +888,13 @@ class ChatManager {
             const conv = this.conversations.find(c => c.otherUser.id == userId);
             if (conv) {
                 // SAFE MERGE STRATEGY:
-                // Don't just overwrite. DB might be slightly behind local optimistic state.
                 const currentMsgs = conv.messages || [];
-
-                // NOTE: We REMOVED the automatic mark-read here.
-                // It is now strictly handled in handleInputFocus()
-
                 const mergedMap = new Map();
 
-                // 1. Add Fetched (DB) Messages (Source of Truth)
+                // 1. Add Fetched (DB) Messages
                 fetchedMsgs.forEach(m => mergedMap.set(String(m.id), m));
 
-                // 2. Add Local (Optimistic) Messages that aren't in DB yet
+                // 2. Add Local (Optimistic) Messages
                 currentMsgs.forEach(m => {
                     const id = String(m.id);
                     if (!mergedMap.has(id)) {
@@ -910,10 +905,17 @@ class ChatManager {
                 // 3. Convert back to array
                 conv.messages = Array.from(mergedMap.values());
 
-                this.renderWidgetTabs();
+                // CRITICAL FIX: Surgical Update
+                // Do NOT call renderWidgetTabs() here. It destroys the input focus.
+                this.updateMessagesAreaOnly(userId);
             }
         });
+
+        // Initial Render (Creates the DOM)
         this.renderWidgetTabs();
+
+        // Immediate Focus Attempt (Will succeed since DOM is created above)
+        this.tryFocusInput(userId);
     }
 
     // New Helper: Focus Input Logic
@@ -924,8 +926,13 @@ class ChatManager {
             const input = document.getElementById(`chat-input-${userId}`);
             if (input) {
                 input.focus();
-                input.click();
-                this.handleInputFocus(userId); // Trigger Read Receipt
+                input.click(); // Force active
+
+                // Only mark read if we actually have focus (prevents phantom reads)
+                if (document.activeElement === input) {
+                    this.handleInputFocus(userId);
+                }
+
                 this.scrollToBottom(userId);
             } else {
                 attempts++;
@@ -935,23 +942,31 @@ class ChatManager {
         setTimeout(attemptFocus, 100);
     }
 
-    // New Helper: Focus Input Logic
-    tryFocusInput(userId) {
-        // Retry logic to ensure DOM is ready
-        let attempts = 0;
-        const attemptFocus = () => {
-            const input = document.getElementById(`chat-input-${userId}`);
-            if (input) {
-                input.focus();
-                input.click();
-                this.handleInputFocus(userId); // Trigger Read Receipt
-                this.scrollToBottom(userId);
-            } else {
-                attempts++;
-                if (attempts < 5) setTimeout(attemptFocus, 200);
+    // New Helper: Updates ONLY the message list div, leaving Input/Header intact
+    updateMessagesAreaOnly(userId) {
+        const msgArea = document.getElementById(`msg-area-${userId}`);
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (msgArea && conv) {
+            // Sort
+            const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            // Update HTML
+            msgArea.innerHTML = this.renderMessageHTML(sortedMessages, conv.otherUser);
+            // Append Typing Indicator if needed
+            if (this.typingUsers.has(userId)) {
+                msgArea.innerHTML += `
+                    <div style="display: flex; justify-content: flex-start;">
+                        <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
+                            Escribiendo...
+                        </span>
+                    </div>`;
             }
-        };
-        setTimeout(attemptFocus, 100);
+            // Scroll
+            this.scrollToBottom(userId);
+        } else {
+            // Fallback if area doesn't exist (shouldn't happen if tab is open)
+            // But be careful not to infinite loop
+            console.warn('Message area not found for surgical update, skipping.');
+        }
     }
 
     // Updated scrollToBottom to support ID targeting and minimized check
