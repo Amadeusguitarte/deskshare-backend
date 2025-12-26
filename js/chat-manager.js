@@ -1179,7 +1179,13 @@ class ChatManager {
                         }
 
                         if (msg.message && msg.message.trim()) {
-                            contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                            // Phase AL: Defensive Filter for Ghost Comments (e.g. "// Grouping Logic")
+                            const rawText = msg.message.trim();
+                            const isComment = rawText.startsWith('//') || rawText.startsWith('/*');
+
+                            if (!isComment) {
+                                contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                            }
                         }
 
                         const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
