@@ -654,7 +654,7 @@ class ChatManager {
         this.updateGlobalBadge(totalUnread);
 
         const persistentBar = `
-            < div id = "chat-global-bar" class="chat-tab" style = "width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;" >
+            <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;">
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
@@ -682,7 +682,7 @@ class ChatManager {
                 <div style="padding: 10px; border-top: 1px solid #333; text-align: center;">
                    <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
                 </div>
-            </div >
+            </div>
             `;
 
         // 2. Render Active Tabs
@@ -748,8 +748,8 @@ class ChatManager {
         const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
         return `
-            < div id = "${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style = "width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;" >
-                 < !--HEADER -->
+            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+                 <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
@@ -768,7 +768,7 @@ class ChatManager {
                     </div>
                 </div>
                 
-                <!--MESSAGES AREA-- >
+                <!--MESSAGES AREA-->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${this.renderMessageHTML(sortedMessages, user)}
                     
@@ -819,7 +819,7 @@ class ChatManager {
                     </button>
                 </div>
             </div>
-            </div >
+            </div>
             `;
     }
 
