@@ -329,10 +329,13 @@ class ChatManager {
     renderFullPage() {
         if (!this.messagesPageContainer) return;
 
+        // Ensure container doesn't overflow
+        this.messagesPageContainer.style.overflow = 'hidden';
+
         this.messagesPageContainer.innerHTML = `
-            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: calc(100vh - 80px); gap: 1rem; padding: 1rem;">
+            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: calc(100vh - 80px); gap: 1rem; padding: 1rem; box-sizing: border-box;">
                 <!-- Sidebar -->
-                <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column;">
+                <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%;">
                     <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
                         <h2 style="margin: 0; font-size: 1.5rem;">Mensajes</h2>
                         <input type="text" placeholder="Buscar..." style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 0.5rem; width: 100%; margin-top: 1rem; border-radius: 8px; color: white;">
@@ -343,12 +346,12 @@ class ChatManager {
                 </div>
 
                 <!-- Chat Area -->
-                <div class="chat-main glass-card" style="display: flex; flex-direction: column; overflow: hidden;">
-                    <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between;">
+                <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative;">
+                    <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0;">
                         <h3 style="margin: 0; color: var(--text-secondary);">Selecciona una conversación</h3>
                     </div>
                     
-                    <div id="messagesArea" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div id="messagesArea" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; background: rgba(0,0,0,0.2);">
                          <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); flex-direction: column;">
                             <span style="font-size: 3rem; margin-bottom: 1rem;">👋</span>
                             <p>¡Bienvenido al Chat de DeskShare!</p>
@@ -356,17 +359,68 @@ class ChatManager {
                         </div>
                     </div>
 
-                    <div id="inputArea" style="padding: 1rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); display: none;">
-                        <form id="messageForm" style="display: flex; gap: 1rem;">
-                            <input type="text" id="messageInput" placeholder="Escribe un mensaje..." style="flex: 1; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white;">
-                            <button type="submit" class="btn btn-primary">Enviar</button>
+                    <!-- Input Area -->
+                    <div id="inputArea" style="padding: 1rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); display: none; flex-shrink: 0;">
+                        <form id="messageForm" style="display: flex; gap: 0.8rem; align-items: center;">
+                            <!-- File Button -->
+                            <input type="file" id="fullPageFileInput" style="display: none;" accept="image/*,application/pdf,.doc,.docx,.zip">
+                            <button type="button" onclick="document.getElementById('fullPageFileInput').click()" 
+                                    style="background: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                                </svg>
+                            </button>
+
+                            <!-- Text Input -->
+                            <div style="flex: 1; position: relative; display: flex; align-items: center;">
+                                <input type="text" id="messageInput" placeholder="Escribe un mensaje..." autocomplete="off"
+                                    style="width: 100%; padding: 12px 45px 12px 16px; border-radius: 24px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; font-family: 'Outfit', sans-serif;">
+                                
+                                <!-- Emoji Button -->
+                                <button type="button" id="fullPageEmojiBtn"
+                                        style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
+                                    😊
+                                </button>
+                            </div>
+
+                            <!-- Send Button -->
+                            <button type="submit" class="btn btn-primary" style="width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <citation>M22 2L11 13</citation>
+                                    <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                </svg>
+                            </button>
                         </form>
+                        
+                        <!-- Staging Area for File -->
+                        <div id="fullPageStaging" style="display: none; padding-top: 10px;"></div>
                     </div>
                 </div>
             </div>
         `;
 
         this.renderConversationsList();
+
+        // Init Full Page Emoji Picker
+        const emojiBtn = document.getElementById('fullPageEmojiBtn');
+        if (emojiBtn && window.EmojiButton) {
+            this.picker = new EmojiButton({
+                theme: 'dark',
+                autoHide: false,
+                position: 'top-end'
+            });
+            const input = document.getElementById('messageInput');
+
+            this.picker.on('emoji', selection => {
+                input.value += selection.emoji;
+                input.focus();
+            });
+
+            emojiBtn.addEventListener('click', () => {
+                this.picker.togglePicker(emojiBtn);
+            });
+        }
     }
 
     renderConversationsList() {
@@ -437,19 +491,114 @@ class ChatManager {
 
         document.getElementById('inputArea').style.display = 'block';
 
+        // Re-init Staging Logic for Full Page
+        const stagingArea = document.getElementById('fullPageStaging');
+        const fileInput = document.getElementById('fullPageFileInput');
+        let stagedFile = null;
+
+        if (fileInput) {
+            fileInput.value = ''; // Reset
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validate (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('El archivo es demasiado grande (Máx 5MB)');
+                    return;
+                }
+
+                stagedFile = file;
+                const isImage = file.type.startsWith('image/');
+
+                stagingArea.style.display = 'block';
+                stagingArea.innerHTML = `
+                    <div style="background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);">
+                        ${isImage ?
+                        `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` :
+                        `<span style="font-size: 1.2rem;">📄</span>`
+                    }
+                        <span style="font-size: 0.9rem; color: white; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
+                        <button type="button" id="removeStagedBtn" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem; margin-left: 5px;">×</button>
+                    </div>
+                `;
+
+                document.getElementById('removeStagedBtn').onclick = () => {
+                    stagedFile = null;
+                    fileInput.value = '';
+                    stagingArea.innerHTML = '';
+                    stagingArea.style.display = 'none';
+                };
+            };
+        }
+
         const form = document.getElementById('messageForm');
         form.onsubmit = async (e) => {
             e.preventDefault();
             const input = document.getElementById('messageInput');
             const text = input.value;
-            if (!text.trim()) return;
+
+            if (!text.trim() && !stagedFile) return;
+
+            // Handle File Upload if present
+            let fileUrl = null;
+            let fileType = null;
+
+            if (stagedFile) {
+                // Optimistic UI for Upload? No, wait for it.
+                try {
+                    const uploadData = await this.uploadFile(userId, stagedFile); // Reuse logic? Need confirm it returns URL
+                    // Actually existing uploadFile method does everything. Let's create a Helper or just use Cloudinary logic directly if needed.
+                    // Wait, existing uploadFile is specific to Widgets? 
+                    // Let's check renderChatTab's uploadFile... it's `uploadFile(userId, file)` -> returns {url, type}
+
+                    const uploadRes = await this.uploadFile(userId, stagedFile);
+                    fileUrl = uploadRes.url;
+                    fileType = uploadRes.type;
+
+                } catch (err) {
+                    console.error('Upload failed', err);
+                    alert('Error al subir archivo');
+                    return;
+                }
+            }
 
             input.value = '';
-            await this.sendMessage(user.id, text);
-            // Optimistic
-            const msg = { senderId: this.currentUser.id, message: text, createdAt: new Date().toISOString() };
-            this.activeConversation.messages.push(msg);
-            this.renderMessages(this.activeConversation.messages);
+
+            // Send Message (using update sendMiniMessage which now supports attachments)
+            // But wait, sendMiniMessage is for widgets? No, it's just a method name.
+            // Let's use `sendMessage` for consistency? No, sendMessage doesn't support files in previous signature?
+            // Let's double check sendMessage vs sendMiniMessage. 
+            // `sendMessage(receiverId, text, computerId=null)` vs `sendMiniMessage(receiverId, text, fileUrl, fileType)`
+            // We should use `sendMiniMessage` logic or update `sendMessage` to support files. 
+            // Since `sendMiniMessage` was updated in previous steps to support files, let's use that one or alias it.
+            // ACTUALLY, checking `sendMessage` (line 293), it DOES NOT support files yet.
+            // `sendMiniMessage` (line 1434) DOES support files. 
+            // So we call `sendMiniMessage`.
+
+            await this.sendMiniMessage(user.id, text, fileUrl, fileType);
+
+            // Clear Staging
+            stagedFile = null;
+            if (fileInput) fileInput.value = '';
+            if (stagingArea) {
+                stagingArea.innerHTML = '';
+                stagingArea.style.display = 'none';
+            }
+
+            // Optimistic Update manual? `sendMiniMessage` likely emits, but maybe we want instant feedback?
+            // `sendMiniMessage` does optimistically append? Let's check. 
+            // No, we should probably manually append here if we want instant feedback for Full Page.
+            const newMsg = {
+                senderId: this.currentUser.id,
+                message: text,
+                fileUrl,
+                fileType,
+                createdAt: new Date().toISOString()
+            };
+
+            this.activeConversation.messages.push(newMsg);
+            this.renderMessages(this.activeConversation.messages); // Re-render full list
             this.scrollToBottom();
         };
 
@@ -460,20 +609,10 @@ class ChatManager {
     renderMessages(messages) {
         messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         const area = document.getElementById('messagesArea');
-        area.innerHTML = messages.map(msg => {
-            const isMe = msg.senderId === this.currentUser.id;
-            return `
-            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
-                <div style="max-width: 70%; padding: 0.8rem 1rem; border-radius: 12px; background: ${isMe ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}; color: white; border-bottom-${isMe ? 'right' : 'left'}-radius: 2px;">
-                    <p style="margin: 0; line-height: 1.4;">${msg.message}</p>
-                    <span style="display: block; font-size: 0.7rem; opacity: 0.7; margin-top: 4px; text-align: right;">
-                        ${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        ${isMe ? (msg.isRead ? '✓✓' : '✓') : ''}
-                    </span>
-                </div>
-            </div>
-            `;
-        }).join('');
+        if (!area) return;
+
+        // Use the Shared Render Logic
+        area.innerHTML = this.renderMessageHTML(messages, this.activeConversation.otherUser);
     }
 
     scrollToBottom() {
@@ -1036,18 +1175,10 @@ class ChatManager {
                 
                 <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
-
-                    ${(() => {
-                const groups = [];
-                let currentGroup = [];
-
-                sortedMessages.forEach((msg, idx) => {
-                    const isImage = msg.fileUrl && msg.fileType === 'image';
-                    const prevMsg = idx > 0 ? sortedMessages[idx - 1] : null;
-                    const isSameSender = prevMsg && prevMsg.senderId === msg.senderId;
-                    const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
-
-                    // Determine if we should start a new group
+                    ${this.renderMessageHTML(sortedMessages, user)}
+                </div>
+                
+                <!-- INPUT AREA -->
                     // Start new group if:
                     // 1. No previous message
                     // 2. Different sender
@@ -1089,13 +1220,13 @@ class ChatManager {
 
                         // Facebook-style Grid Logic:
                         let gridContainerStyle = `
-                            display: grid; 
-                            gap: 2px; 
-                            border-radius: 12px; 
-                            overflow: hidden; 
-                            max-width: 220px;
-                            width: 100%;
-                        `;
+        display: grid;
+        gap: 2px;
+        border - radius: 12px;
+        overflow: hidden;
+        max - width: 220px;
+        width: 100 %;
+        `;
 
                         // Grid Templates
                         if (count === 2) {
@@ -1113,21 +1244,21 @@ class ChatManager {
 
                             // Explicit Click Handler Check (Global Instance)
                             return `
-                                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')" 
-                                     style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
-                                    <img src="${msg.fileUrl}" alt="Imagen" style="${itemStyle}">
-                                </div>
-                            `;
+            < div onclick = "event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+        style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
+            <img src="${msg.fileUrl}" alt="Imagen" style="${itemStyle}">
+            </div>
+        `;
                         }).join('');
 
                         // Wrapper
                         return `
-                            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
-                                <div style="${gridContainerStyle}">
-                                    ${imagesHtml}
-                                </div>
-                            </div>
-                        `;
+            < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+                <div style="${gridContainerStyle}">
+                    ${imagesHtml}
+                </div>
+                            </div >
+            `;
                     }
 
                     // 2. STANDARD RENDER (Single Message or Mixed)
@@ -1153,46 +1284,46 @@ class ChatManager {
                         if (msg.fileUrl) {
                             if (msg.fileType === 'image') {
                                 contentHtml += `
-                                            <div style="margin-bottom: 0;">
-                                                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')" 
-                                                     style="cursor: zoom-in; display: block; position: relative;">
-                                                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 160px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
-                                                </div>
-                                            </div>
-                                        `;
+            < div style = "margin-bottom: 0;" >
+                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+                    style="cursor: zoom-in; display: block; position: relative;">
+                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 160px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
+                </div>
+                                            </div >
+            `;
                             } else {
                                 const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
 
                                 contentHtml += `
-                                            <div style="margin-bottom: 6px;">
-                                                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
+            < div style = "margin-bottom: 6px;" >
+                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
                                                     display: flex; align-items: center; gap: 12px; cursor: pointer;
                                                     background: #242526; padding: 10px 14px; 
                                                     border-radius: 18px; text-decoration: none; color: white; 
                                                     border: 1px solid rgba(255,255,255,0.05); 
                                                     max-width: 220px; transition: background 0.2s;
                                                 ">
-                                                    <div style="
+                    <div style="
                                                         background: rgba(255,255,255,0.1); width: 40px; height: 40px; 
                                                         border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
                                                     ">
-                                                        <span style="font-size: 1.2em;">📄</span>
-                                                    </div>
-                                                    <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
-                                                        <span style="
+                        <span style="font-size: 1.2em;">📄</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                        <span style="
                                                             font-size: 0.85em; fontWeight: 600; 
                                                             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
                                                             display: block; width: 100%;
                                                         ">${cleanName}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `;
+                    </div>
+                </div>
+                                            </div >
+            `;
                             }
                         }
 
                         if (msg.message && msg.message.trim()) {
-                            contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                            contentHtml += `< div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
                         }
 
                         const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1200,15 +1331,15 @@ class ChatManager {
                         const bubblePad = isStandAlone ? '0' : '8px 12px';
 
                         return `
-                                    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
-                                        <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
-                                            <span style="background: ${bubbleBg}; color: white; padding: ${bubblePad}; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
-                                                ${contentHtml}
-                                            </span>
-                                            ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
-                                        </div>
-                                    </div>
-                                    `;
+            < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};" >
+                <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
+                    <span style="background: ${bubbleBg}; color: white; padding: ${bubblePad}; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
+                        ${contentHtml}
+                    </span>
+                    ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
+                </div>
+                                    </div >
+            `;
                     }).join('');
 
                 }).join('');
@@ -1442,6 +1573,174 @@ class ChatManager {
         // Cleanup
         input.value = '';
         this.clearStaging(userId);
+    }
+
+    // Shared Message Rendering for Full Page & Widget
+    renderMessageHTML(sortedMessages, user) {
+        const groups = [];
+        let currentGroup = [];
+
+        sortedMessages.forEach((msg, idx) => {
+            const isImage = msg.fileUrl && msg.fileType === 'image';
+            const prevMsg = idx > 0 ? sortedMessages[idx - 1] : null;
+            const isSameSender = prevMsg && prevMsg.senderId === msg.senderId;
+            const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
+
+            // Start new group if:
+            // 1. No previous message
+            // 2. Different sender
+            // 3. Current is image but prev wasn't
+            // 4. Prev was image but current isn't
+            if (!prevMsg || !isSameSender || (isImage !== isPrevImage)) {
+                if (currentGroup.length > 0) groups.push(currentGroup);
+                currentGroup = [msg];
+            } else {
+                currentGroup.push(msg);
+            }
+        });
+        if (currentGroup.length > 0) groups.push(currentGroup);
+
+        return groups.map(group => {
+            const firstMsg = group[0];
+            const isMe = firstMsg.senderId === this.currentUser.id;
+            const isImageGroup = firstMsg.fileUrl && firstMsg.fileType === 'image';
+
+            // 1. IMAGE COLLAGE LOGIC
+            if (isImageGroup) {
+                const count = group.length;
+                let gridContainerStyle = `
+                    display: grid; 
+                    gap: 2px; 
+                    background: transparent;
+                    border-radius: 18px; 
+                    overflow: hidden; 
+                    width: 100%; 
+                    max-width: 300px;
+                `;
+
+                if (count === 1) {
+                    // Single Image
+                    return `
+                        <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                            <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')" 
+                                 style="cursor: zoom-in; position: relative;">
+                                <img src="${group[0].fileUrl}" alt="Imagen" style="max-width: 240px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (count === 2) {
+                    gridContainerStyle += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2/1;';
+                } else {
+                    gridContainerStyle += 'grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr;';
+                }
+
+                const imagesHtml = group.map((msg) => `
+                    <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')" 
+                         style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
+                        <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                `).join('');
+
+                return `
+                    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                        <div style="${gridContainerStyle}">
+                            ${imagesHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 2. STANDARD TEXT/FILE MESSAGES
+            return group.map((msg) => {
+                const isMe = msg.senderId === this.currentUser.id;
+                let showRead = false;
+                if (isMe && msg.isRead) {
+                    const realIdx = sortedMessages.indexOf(msg);
+                    const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
+                    if (!newerMyMsg) showRead = true;
+                }
+
+                let contentHtml = '';
+                // File (Non-Image)
+                if (msg.fileUrl && msg.fileType !== 'image') {
+                    const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
+                    contentHtml += `
+                        <div style="margin-bottom: 6px;">
+                            <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
+                                display: flex; align-items: center; gap: 12px; cursor: pointer;
+                                background: #242526; padding: 10px 14px; 
+                                border-radius: 18px; text-decoration: none; color: white; 
+                                border: 1px solid rgba(255,255,255,0.05); 
+                                max-width: 220px; transition: background 0.2s;
+                            ">
+                                <div style="
+                                    background: rgba(255,255,255,0.1); width: 40px; height: 40px; 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+                                ">
+                                    <span style="font-size: 1.2em;">📄</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                                    <span style="
+                                        font-size: 0.85em; fontWeight: 600; 
+                                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+                                        display: block; width: 100%;
+                                    ">${cleanName}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (msg.message && msg.message.trim()) {
+                    contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                }
+
+                // Bubble Styling
+                const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
+                const bubbleBg = isStandAlone ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
+                const bubblePad = isStandAlone ? '0' : '8px 12px';
+
+                // Read Receipt Icon
+                const readIcon = showRead ? `
+                    <span style="margin-left: 4px; display: inline-flex; align-items: center;" title="Leído">
+                        <img src="assets/checked-done.svg" style="width: 14px; height: 14px; filter: brightness(0) invert(1);">
+                    </span>
+                ` : '';
+
+                // Time
+                const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
+                         align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
+                         max-width: 85%; 
+                         margin-bottom: 4px; 
+                         display: flex; 
+                         flex-direction: column; 
+                         align-items: ${isMe ? 'flex-end' : 'flex-start'};
+                    ">
+                        <div style="
+                             background: ${bubbleBg}; 
+                             padding: ${bubblePad}; 
+                             border-radius: 18px; 
+                             border-bottom-${isMe ? 'right' : 'left'}-radius: 4px; 
+                             color: white; 
+                             line-height: 1.4; 
+                             font-size: 0.95rem; 
+                             word-wrap: break-word; 
+                             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                        ">
+                            ${contentHtml}
+                        </div>
+                        <div style="font-size: 0.65rem; color: #888; margin-top: 2px; display: flex; align-items: center; gap: 2px;">
+                            ${timeStr} ${isMe ? readIcon : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }).join('');
     }
 
     // Updated send method to support attachments
