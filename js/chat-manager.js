@@ -918,6 +918,25 @@ class ChatManager {
         this.renderWidgetTabs();
     }
 
+    // New Helper: Focus Input Logic
+    tryFocusInput(userId) {
+        // Retry logic to ensure DOM is ready
+        let attempts = 0;
+        const attemptFocus = () => {
+            const input = document.getElementById(`chat-input-${userId}`);
+            if (input) {
+                input.focus();
+                input.click();
+                this.handleInputFocus(userId); // Trigger Read Receipt
+                this.scrollToBottom(userId);
+            } else {
+                attempts++;
+                if (attempts < 5) setTimeout(attemptFocus, 200);
+            }
+        };
+        setTimeout(attemptFocus, 100);
+    }
+
     // Updated scrollToBottom to support ID targeting and minimized check
     scrollToBottom(userId) {
         if (userId && this.minimizedConversations.has(userId)) return;
