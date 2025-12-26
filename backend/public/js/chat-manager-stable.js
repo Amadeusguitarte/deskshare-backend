@@ -560,23 +560,43 @@ class ChatManager {
             return;
         }
 
-        list.innerHTML = this.conversations
-            .filter(conv => {
-                if (!filterTerm) return true;
-                return conv.otherUser.name.toLowerCase().includes(filterTerm.toLowerCase());
-            })
-            .map(conv => {
-                const user = conv.otherUser;
-                const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                const lastMsg = sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1] : conv.lastMessage;
-                const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const filtered = this.conversations.filter(conv => {
+            if (!filterTerm) return true;
+            return conv.otherUser.name.toLowerCase().includes(filterTerm.toLowerCase());
+        });
 
-                const isActive = this.activeConversation && this.activeConversation.otherUser.id == user.id;
-                const unreadCount = this.unreadCounts[user.id] || 0;
+        list.innerHTML = filtered.map(conv => {
+            const user = conv.otherUser;
+            // Safe sort
+            const msgs = conv.messages || [];
+            const sortedMessages = msgs.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            const lastMsg = sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1] : conv.lastMessage;
 
-                return `
-    < div onclick = "chatManager.selectConversation(${user.id})"
-style = "padding: 10px; display: flex; align-items: center; gap: 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s; background: ${isActive ? 'rgba(255,255,255,0.1)' : 'transparent'}; border: 1px solid ${isActive ? 'var(--glass-border)' : 'transparent'};" >
+            let timeStr = '';
+            if (lastMsg && lastMsg.createdAt) {
+                timeStr = new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            const isActive = this.activeConversation && this.activeConversation.otherUser.id == user.id;
+            const unreadCount = this.unreadCounts[user.id] || 0;
+
+            const activeBg = isActive ? 'rgba(255,255,255,0.1)' : 'transparent';
+            const activeBorder = isActive ? 'var(--glass-border)' : 'transparent';
+
+            // Preview Text
+            let preview = '<i>Sin mensajes</i>';
+            if (lastMsg) {
+                const prefix = lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '';
+                let content = lastMsg.message;
+                if (lastMsg.fileUrl) {
+                    content = lastMsg.fileType === 'image' ? '📷 Imagen' : '📎 Archivo';
+                }
+                preview = prefix + content;
+            }
+
+            return `
+                <div onclick="chatManager.selectConversation(${user.id})" 
+                     style="padding: 10px; display: flex; align-items: center; gap: 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s; background: ${activeBg}; border: 1px solid ${activeBorder};">
                     
                     <div style="position: relative;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
@@ -586,18 +606,18 @@ style = "padding: 10px; display: flex; align-items: center; gap: 15px; cursor: p
                     <div style="flex: 1; min-width: 0;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                             <span style="font-weight: 600; color: white;">${user.name}</span>
-                            <span style="font-size: 0.8rem; color: #888;">${time}</span>
+                            <span style="font-size: 0.8rem; color: #888;">${timeStr}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 0.9rem; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">
-                                ${(lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Imagen' : '📎 Archivo') : lastMsg.message) : '<i>Sin mensajes</i>')}
+                                ${preview}
                             </span>
                             ${unreadCount > 0 ? `<span style="background: var(--accent-color); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">${unreadCount}</span>` : ''}
                         </div>
                     </div>
-                </div >
-    `;
-            }).join('');
+                </div>
+            `;
+        }).join('');
     }
                     </div>
     <div id="conversationsList" style="flex: 1; overflow-y: auto; padding: 1rem;">
