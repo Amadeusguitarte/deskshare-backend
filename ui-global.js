@@ -55,31 +55,36 @@ function enhanceHeaderProfile(user) {
 function initGlobalChat(user) {
     if (window.chatManager) return; // Already init
 
-    // 1. Ensure Widget Container Exists
-    // FIX: Do NOT create widget container on the full-page messages view
-    if (window.location.href.includes('messages.html')) return;
+    // 1. Ensure Widget Container Exists (BUT NOT ON MESSAGES PAGE)
+    const isMessagesPage = window.location.href.includes('messages.html') || document.getElementById('messagesPageContainer');
 
-    let container = document.getElementById('chatWidgetContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'chatWidgetContainer';
-        container.dataset.listOpen = 'false'; // Default closed
-        container.style.cssText = `
-            position: fixed;
-            bottom: 0px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            align-items: flex-end;
-            gap: 10px;
-            pointer-events: none;
-        `;
-        document.body.appendChild(container);
+    if (!isMessagesPage) {
+        let container = document.getElementById('chatWidgetContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'chatWidgetContainer';
+            container.dataset.listOpen = 'false'; // Default closed
+            container.style.cssText = `
+                position: fixed;
+                bottom: 0px;
+                right: 20px;
+                z-index: 9999;
+                display: flex;
+                align-items: flex-end;
+                gap: 10px;
+                pointer-events: none;
+            `;
+            document.body.appendChild(container);
+        }
     }
 
     const socketUrl = 'https://deskshare-backend-production.up.railway.app';
     window.chatManager = new ChatManager(user, socketUrl);
     console.log('Global Chat Widget Initialized');
+
+    // Header enhancement is now done separately in enhanceHeaderProfile
+}
+console.log('Global Chat Widget Initialized');
 
     // Header enhancement is now done separately in enhanceHeaderProfile
 }
