@@ -378,41 +378,44 @@ p {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 14px;
-  /* Master Container 14px */
+  width: 16px;
+  /* Master Container 16px for comfortable spacing */
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
-  /* CRITICAL: Transparent track creates real 'air' */
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
-  border-radius: 5px;
-  border: 2px solid transparent;
-  /* creates 2px of real empty space on sides */
+  border-radius: 99px;
+  /* Perfect Capsule Shape */
+  border-style: solid;
+  border-color: transparent;
+  border-width: 0 3px;
+  /* 0px Vertical Gap (close to arrow), 3px Lateral Gap (breathe from edge) */
   background-clip: content-box;
-  /* Ensures color stays inside the 10px core */
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-purple-dark);
+  border-width: 0 3px;
+  /* Ensure hover doesn't expand the bar */
 }
 
 /* Scrollbar Arrows (Buttons) */
 ::-webkit-scrollbar-button {
   display: block;
-  background-size: 12px 100%;
-  /* Arrow is 12px wide, centered in 14px box */
+  background-size: 14px 100%;
+  /* Arrow is 14px wide, centered in 16px box */
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
-  width: 14px;
+  width: 16px;
   /* Full box width */
-  height: 10px;
-  /* Tight height */
+  height: 12px;
+  /* Standard height */
 }
 
 /* Vertical Arrows - Ultra Wide Solid Triangles */
