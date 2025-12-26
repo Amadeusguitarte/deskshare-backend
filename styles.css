@@ -376,64 +376,68 @@ p {
   box-shadow: 0 12px 40px rgba(138, 43, 226, 0.3);
 }
 
-/* Scrollbar - Universal Standard */
+/* Scrollbar - Final Hybrid (Squat Button + Lateral Air) */
 ::-webkit-scrollbar {
   width: 16px;
-  /* Standard comfortable click area */
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
   background: #1a1a1a;
-  /* User-requested subtle dark foundation */
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
-  border-radius: 8px;
-  /* Standard pill radius (Half of 16px container) */
+  border-radius: 99px;
+  /* Full capsule */
   border: 4px solid transparent;
-  /* Creates the "Floating" effect (8px Visual Core) */
+  /* Start with uniform... */
+  border-top: none;
+  /* Remove vertical bumpers */
+  border-bottom: none;
+  /* Remove vertical bumpers */
   background-clip: content-box;
-  /* Clips color to the inner 8px */
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-purple-dark);
-  /* No geometry changes on hover, only color */
+  /* Color change only */
+  border: 4px solid transparent;
+  border-top: none;
+  border-bottom: none;
+  background-clip: content-box;
 }
 
-/* Scrollbar Arrows (Buttons) - Standard Layout */
+/* Scrollbar Arrows - Squat Compact Buttons */
 ::-webkit-scrollbar-button {
   display: block;
-  background-size: 10px 100%;
-  /* Clean simple arrow sizing */
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
   width: 16px;
-  height: 12px;
-  /* Standard compact button height */
+  height: 10px;
+  /* Squat button (10px) = 0 Gap to Thumb */
 }
 
-/* Vertical Up Arrow */
+/* Vertical Up - Truly Rounded Triangle */
 ::-webkit-scrollbar-button:vertical:start:decrement {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 20 L12 4 L24 20 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* Using a smaller path with thick round stroke to ensure corners are soft */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4 18 L12 6 L20 18' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Vertical Down Arrow */
+/* Vertical Down - Truly Rounded Triangle */
 ::-webkit-scrollbar-button:vertical:end:increment {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 4 L12 20 L24 4 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4 6 L12 18 L20 6' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Horizontal Left Arrow */
+/* Horizontal Left */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M20 24 L4 12 L20 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M18 20 L6 12 L18 4' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Horizontal Right Arrow */
+/* Horizontal Right */
 ::-webkit-scrollbar-button:horizontal:end:increment {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M4 24 L20 12 L4 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 20 L18 12 L6 4' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .computer-image {
