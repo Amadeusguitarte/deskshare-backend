@@ -732,7 +732,7 @@ class ChatManager {
 
     renderChatTab(conv) {
         const user = conv.otherUser;
-        const tabId = `chat - tab - ${user.id} `;
+        const tabId = `chat-tab-${user.id}`;
         // Check state to persist minimization
         const isMin = this.minimizedConversations.has(user.id);
         const height = isMin ? '50px' : '400px';
@@ -833,7 +833,7 @@ class ChatManager {
         }
 
         // 2. Direct DOM Manipulation (CSS Transition)
-        const tab = document.getElementById(`chat - tab - ${userId} `);
+        const tab = document.getElementById(`chat-tab-${userId}`);
         if (tab) {
             const newMin = !isMin; // Toggle logic
             tab.style.height = newMin ? '50px' : '400px';
@@ -901,7 +901,7 @@ class ChatManager {
     scrollToBottom(userId) {
         if (userId && this.minimizedConversations.has(userId)) return;
 
-        const area = userId ? document.getElementById(`msg - area - ${userId} `) : document.getElementById('messagesArea');
+        const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
         if (area) {
             area.scrollTop = area.scrollHeight;
             // Ensure opacity is 1 if it was hidden
@@ -965,7 +965,7 @@ class ChatManager {
 
         // UX: Auto-Focus Input
         setTimeout(() => {
-            const tab = document.getElementById(`chat - tab - ${userId} `);
+            const tab = document.getElementById(`chat-tab-${userId}`);
             if (tab) {
                 const input = tab.querySelector('input');
                 if (input) {
@@ -993,8 +993,8 @@ class ChatManager {
         }
 
         // Update UI (Widget Tab) - Rerender just the header if possible or full tab
-        const tabHeader = document.querySelector(`#chat - tab - ${userId} .user - status - text`);
-        const statusDot = document.querySelector(`#chat - tab - ${userId} .status - dot`);
+        const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
+        const statusDot = document.querySelector(`#chat-tab-${userId} .status-dot`);
 
         if (tabHeader) {
             tabHeader.textContent = isOnline ? 'En línea' : '';
@@ -1006,7 +1006,7 @@ class ChatManager {
         }
 
         // Update UI (Widget List Item)
-        const listDot = document.querySelector(`#widget - list - item - ${userId} .list - status - dot`);
+        const listDot = document.querySelector(`#widget-list-item-${userId} .list-status-dot`);
         if (listDot) {
             listDot.style.display = isOnline ? 'block' : 'none';
         }
@@ -1053,7 +1053,7 @@ class ChatManager {
         }
 
         // 2. Stop Flash
-        const tab = document.getElementById(`chat - tab - ${userId} `);
+        const tab = document.getElementById(`chat-tab-${userId}`);
         if (tab) {
             tab.classList.remove('flash-animation');
         }
@@ -1092,11 +1092,11 @@ class ChatManager {
     // ==========================================
     triggerFileUpload(userId) {
         // Create hidden input dynamically if not exists
-        let input = document.getElementById(`file - input - ${userId} `);
+        let input = document.getElementById(`file-input-${userId}`);
         if (!input) {
             input = document.createElement('input');
             input.type = 'file';
-            input.id = `file - input - ${userId} `;
+            input.id = `file-input-${userId}`;
             input.style.display = 'none';
             // Accept Images and Docs. Enable Multiple!
             input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
@@ -1120,7 +1120,7 @@ class ChatManager {
         if (!file) return;
 
         // Optimistic UI feedback could go here (e.g. spinner)
-        const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
+        const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
         if (btn) btn.style.opacity = '0.5';
 
         try {
@@ -1129,7 +1129,7 @@ class ChatManager {
             formData.append('file', file);
 
             // 1. Upload
-            const res = await fetch(`${this.baseUrl} /chat/upload`, {
+            const res = await fetch(`${this.baseUrl}/chat/upload`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token} ` },
                 body: formData
@@ -1161,7 +1161,7 @@ class ChatManager {
             this.renderStagingArea(userId);
 
             // Focus input
-            const chatInput = document.getElementById(`chat - input - ${userId} `);
+            const chatInput = document.getElementById(`chat-input-${userId}`);
             if (chatInput) chatInput.focus();
 
         } catch (error) {
@@ -1173,8 +1173,8 @@ class ChatManager {
     }
 
     renderStagingArea(userId) {
-        const stagingArea = document.getElementById(`chat - staging - ${userId} `);
-        const stagingContent = document.getElementById(`chat - staging - content - ${userId} `);
+        const stagingArea = document.getElementById(`chat-staging-${userId}`);
+        const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
         const files = this.stagedFiles.get(userId) || [];
 
         if (!files.length) {
@@ -1193,17 +1193,17 @@ class ChatManager {
 
                 let innerHTML = '';
                 if (file.fileType === 'image') {
-                    innerHTML = `< img src = "${file.fileUrl}" style = "height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;" > `;
+                    innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;">`;
                 } else {
                     innerHTML = `
-            < div style = "height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;" >
+            <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
                             📄
-                        </div > `;
+                        </div>`;
                 }
 
                 // Add Close Button (X)
                 innerHTML += `
-            < div onclick = "chatManager.removeStagedFile(${userId}, ${index})" style = "position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" >& times;</div >
+            <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">&times;</div>
                 `;
 
                 thumb.innerHTML = innerHTML;
@@ -1227,7 +1227,7 @@ class ChatManager {
     }
 
     async sendStagedMessage(userId) {
-        const input = document.getElementById(`chat - input - ${userId} `);
+        const input = document.getElementById(`chat-input-${userId}`);
         if (!input) return;
 
         const text = input.value.trim();
