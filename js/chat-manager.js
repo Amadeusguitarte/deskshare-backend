@@ -1387,19 +1387,44 @@ class ChatManager {
                 const bubbleBg = isStandAlone ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
                 const bubblePad = isStandAlone ? '0' : '8px 12px';
 
-                // Read Receipt (Text)
-                const readIcon = showRead ? `
-                    <span style="font-size: 0.65rem; color: #aaa; margin-top: 2px; text-align: right; display: block;">Visto</span>
-                ` : '';
+                // Time Logic (Header above message)
+                // We show time header if:
+                // 1. It's the first message of the group
+                // 2. AND (First message overall OR Time diff > 5 mins from prev group last msg) (Simplified: just show for group start)
 
-                // Time
-                const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+
+                let timeHeader = '';
+                // Only show time header for the first message in the group
+                if (group.indexOf(msg) === 0) {
+                    timeHeader = `
+                        <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
+                            <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
+                                ${timeStr}
+                            </span>
+                        </div>
+                    `;
+                }
+
+                // Status Logic (Enviado / Visto)
+                // Only show for my messages.
+                let statusHtml = '';
+                if (isMe) {
+                    const statusText = showRead ? 'Visto' : 'Enviado';
+                    const statusColor = showRead ? '#aaa' : '#666'; // Visto = distinct, Enviado = subtle
+                    statusHtml = `
+                        <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
+                            ${statusText}
+                        </div>
+                    `;
+                }
 
                 return `
+                    ${timeHeader}
                     <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
                          align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
                          max-width: 85%; 
-                         margin-bottom: 4px; 
+                         margin-bottom: 2px; 
                          display: flex; 
                          flex-direction: column; 
                          align-items: ${isMe ? 'flex-end' : 'flex-start'};
@@ -1412,17 +1437,15 @@ class ChatManager {
                              color: white; 
                              line-height: 1.4; 
                              font-size: 0.95rem; 
-                             word-wrap: break-word; 
-                             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                             word-break: break-word;
+                             min-width: 60px;
                         ">
                             ${contentHtml}
                         </div>
-                        <div style="font-size: 0.65rem; color: #888; margin-top: 2px; display: flex; align-items: center; gap: 2px;">
-                            ${timeStr} ${isMe ? readIcon : ''}
-                        </div>
+                        ${statusHtml}
                     </div>
                 `;
-            }).join('');
+            }).flat().join('');
         }).join('');
     }
 

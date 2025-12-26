@@ -714,12 +714,18 @@ function updateAuthHeader() {
 
     if (isLoggedIn) {
         if (profileLink) {
-            profileLink.textContent = 'Mi Perfil';
+            // SAFEGUARD: Don't overwrite if it contains an image or svg (Avatar/Icon)
+            if (!profileLink.innerHTML.includes('<img') && !profileLink.innerHTML.includes('<svg')) {
+                profileLink.textContent = 'Mi Perfil';
+            }
             profileLink.href = 'profile.html';
         }
     } else {
         if (profileLink) {
-            profileLink.textContent = 'Iniciar Sesión';
+            // SAFEGUARD: Don't overwrite if it contains an image or svg
+            if (!profileLink.innerHTML.includes('<img') && !profileLink.innerHTML.includes('<svg')) {
+                profileLink.textContent = 'Iniciar Sesión';
+            }
             profileLink.href = 'login.html';
         }
 
