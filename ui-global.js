@@ -81,11 +81,14 @@ function initGlobalChat(user) {
         }
     }
 
-    const socketUrl = 'https://deskshare-backend-production.up.railway.app';
-    window.chatManager = new ChatManager(user, socketUrl);
-    console.log('Global Chat Widget Initialized');
+    try {
+        const socketUrl = 'https://deskshare-backend-production.up.railway.app';
+        window.chatManager = new ChatManager(user, socketUrl);
+        console.log('Global Chat Widget Initialized');
+    } catch (err) {
+        console.error('Failed to initialize ChatManager:', err);
+    }
 
-    // Header enhancement is now done separately in enhanceHeaderProfile
     // Header enhancement is now done separately in enhanceHeaderProfile
 }
 
