@@ -806,17 +806,18 @@ textarea:focus {
 }
 
 /* 
-   Phase AS: Full Bleed Compact (Big Arrow / Zero Void)
-   - Width: 16px (Solid)
-   - Buttons: 11px Height (Killer of Voids)
-   - Icons: 13px Width / 9px Height (Forces "Big" look in tight box)
-   - Thumb: Min-Height 50px (Anti-Shrink)
-   Implemented: v275
+   Phase AT: Tall & Slim (User Specification v276)
+   - Width: 12px (Slimmer than 16px)
+   - Buttons: 20px Height (Tall Click Target)
+   - Icons: Scaled to 18px Height (Fills the 20px box = No Void)
+   - Thumb: Min-Height 50px
+   Implemented: v276
 */
 
 /* Container */
 ::-webkit-scrollbar {
-  width: 16px;
+  width: 12px;
+  /* Slimmer Profile */
   background-color: var(--bg-primary);
 }
 
@@ -825,11 +826,12 @@ textarea:focus {
   background-color: var(--bg-primary);
 }
 
-/* Thumb (The Bar) */
+/* Thumb */
 ::-webkit-scrollbar-thumb {
   background-color: var(--primary-purple);
   border-radius: 6px;
-  border: 2px solid var(--bg-primary);
+  border: 1px solid var(--bg-primary);
+  /* Minimal air gap */
   background-clip: padding-box;
   min-height: 50px;
 }
@@ -838,16 +840,17 @@ textarea:focus {
   background-color: var(--primary-purple-dark);
 }
 
-/* Buttons (Ultra Compact 11px Height) */
+/* Buttons (Tall 20px) */
 ::-webkit-scrollbar-button {
   display: block;
-  width: 16px;
-  height: 11px;
-  /* The "Full Bleed" Height */
+  width: 12px;
+  height: 20px;
+  /* Requested 20px Height */
   background-color: var(--bg-primary);
   background-repeat: no-repeat;
-  /* Size: 13px wide (almost full) x 9px high (almost full) */
-  background-size: 13px 9px;
+  /* Size: Fill width (12px), almost fill height (16px) */
+  background-size: 100% 16px;
+  background-position: center;
 }
 
 ::-webkit-scrollbar-button:hover {
@@ -860,26 +863,24 @@ textarea:focus {
   display: none;
 }
 
-/* Vertical Up -> Anchor to Bottom (Kiss the Thumb) */
+/* Vertical Up -> Anchor Bottom to minimize gap */
 ::-webkit-scrollbar-button:vertical:start:decrement {
-  background-position: center bottom;
+  background-position: center bottom 2px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 6L4 18H20L12 6Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Vertical Down -> Anchor to Top (Kiss the Thumb) */
+/* Vertical Down -> Anchor Top to minimize gap */
 ::-webkit-scrollbar-button:vertical:end:increment {
-  background-position: center top;
+  background-position: center top 2px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 18L20 6H4L12 18Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Horizontal Left */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
-  background-position: right center;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M6 12L18 4V20L6 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Horizontal Right */
 ::-webkit-scrollbar-button:horizontal:end:increment {
-  background-position: left center;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M18 12L6 20V4L18 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
