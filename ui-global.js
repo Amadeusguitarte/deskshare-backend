@@ -82,11 +82,19 @@ function initGlobalChat(user) {
     }
 
     try {
+        if (typeof io === 'undefined') {
+            throw new Error('Socket.io library not loaded');
+        }
         const socketUrl = 'https://deskshare-backend-production.up.railway.app';
         window.chatManager = new ChatManager(user, socketUrl);
         console.log('Global Chat Widget Initialized');
     } catch (err) {
         console.error('Failed to initialize ChatManager:', err);
+        // Visual Feedback for Critical Failure
+        const errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed; bottom:10px; left:10px; background:red; color:white; padding:5px 10px; z-index:10000; font-size:12px; border-radius:4px; opacity:0.8;';
+        errDiv.innerText = 'Chat Error: ' + err.message;
+        document.body.appendChild(errDiv);
     }
 
     // Header enhancement is now done separately in enhanceHeaderProfile
