@@ -234,7 +234,7 @@ class ChatManager {
     async loadConversations() {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/chat/conversations`, {
+            const response = await fetch(`${this.baseUrl}/chat/conversations`, {
                 headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
             });
             const data = await response.json();
@@ -282,7 +282,7 @@ class ChatManager {
     async loadHistory(userId) {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/chat/history/${userId}?t=${Date.now()}`, {
+            const response = await fetch(`${this.baseUrl}/chat/history/${userId}?t=${Date.now()}`, {
                 headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
             });
             const data = await response.json();
@@ -296,7 +296,7 @@ class ChatManager {
     async sendMessage(receiverId, text, computerId = null) {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/chat`, {
+            const response = await fetch(`${this.baseUrl}/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -656,7 +656,7 @@ if (fileInput) {
         stagingArea.style.display = 'flex';
         stagingArea.innerHTML = `
     < div style = "background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);" >
-        ${isImage ? `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` : '<span style="font-size: 1.2rem;">📄</span>'}
+        ${ isImage ? `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` : '<span style="font-size: 1.2rem;">📄</span>' }
                         <span style="font-size: 0.9rem; color: white; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
                         <button type="button" id="removeFullPageStagedBtn" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem; margin-left: 5px;">×</button>
                     </div >
@@ -832,7 +832,7 @@ updateGlobalBadge(count) {
 
 renderChatTab(conv) {
     const user = conv.otherUser;
-    const tabId = `chat - tab - ${user.id} `;
+    const tabId = `chat - tab - ${ user.id } `;
     // Check state to persist minimization
     const isMin = this.minimizedConversations.has(user.id);
     const height = isMin ? '50px' : '400px';
@@ -935,7 +935,7 @@ toggleMinimize(userId) {
     }
 
     // 2. Direct DOM Manipulation (CSS Transition)
-    const tab = document.getElementById(`chat - tab - ${userId} `);
+    const tab = document.getElementById(`chat - tab - ${ userId } `);
     if (tab) {
         const newMin = !isMin; // Toggle logic
         tab.style.height = newMin ? '50px' : '400px';
@@ -1004,7 +1004,7 @@ tryFocusInput(userId) {
     // Retry logic to ensure DOM is ready
     let attempts = 0;
     const attemptFocus = () => {
-        const input = document.getElementById(`chat - input - ${userId} `);
+        const input = document.getElementById(`chat - input - ${ userId } `);
         if (input) {
             input.focus();
             input.click(); // Force active
@@ -1025,7 +1025,7 @@ tryFocusInput(userId) {
 
 // New Helper: Updates ONLY the message list div, leaving Input/Header intact
 updateMessagesAreaOnly(userId) {
-    const msgArea = document.getElementById(`msg - area - ${userId} `);
+    const msgArea = document.getElementById(`msg - area - ${ userId } `);
     const conv = this.conversations.find(c => c.otherUser.id == userId);
     if (msgArea && conv) {
         // Sort
@@ -1054,7 +1054,7 @@ updateMessagesAreaOnly(userId) {
 scrollToBottom(userId) {
     if (userId && this.minimizedConversations.has(userId)) return;
 
-    const area = userId ? document.getElementById(`msg - area - ${userId} `) : document.getElementById('messagesArea');
+    const area = userId ? document.getElementById(`msg - area - ${ userId } `) : document.getElementById('messagesArea');
     if (area) {
         // 1. Immediate Scroll
         area.scrollTop = area.scrollHeight;
@@ -1128,7 +1128,7 @@ emitTyping(receiverId) {
 
     // UX: Auto-Focus Input
     setTimeout(() => {
-        const tab = document.getElementById(`chat - tab - ${userId} `);
+        const tab = document.getElementById(`chat - tab - ${ userId } `);
         if (tab) {
             const input = tab.querySelector('input');
             if (input) {
@@ -1161,14 +1161,14 @@ updateUserStatus(userId, isOnline) {
     }
 
     // Update UI (Full Page List Item)
-    const listDot = document.getElementById(`list - status - dot - ${userId} `);
+    const listDot = document.getElementById(`list - status - dot - ${ userId } `);
     if (listDot) {
         listDot.style.display = isOnline ? 'block' : 'none';
     }
 
     // Update UI (Widget Tab) - Rerender just the header if possible or full tab
-    const tabHeader = document.querySelector(`#chat - tab - ${userId} .user - status - text`);
-    const statusDot = document.querySelector(`#chat - tab - ${userId} .status - dot`);
+    const tabHeader = document.querySelector(`#chat - tab - ${ userId } .user - status - text`);
+    const statusDot = document.querySelector(`#chat - tab - ${ userId } .status - dot`);
 
     if (tabHeader) {
         tabHeader.textContent = isOnline ? 'En línea' : '';
@@ -1180,7 +1180,7 @@ updateUserStatus(userId, isOnline) {
     }
 
     // Update UI (Widget List Item)
-    const widgetListDot = document.querySelector(`#widget - list - item - ${userId} .list - status - dot`);
+    const widgetListDot = document.querySelector(`#widget - list - item - ${ userId } .list - status - dot`);
     if (widgetListDot) {
         widgetListDot.style.display = isOnline ? 'block' : 'none';
     }
@@ -1227,7 +1227,7 @@ handleInputFocus(userId) {
     }
 
     // 2. Stop Flash
-    const tab = document.getElementById(`chat - tab - ${userId} `);
+    const tab = document.getElementById(`chat - tab - ${ userId } `);
     if (tab) {
         tab.classList.remove('flash-animation');
     }
@@ -1241,7 +1241,7 @@ startTitleBlink(userName) {
 
     let isOriginal = false;
     const originalTitle = "DeskShare - Alquila Computadoras Potentes";
-    const newTitle = `💬 Nuevo mensaje de ${userName} `;
+    const newTitle = `💬 Nuevo mensaje de ${ userName } `;
 
     this.titleInterval = setInterval(() => {
         document.title = isOriginal ? newTitle : originalTitle;
@@ -1266,11 +1266,11 @@ stopTitleBlink() {
 // ==========================================
 triggerFileUpload(userId) {
     // Create hidden input dynamically if not exists
-    let input = document.getElementById(`file - input - ${userId} `);
+    let input = document.getElementById(`file - input - ${ userId } `);
     if (!input) {
         input = document.createElement('input');
         input.type = 'file';
-        input.id = `file - input - ${userId} `;
+        input.id = `file - input - ${ userId } `;
         input.style.display = 'none';
         // Accept Images and Docs. Enable Multiple!
         input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
@@ -1294,7 +1294,7 @@ triggerFileUpload(userId) {
     if (!file) return;
 
     // Optimistic UI feedback could go here (e.g. spinner)
-    const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
+    const btn = document.querySelector(`#chat - tab - ${ userId } .chat - footer button`);
     if (btn) btn.style.opacity = '0.5';
 
     try {
@@ -1303,15 +1303,15 @@ triggerFileUpload(userId) {
         formData.append('file', file);
 
         // 1. Upload
-        const res = await fetch(`${this.baseUrl} /chat/upload`, {
+        const res = await fetch(`${ this.baseUrl } /chat/upload`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token} ` },
+            headers: { 'Authorization': `Bearer ${ token } ` },
             body: formData
         });
 
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `Server Error: ${res.status} `);
+            throw new Error(errData.error || `Server Error: ${ res.status } `);
         }
         const data = await res.json();
 
@@ -1335,20 +1335,20 @@ triggerFileUpload(userId) {
         this.renderStagingArea(userId);
 
         // Focus input
-        const chatInput = document.getElementById(`chat - input - ${userId} `);
+        const chatInput = document.getElementById(`chat - input - ${ userId } `);
         if (chatInput) chatInput.focus();
 
     } catch (error) {
         console.error('Upload Error:', error);
-        alert(`Error subiendo archivo: ${error.message} `);
+        alert(`Error subiendo archivo: ${ error.message } `);
     } finally {
         if (btn) btn.style.opacity = '1';
     }
 }
 
 renderStagingArea(userId) {
-    const stagingArea = document.getElementById(`chat - staging - ${userId} `);
-    const stagingContent = document.getElementById(`chat - staging - content - ${userId} `);
+    const stagingArea = document.getElementById(`chat - staging - ${ userId } `);
+    const stagingContent = document.getElementById(`chat - staging - content - ${ userId } `);
     const files = this.stagedFiles.get(userId) || [];
 
     if (!files.length) {
@@ -1401,7 +1401,7 @@ clearStaging(userId) {
 }
 
     async sendStagedMessage(userId) {
-    const input = document.getElementById(`chat - input - ${userId} `);
+    const input = document.getElementById(`chat - input - ${ userId } `);
     if (!input) return;
 
     const text = input.value.trim();
@@ -1560,7 +1560,7 @@ style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; wi
             }
 
             if (msg.message && msg.message.trim()) {
-                contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
+                contentHtml += `< div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
             }
 
             const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1594,19 +1594,19 @@ style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; wi
                     statusText = 'Visto';
                     statusColor = '#aaa';
                 } else {
-                    statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))} `;
+                    statusText = `Enviado ${ this.getRelativeTime(new Date(msg.createdAt)) } `;
                     statusColor = '#666';
                 }
 
                 statusHtml = `
     < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
-        ${statusText}
+        ${ statusText }
             </div >
     `;
             }
 
             return `
-                    ${timeHeader}
+                    ${ timeHeader }
 <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
                          align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
                          max-width: 85%; 
@@ -1643,10 +1643,10 @@ getRelativeTime(date) {
     const diffDays = Math.floor(diffHrs / 24);
 
     if (diffMins < 1) return 'hace un momento';
-    if (diffMins < 60) return `hace ${diffMins} min`;
-    if (diffHrs < 24) return `hace ${diffHrs} h`;
+    if (diffMins < 60) return `hace ${ diffMins } min`;
+    if (diffHrs < 24) return `hace ${ diffHrs } h`;
     if (diffDays === 1) return 'ayer';
-    return `hace ${diffDays} días`;
+    return `hace ${ diffDays } días`;
 }
 
     // Updated send method to support attachments
@@ -1655,29 +1655,29 @@ getRelativeTime(date) {
         if (!text && !fileUrl) return;
 
         const token = localStorage.getItem('authToken');
-        const res = await fetch(`${this.baseUrl}/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                receiverId,
-                message: text,
-                fileUrl: fileUrl,  // Phase B
-                fileType: fileType // Phase B
-            })
+        const res = await fetch(`${ this.baseUrl }/chat`, {
+method: 'POST',
+    headers: {
+    'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+},
+body: JSON.stringify({
+    receiverId,
+    message: text,
+    fileUrl: fileUrl,  // Phase B
+    fileType: fileType // Phase B
+})
         });
 
-        if (!res.ok) throw new Error('Failed to send');
+if (!res.ok) throw new Error('Failed to send');
 
-        const { message } = await res.json();
+const { message } = await res.json();
 
         // UI Update is handled by Socket event 'private-message'
         // But we can append locally for instant feedback if needed
     } catch (error) {
-        console.error('Send Error:', error);
-    }
+    console.error('Send Error:', error);
+}
 }
 
     // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
