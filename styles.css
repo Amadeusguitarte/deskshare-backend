@@ -376,83 +376,63 @@ p {
   box-shadow: 0 12px 40px rgba(138, 43, 226, 0.3);
 }
 
-/* Scrollbar */
+/* Scrollbar - Universal Standard */
 ::-webkit-scrollbar {
   width: 16px;
-  /* Master Container 16px */
+  /* Standard comfortable click area */
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #1a1a1a;
+  /* User-requested subtle dark foundation */
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
-  border-radius: 99px;
-  /* Capsule Shape */
-  border: 3px solid transparent;
-  /* Lateral spacing */
-  border-top: none;
-  /* Contact with arrow */
-  border-bottom: none;
-  /* Contact with arrow */
+  border-radius: 8px;
+  /* Standard pill radius (Half of 16px container) */
+  border: 4px solid transparent;
+  /* Creates the "Floating" effect (8px Visual Core) */
   background-clip: content-box;
+  /* Clips color to the inner 8px */
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-purple-dark);
-  border: 3px solid transparent;
-  border-top: none;
-  border-bottom: none;
-  background-clip: content-box;
+  /* No geometry changes on hover, only color */
 }
 
-/* Scrollbar Arrows (Buttons) */
+/* Scrollbar Arrows (Buttons) - Standard Layout */
 ::-webkit-scrollbar-button {
   display: block;
   background-size: 10px 100%;
+  /* Clean simple arrow sizing */
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
   width: 16px;
-  /* Button Strategy: Use BORDERS + background-clip: content-box to create space at window edge only */
+  height: 12px;
+  /* Standard compact button height */
 }
 
 /* Vertical Up Arrow */
 ::-webkit-scrollbar-button:vertical:start:decrement {
-  height: 14px;
-  /* 10px Arrow + 4px Edge Space */
-  border-top: 4px solid transparent;
-  /* Creates space at Window Edge */
-  background-clip: content-box;
-  /* Restricts arrow to the bottom 10px */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 20 L12 4 L24 20 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Vertical Down Arrow */
 ::-webkit-scrollbar-button:vertical:end:increment {
-  height: 14px;
-  /* 10px Arrow + 4px Edge Space */
-  border-bottom: 4px solid transparent;
-  /* Creates space at Window Edge */
-  background-clip: content-box;
-  /* Restricts arrow to the top 10px */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 4 L12 20 L24 4 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Horizontal Arrows */
+/* Horizontal Left Arrow */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
-  width: 14px;
-  border-left: 4px solid transparent;
-  background-clip: content-box;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M20 24 L4 12 L20 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
+/* Horizontal Right Arrow */
 ::-webkit-scrollbar-button:horizontal:end:increment {
-  width: 14px;
-  border-right: 4px solid transparent;
-  background-clip: content-box;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M4 24 L20 12 L4 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
