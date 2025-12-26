@@ -110,6 +110,9 @@ app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
 
 // Server Entry Point (v180 RESTORED - GOLDEN STATE)(Project Root)
 const path = require('path');
+// PRIMARY: Serve local public assets (for reliable Railway deployment)
+app.use(express.static(path.join(__dirname, 'public')));
+// FALLBACK: Serve root (for existing monorepo structure)
 app.use(express.static(path.join(__dirname, '../')));
 
 // 404 handler - For SPA, send index.html, but for now just 404 for API
