@@ -1075,7 +1075,14 @@ class ChatManager {
                         const count = group.length;
 
                         // Facebook-style Grid Logic:
-                        let gridContainerStyle = "display: grid; gap: 2px; border-radius: 12px; overflow: hidden; max-width: 220px; width: 100%;";
+                        let gridContainerStyle = `
+                            display: grid; 
+                            gap: 2px; 
+                            border-radius: 12px; 
+                            overflow: hidden; 
+                            max-width: 220px;
+                            width: 100%;
+                        `;
 
                         // Grid Templates
                         if (count === 2) {
@@ -1172,14 +1179,7 @@ class ChatManager {
                         }
 
                         if (msg.message && msg.message.trim()) {
-                            // Phase AN: Nuclear Filter for Ghost Text
-                            const rawText = msg.message.trim();
-                            // Block specific debug strings seen by user
-                            const isGhost = rawText.includes('Grouping Logic') || rawText.startsWith('//') || rawText.startsWith('/*');
-
-                            if (!isGhost) {
-                                contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
-                            }
+                            contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                         }
 
                         const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1487,10 +1487,12 @@ class ChatManager {
     }
 
     // ==========================================
-    // Helper: Standard Download (Silent Mode)
-    // We revert to window.open because fetch fails due to CORS/Hotlink protection.
-    // Removing alerts allows the browser to handle the navigation natively.
-    async downloadFileSecure(url, filename) {
+    // Helper: Standard Download (Reverted to Safe Mode)
+    // Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
+    downloadFileSecure(url, filename) {
+        // Just open the original signed URL. 
+        // If it opens in a new tab (PDF Viewer), user can save from there.
+        // We cannot inject fl_attachment client-side without invalidating the signature.
         window.open(url, '_blank');
     }
 
