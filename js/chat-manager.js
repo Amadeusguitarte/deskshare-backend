@@ -337,7 +337,7 @@ class ChatManager {
         this.messagesPageContainer.style.overflow = 'hidden';
 
         this.messagesPageContainer.innerHTML = `
-            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: 100%; gap: 1.5rem; padding: 2rem; padding-bottom: 2rem; box-sizing: border-box;">
+            <div class="chat-layout" style="display: grid; grid-template-columns: 420px 1fr; height: 100%; gap: 1.5rem; padding: 1rem; padding-bottom: 2rem; box-sizing: border-box;">
                 <!--Sidebar -->
                 <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%;">
                     <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
