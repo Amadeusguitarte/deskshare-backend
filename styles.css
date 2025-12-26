@@ -384,23 +384,27 @@ p {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
-  /* Subtle solid dark background */
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
   border-radius: 99px;
-  /* Perfect Capsule due to uniform borders */
+  /* Capsule Shape */
   border: 3px solid transparent;
-  /* Uniform 3px border preserves curvature and creates lateral spacing */
+  /* Lateral spacing */
+  border-top: none;
+  /* Contact with arrow */
+  border-bottom: none;
+  /* Contact with arrow */
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-purple-dark);
   border: 3px solid transparent;
-  /* Locked borders */
+  border-top: none;
+  border-bottom: none;
   background-clip: content-box;
 }
 
@@ -408,35 +412,47 @@ p {
 ::-webkit-scrollbar-button {
   display: block;
   background-size: 10px 100%;
-  /* Arrow width 10px */
   background-repeat: no-repeat;
+  background-position: center;
   background-color: transparent;
   width: 16px;
-  height: 20px;
-  /* Tall button to allow offsetting */
+  /* Button Strategy: Use BORDERS + background-clip: content-box to create space at window edge only */
 }
 
-/* Vertical Arrows - Docked to Thumb (Reverse Alignment) */
+/* Vertical Up Arrow */
 ::-webkit-scrollbar-button:vertical:start:decrement {
-  /* Up Arrow: Positioned Bottom (to collapse gap to thumb), Space goes to Top (Window Edge) */
-  background-position: center bottom;
+  height: 14px;
+  /* 10px Arrow + 4px Edge Space */
+  border-top: 4px solid transparent;
+  /* Creates space at Window Edge */
+  background-clip: content-box;
+  /* Restricts arrow to the bottom 10px */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 20 L12 4 L24 20 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
+/* Vertical Down Arrow */
 ::-webkit-scrollbar-button:vertical:end:increment {
-  /* Down Arrow: Positioned Top (to collapse gap to thumb), Space goes to Bottom (Window Edge) */
-  background-position: center top;
+  height: 14px;
+  /* 10px Arrow + 4px Edge Space */
+  border-bottom: 4px solid transparent;
+  /* Creates space at Window Edge */
+  background-clip: content-box;
+  /* Restricts arrow to the top 10px */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M0 4 L12 20 L24 4 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Horizontal Arrows */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
-  background-position: center;
+  width: 14px;
+  border-left: 4px solid transparent;
+  background-clip: content-box;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M20 24 L4 12 L20 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 ::-webkit-scrollbar-button:horizontal:end:increment {
-  background-position: center;
+  width: 14px;
+  border-right: 4px solid transparent;
+  background-clip: content-box;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M4 24 L20 12 L4 0 Z' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
