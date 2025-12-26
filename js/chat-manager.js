@@ -770,26 +770,7 @@ class ChatManager {
                 
                 <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
-                    ${sortedMessages.map((msg, idx, arr) => {
-            // SMART VISTO LOGIC
-            const isMe = msg.senderId === this.currentUser.id;
-            let showRead = false;
-            if (isMe && msg.isRead) {
-                const newerMyMsg = arr.slice(idx + 1).some(m => m.senderId === this.currentUser.id);
-                if (!newerMyMsg) showRead = true;
-            }
-
-            return `
-                        <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
-                            <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
-                                <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem;">
-                                    ${msg.message}
-                                </span>
-                                ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
-                            </div>
-                        </div>
-                        `;
-        }).join('')}
+                    ${this.renderMessageHTML(sortedMessages, user)}
                     
                     ${this.typingUsers.has(user.id) ? `
                         <div style="display: flex; justify-content: flex-start;">
@@ -801,30 +782,42 @@ class ChatManager {
                 </div>
                 
                 <!-- FOOTER -->
-                <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
-                     <!-- Attach Icon -->
-                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                    </button>
+                <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; flex-direction: column; gap: 8px;">
                     
-                    <!-- Input Container -->
-                    <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                        <input type="text" placeholder="Escribe un mensaje..." 
-                               onfocus="chatManager.handleInputFocus(${user.id})"
-                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; } else { chatManager.emitTyping(${user.id}); }"
-                               style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
-                        
-                        <!-- Emoji Icon -->
-                        <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                        </button>
+                    <!-- STAGING AREA (Preview) -->
+                    <div id="chat-staging-${user.id}" style="display: none; padding: 8px; background: #333; border-radius: 8px; margin-bottom: 4px; align-items: center; justify-content: space-between;">
+                        <div id="chat-staging-content-${user.id}" style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                            <!-- Content injected by JS -->
+                        </div>
+                        <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.2em;">&times;</button>
                     </div>
 
-                    <!-- Send Icon -->
-                    <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }" 
-                            style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                         <!-- Attach Icon -->
+                        <button onclick="chatManager.triggerFileUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                        </button>
+                        
+                        <!-- Input Container -->
+                        <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
+                            <input type="text" placeholder="Escribe un mensaje..." 
+                                   id="chat-input-${user.id}"
+                                   onfocus="chatManager.handleInputFocus(${user.id})"
+                                   onkeypress="if(event.key === 'Enter') { chatManager.sendStagedMessage(${user.id}); } else { chatManager.emitTyping(${user.id}); }"
+                                   style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
+                            
+                            <!-- Emoji Icon -->
+                            <button onclick="chatManager.toggleEmojiPicker(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                            </button>
+                        </div>
+
+                        <!-- Send Icon -->
+                        <button onclick="chatManager.sendStagedMessage(${user.id})" 
+                                style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -920,51 +913,6 @@ class ChatManager {
         this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
         this.minimizedConversations.delete(userId); // Cleanup
         this.renderWidgetTabs();
-    }
-
-    async sendMiniMessage(userId, text) {
-        if (!text.trim()) return;
-
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (conv) {
-            const tempMsg = {
-                id: 'temp-' + Date.now(),
-                senderId: this.currentUser.id,
-                message: text,
-                createdAt: new Date().toISOString(),
-                isRead: false
-            };
-            if (!conv.messages) conv.messages = [];
-            conv.messages.push(tempMsg);
-
-            const tabId = `chat-tab-${userId}`;
-            const tabEl = document.getElementById(tabId);
-
-            if (tabEl) {
-                const msgArea = tabEl.querySelector('.mini-messages-area');
-                if (msgArea) {
-                    const msgHtml = `
-                        <div style="display: flex; justify-content: flex-end;">
-                            <span style="background: var(--accent-purple); color: white; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 0.9rem;">
-                                ${text}
-                            </span>
-                        </div>
-                    `;
-                    msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                    this.scrollToBottom(userId);
-                } else {
-                    this.renderWidgetTabs();
-                }
-            } else {
-                this.renderWidgetTabs();
-            }
-        }
-
-        try {
-            await this.sendMessage(userId, text);
-        } catch (e) {
-            console.error("Failed to send", e);
-        }
     }
 
     emitTyping(receiverId) {
@@ -1133,269 +1081,6 @@ class ChatManager {
             this.titleInterval = null;
             document.title = "DeskShare - Alquila Computadoras Potentes";
         }
-    }
-
-    renderChatTab(conv) {
-        const user = conv.otherUser;
-        const tabId = `chat-tab-${user.id}`;
-        // Check state to persist minimization
-        const isMin = this.minimizedConversations.has(user.id);
-        const height = isMin ? '50px' : '400px';
-        const borderRadius = isMin ? '8px' : '8px 8px 0 0';
-        const minIcon = isMin ? '' : '−';
-
-        // SORT MESSAGES: Oldest -> Newest
-        const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        const unreadCount = conv.unreadCount || 0;
-
-        // Ensure "Desconectado" never appears. Use empty string.
-        const statusText = user.isOnline ? 'En línea' : '';
-        const statusColor = user.isOnline ? '#4ade80' : 'transparent';
-
-        return `
-            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
-                 <!-- HEADER -->
-                <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
-                        <div style="display: flex; flex-direction: column;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>
-                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
-                            </div>
-                            <span class="user-status-text" style="font-size: 0.7rem; color: ${statusColor}; line-height: 1; margin-top: 2px; height: 10px;">${statusText}</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                        ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
-                        <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
-                        <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
-                    </div>
-                </div>
-                
-                <!-- MESSAGES AREA -->
-                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
-                    ${this.renderMessageHTML(sortedMessages, user)}
-                </div>
-                
-                <!-- INPUT AREA -->
-                    // Start new group if:
-                    // 1. No previous message
-                    // 2. Different sender
-                    // 3. Current is not Image (break the chain)
-                    // 4. Previous was not Image (break chain)
-                    // 5. Time gap > 5 seconds (Strict batch detection)
-
-                    const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
-                    const isRapidSequence = timeDiff < 2000; // 2 seconds (Manual sends separation)
-
-                    // const isPrevImage already declared at 1035
-                    const isSameType = (!!isImage) === (!!isPrevImage);
-
-                    // Strictly group only if SAME type (All Images OR All Text/Doc)
-                    // This forces mixed batches to split into [Grid] and [Bubble] components
-                    const shouldContinueGroup = isSameSender && isRapidSequence && isSameType && isImage;
-
-                    if (shouldContinueGroup) {
-                        currentGroup.push(msg);
-                    } else {
-                        if (currentGroup.length > 0) groups.push(currentGroup);
-                        currentGroup = [msg];
-                    }
-                });
-                if (currentGroup.length > 0) groups.push(currentGroup);
-
-                // Render Groups
-                return groups.map(group => {
-                    const firstMsg = group[0];
-                    const isMe = firstMsg.senderId === this.currentUser.id;
-                    // Robust check: Ensure NO PDFs sneak into Image Groups (even if fileType is wrong)
-                    const isImageGroup = group.every(m => m.fileUrl && m.fileType === 'image' && !m.fileUrl.toLowerCase().includes('.pdf'));
-
-                    // 1. IMAGE COLLAGE RENDER
-                    // 1. IMAGE COLLAGE RENDER
-                    // 1. IMAGE COLLAGE RENDER
-                    if (isImageGroup && group.length > 1) {
-                        const count = group.length;
-
-                        // Facebook-style Grid Logic:
-                        let gridContainerStyle = `
-        display: grid;
-        gap: 2px;
-        border - radius: 12px;
-        overflow: hidden;
-        max - width: 220px;
-        width: 100 %;
-        `;
-
-                        // Grid Templates
-                        if (count === 2) {
-                            gridContainerStyle += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2/1;';
-                        } else {
-                            // 3 or 4+ -> 3 columns (small images)
-                            // This ensures 3 is a single row, and 4 starts a new row below
-                            gridContainerStyle += 'grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr;';
-                        }
-
-                        // Render Images
-                        const imagesHtml = group.map((msg, i) => {
-                            let itemStyle = 'width: 100%; height: 100%; object-fit: cover;';
-                            // No special container style needed for simple grids
-
-                            // Explicit Click Handler Check (Global Instance)
-                            return `
-            < div onclick = "event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-        style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
-            <img src="${msg.fileUrl}" alt="Imagen" style="${itemStyle}">
-            </div>
-        `;
-                        }).join('');
-
-                        // Wrapper
-                        return `
-            < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
-                <div style="${gridContainerStyle}">
-                    ${imagesHtml}
-                </div>
-                            </div >
-            `;
-                    }
-
-                    // 2. STANDARD RENDER (Single Message or Mixed)
-                    // Even if it's a group of text messages, we technically render them individually 
-                    // to support standard behavior, OR we could bubble them. 
-                    // For safety/simplicity, mapping non-image groups back to individual bubbles
-                    // unless it's a single image.
-
-                    return group.map((msg, subIdx) => {
-                        // Recalculate 'showRead' locally? No, 'sortedMessages' context needed?
-                        // Let's just use the logic per message as before but wrapped.
-
-                        const isMe = msg.senderId === this.currentUser.id;
-                        let showRead = false;
-                        if (isMe && msg.isRead) {
-                            // Find real index in sortedMessages to check 'newerMyMsg'
-                            const realIdx = sortedMessages.indexOf(msg);
-                            const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
-                            if (!newerMyMsg) showRead = true;
-                        }
-
-                        let contentHtml = '';
-                        if (msg.fileUrl) {
-                            if (msg.fileType === 'image') {
-                                contentHtml += `
-            < div style = "margin-bottom: 0;" >
-                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-                    style="cursor: zoom-in; display: block; position: relative;">
-                    <img src="${msg.fileUrl}" alt="Imagen" style="max-width: 160px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
-                </div>
-                                            </div >
-            `;
-                            } else {
-                                const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
-
-                                contentHtml += `
-            < div style = "margin-bottom: 6px;" >
-                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
-                                                    display: flex; align-items: center; gap: 12px; cursor: pointer;
-                                                    background: #242526; padding: 10px 14px; 
-                                                    border-radius: 18px; text-decoration: none; color: white; 
-                                                    border: 1px solid rgba(255,255,255,0.05); 
-                                                    max-width: 220px; transition: background 0.2s;
-                                                ">
-                    <div style="
-                                                        background: rgba(255,255,255,0.1); width: 40px; height: 40px; 
-                                                        border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-                                                    ">
-                        <span style="font-size: 1.2em;">📄</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
-                        <span style="
-                                                            font-size: 0.85em; fontWeight: 600; 
-                                                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-                                                            display: block; width: 100%;
-                                                        ">${cleanName}</span>
-                    </div>
-                </div>
-                                            </div >
-            `;
-                            }
-                        }
-
-                        if (msg.message && msg.message.trim()) {
-                            contentHtml += `< div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
-                        }
-
-                        const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
-                        const bubbleBg = isStandAlone ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
-                        const bubblePad = isStandAlone ? '0' : '8px 12px';
-
-                        return `
-            < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};" >
-                <div style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 85%;">
-                    <span style="background: ${bubbleBg}; color: white; padding: ${bubblePad}; border-radius: 12px; word-wrap: break-word; font-size: 0.9rem; display: inline-block;">
-                        ${contentHtml}
-                    </span>
-                    ${showRead ? '<span style="font-size:0.65rem; color:#aaa; margin-top:2px;">Visto</span>' : ''}
-                </div>
-                                    </div >
-            `;
-                    }).join('');
-
-                }).join('');
-
-            })()}
-                    
-                    ${this.typingUsers.has(user.id) ? `
-                        <div style="display: flex; justify-content: flex-start;">
-                            <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
-                                Escribiendo...
-                            </span>
-                        </div>
-                    ` : ''}
-                </div>
-                
-                <!-- FOOTER -->
-                <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; flex-direction: column; gap: 8px;">
-                    
-                    <!-- STAGING AREA (Preview) -->
-                    <div id="chat-staging-${user.id}" style="display: none; padding: 8px; background: #333; border-radius: 8px; margin-bottom: 4px; align-items: center; justify-content: space-between;">
-                        <div id="chat-staging-content-${user.id}" style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                            <!-- Content injected by JS -->
-                        </div>
-                        <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.2em;">&times;</button>
-                    </div>
-
-                    <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                         <!-- Attach Icon -->
-                        <button onclick="chatManager.triggerFileUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                        </button>
-                        
-                        <!-- Input Container -->
-                        <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                            <input type="text" placeholder="Escribe un mensaje..." 
-                                   id="chat-input-${user.id}"
-                                   onfocus="chatManager.handleInputFocus(${user.id})"
-                                   onkeypress="if(event.key === 'Enter') { chatManager.sendStagedMessage(${user.id}); } else { chatManager.emitTyping(${user.id}); }"
-                                   style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
-                            
-                            <!-- Emoji Icon -->
-                            <button onclick="chatManager.toggleEmojiPicker(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                            </button>
-                        </div>
-
-                        <!-- Send Icon -->
-                        <button onclick="chatManager.sendStagedMessage(${user.id})" 
-                                style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            </div>
-        `;
     }
 
     // ==========================================
@@ -2036,6 +1721,32 @@ class ChatManager {
         // Append to footer or body? Footer is safer for positioning
         triggerBtn.parentElement.parentElement.style.position = 'relative';
         triggerBtn.parentElement.parentElement.appendChild(picker);
+    }
+    toggleEmojiPicker(triggerBtn, userId) {
+        if (!window.EmojiButton) return;
+
+        if (!this.pickers) this.pickers = {};
+
+        if (!this.pickers[userId]) {
+            const picker = new EmojiButton({
+                theme: 'dark',
+                autoHide: false,
+                position: 'top-start'
+            });
+
+            const input = document.getElementById(`chat-input-${userId}`);
+
+            picker.on('emoji', selection => {
+                if (input) {
+                    input.value += selection.emoji;
+                    input.focus();
+                }
+            });
+
+            this.pickers[userId] = picker;
+        }
+
+        this.pickers[userId].togglePicker(triggerBtn);
     }
 }
 
