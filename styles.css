@@ -855,6 +855,18 @@ textarea:focus {
   background-position: center;
 }
 
+/* FIX: Horizontal Buttons must be Wide (20px) and Short (12px) */
+::-webkit-scrollbar-button:horizontal {
+  width: 20px;
+  height: 12px;
+  background-size: 16px 100%;
+  /* Rotate fill logic */
+}
+
+::-webkit-scrollbar-button:hover {
+  background-color: var(--bg-tertiary);
+}
+
 ::-webkit-scrollbar-button:hover {
   background-color: var(--bg-tertiary);
 }
