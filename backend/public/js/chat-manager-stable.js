@@ -54,12 +54,37 @@ class ChatManager {
         if (this.messagesPageContainer) {
             this.renderFullPage();
         } else {
-            // FIX: Do not render widget if we are on the messages page but container detection failed for some reason,
-            // or if we just want to be extra safe.
             if (!window.location.href.includes('messages.html')) {
                 this.renderWidget();
             }
         }
+
+        // ==========================================
+        // DIAGNOSTIC OVERLAY (TEMPORARY 🚨)
+        // ==========================================
+        const debugDiv = document.createElement('div');
+        debugDiv.id = 'chatDebugOverlay';
+        debugDiv.style.cssText = `
+            position: fixed; top: 60px; right: 10px; background: rgba(0,0,0,0.85); color: #0f0; 
+            padding: 10px; z-index: 100000; font-family: monospace; font-size: 12px; 
+            pointer-events: none; border-left: 3px solid #0f0; max-width: 300px;
+        `;
+        debugDiv.innerHTML = `
+            <strong>CHAT DEBUG V1</strong><br>
+            User: ${this.currentUser ? this.currentUser.id : 'NULL'}<br>
+            BaseURL: ${this.baseUrl}<br>
+            SocketURL: ${this.socketUrl}<br>
+            AuthToken: ${localStorage.getItem('authToken') ? 'YES (Len: ' + localStorage.getItem('authToken').length + ')' : 'NO'}<br>
+            <hr style="border-color:#333">
+            <div id="chatDebugLog">Init...</div>
+        `;
+        document.body.appendChild(debugDiv);
+        this.logDebug = (msg) => {
+            const log = document.getElementById('chatDebugLog');
+            if (log) log.innerHTML += '<div>' + msg + '</div>';
+            console.log('[DEBUG]', msg);
+        };
+        // ==========================================
     }
 
     setupSocketEvents() {
@@ -232,14 +257,25 @@ class ChatManager {
     }
 
     async loadConversations() {
+        if (this.logDebug) this.logDebug('Fetching conversations...');
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${this.baseUrl}/chat/conversations`, {
                 headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
             });
+            if (this.logDebug) this.logDebug(`Status: ${response.status}`);
+
+            if (!response.ok) {
+                const txt = await response.text();
+                if (this.logDebug) this.logDebug(`ERR: ${txt.substring(0, 50)}`);
+                throw new Error(txt);
+            }
+
             const data = await response.json();
-            // Deduplicate conversations by otherUser.id
             const rawConvs = data.conversations || [];
+            if (this.logDebug) this.logDebug(`Count: ${rawConvs.length}`);
+
+            // Deduplicate conversations by otherUser.id
             const uniqueConvs = [];
             const seenIds = new Set();
 
