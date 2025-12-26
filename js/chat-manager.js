@@ -485,8 +485,11 @@ class ChatManager {
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
-                    <h3 style="margin: 0; color: white;">${user.name}</h3>
-                    <span style="font-size: 0.8rem; color: ${user.isOnline ? 'var(--success-green)' : '#666'};">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h3 style="margin: 0; color: white;">${user.name}</h3>
+                        <div class="header-status-dot" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; display: ${user.isOnline ? 'block' : 'none'};"></div>
+                    </div>
+                    <span class="header-status-text" style="font-size: 0.8rem; color: ${user.isOnline ? '#4ade80' : '#666'};">
                         ${user.isOnline ? 'En línea' : ''}
                     </span>
                 </div>
@@ -645,6 +648,11 @@ class ChatManager {
     // View Logic - Global Widget
     // ===========================================
     renderWidget() {
+        // STRICT BLOCK: Never render widget on messages.html
+        if (window.location.href.includes('messages.html') || document.getElementById('messagesPageContainer')) {
+            return;
+        }
+
         if (!this.widgetContainer) {
             this.widgetContainer = document.createElement('div');
             this.widgetContainer.id = 'chatWidgetContainer';
@@ -1067,10 +1075,15 @@ class ChatManager {
 
         // Update UI (Full Page)
         if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
-            const headerStatus = document.querySelector('#chatHeader span');
+            const headerStatus = document.querySelector('#chatHeader .header-status-text');
+            const headerDot = document.querySelector('#chatHeader .header-status-dot');
+
             if (headerStatus) {
                 headerStatus.textContent = isOnline ? 'En línea' : '';
-                headerStatus.style.color = isOnline ? 'var(--success-green)' : '#999';
+                headerStatus.style.color = isOnline ? '#4ade80' : '#999';
+            }
+            if (headerDot) {
+                headerDot.style.display = isOnline ? 'block' : 'none';
             }
         }
 
