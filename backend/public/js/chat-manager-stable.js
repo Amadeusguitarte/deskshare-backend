@@ -23,8 +23,7 @@ class ChatManager {
         this.baseUrl = this.socketUrl.endsWith('/') ? `${this.socketUrl}api` : `${this.socketUrl}/api`;
         if (this.baseUrl.includes('//api')) this.baseUrl = this.baseUrl.replace('//api', '/api'); // Sanity check
 
-        this.init();
-    }
+        this.init();}
 
     async init() {
         if (!this.currentUser) return;
@@ -32,10 +31,8 @@ class ChatManager {
         // Initialize Socket
         if (typeof io !== 'undefined') {
             this.socket = io(this.socketUrl);
-            this.setupSocketEvents();
-        } else {
-            console.error('Socket.io not loaded');
-        }
+            this.setupSocketEvents();} else {
+            console.error('Socket.io not loaded');}
 
         // Determine context
         this.messagesPageContainer = document.getElementById('messagesPageContainer');
@@ -45,25 +42,21 @@ class ChatManager {
         await this.loadConversations();
 
         // Check Online Status (Now that we have users)
-        if (this.socket && this.conversations.length > 0) {
+        if (this.socket && this.conversations.length> 0) {
             const ids = this.conversations.map(c => c.otherUser.id);
-            this.socket.emit('check-status', { userIds: ids });
-        }
+            this.socket.emit('check-status', { userIds: ids});}
 
         // Render
         if (this.messagesPageContainer) {
-            this.renderFullPage();
-        } else {
+            this.renderFullPage();} else {
             if (!window.location.href.includes('messages.html')) {
-                this.renderWidget();
-            }
-        }
+                this.renderWidget();}}
 
         // ==========================================
         // DIAGNOSTIC OVERLAY (TEMPORARY 🚨)
         // ==========================================
         const debugDiv = document.createElement('div');
-        debugDiv.id = 'chatDebugOverlay';
+        debugDiv.id='chatDebugOverlay';
         debugDiv.style.cssText = `
             position: fixed; top: 60px; right: 10px; background: rgba(0,0,0,0.85); color: #0f0; 
             padding: 10px; z-index: 100000; font-family: monospace; font-size: 12px; 
@@ -82,64 +75,49 @@ class ChatManager {
         this.logDebug = (msg) => {
             const log = document.getElementById('chatDebugLog');
             if (log) log.innerHTML += '<div>' + msg + '</div>';
-            console.log('[DEBUG]', msg);
-        };
-        // ==========================================
-    }
+            console.log('[DEBUG]', msg);};
+        // ==========================================}
 
     setupSocketEvents() {
         this.socket.on('connect', () => {
             console.log('Chat Connected');
-            this.socket.emit('join-user-room', this.currentUser.id);
-        });
+            this.socket.emit('join-user-room', this.currentUser.id);});
 
         this.socket.on('disconnect', () => {
-            console.log('Chat Disconnected');
-        });
+            console.log('Chat Disconnected');});
 
         this.socket.on('private-message', (msg) => {
-            this.handleNewMessage(msg);
-        });
+            this.handleNewMessage(msg);});
 
         // Listeners for Online Status
-        this.socket.on('user-online', ({ userId }) => {
-            this.updateUserStatus(userId, true);
-        });
+        this.socket.on('user-online', ({ userId}) => {
+            this.updateUserStatus(userId, true);});
 
-        this.socket.on('user-offline', ({ userId }) => {
-            this.updateUserStatus(userId, false);
-        });
+        this.socket.on('user-offline', ({ userId}) => {
+            this.updateUserStatus(userId, false);});
 
         this.socket.on('users-status', (statuses) => {
             Object.keys(statuses).forEach(uid => {
-                this.updateUserStatus(uid, statuses[uid]);
-            });
-        });
+                this.updateUserStatus(uid, statuses[uid]);});});
 
         // Typing Indicators
-        this.socket.on('typing', ({ senderId }) => {
+        this.socket.on('typing', ({ senderId}) => {
             this.typingUsers.add(senderId);
-            this.renderWidgetTabs(); // Update UI
-        });
+            this.renderWidgetTabs(); // Update UI});
 
-        this.socket.on('stop-typing', ({ senderId }) => {
+        this.socket.on('stop-typing', ({ senderId}) => {
             this.typingUsers.delete(senderId);
-            this.renderWidgetTabs();
-        });
+            this.renderWidgetTabs();});
 
         // Read Receipts
-        this.socket.on('messages-read', ({ readerId }) => {
+        this.socket.on('messages-read', ({ readerId}) => {
             const conv = this.conversations.find(c => c.otherUser.id == readerId);
             if (conv && conv.messages) {
                 // Mark all messages as read
                 conv.messages.forEach(m => m.isRead = true);
                 if (this.activeConversation && this.activeConversation.otherUser.id == readerId) {
-                    this.renderMessages(this.activeConversation.messages);
-                }
-                this.renderWidgetTabs();
-            }
-        });
-    }
+                    this.renderMessages(this.activeConversation.messages);}
+                this.renderWidgetTabs();}});}
 
     handleNewMessage(msg) {
         // 1. Identify Target
@@ -155,19 +133,15 @@ class ChatManager {
                 // Retry
                 let retryConv = this.conversations.find(c => c.otherUser.id == targetUserId);
                 if (retryConv) {
-                    this.handleNewMessage(msg);
-                }
-            });
-            return; // Stop here, wait for reload
-        }
+                    this.handleNewMessage(msg);}});
+            return; // Stop here, wait for reload}
 
         // 3. Dedup & Optimistic Merge
         if (!conv.messages) conv.messages = [];
 
         // Check if it's a duplicate of an existing REAL message
         if (conv.messages.some(m => m.id == msg.id)) {
-            return;
-        }
+            return;}
 
         // OPTIMISTIC MERGE FIX (v162)
         // Check if this incoming real message corresponds to a temporary optimistic message we just pushed.
@@ -182,11 +156,9 @@ class ChatManager {
             // It's a match! Replace the temp placeholder with the real confirmed message.
             // This prevents the "Double Bubble" issue.
             conv.messages[conv.messages.length - 1] = msg;
-            wasMerge = true;
-        } else {
+            wasMerge = true;} else {
             // standard append
-            conv.messages.push(msg);
-        }
+            conv.messages.push(msg);}
 
         // 5. Update Metadata
         conv.lastMessage = msg;
@@ -194,10 +166,9 @@ class ChatManager {
 
         // 6. Manual Reorder (Move to top)
         const idx = this.conversations.indexOf(conv);
-        if (idx > 0) {
+        if (idx> 0) {
             this.conversations.splice(idx, 1);
-            this.conversations.unshift(conv);
-        }
+            this.conversations.unshift(conv);}
 
         // AUTO-OPEN & FLASH logic
         if (msg.senderId !== this.currentUser.id) {
@@ -211,26 +182,19 @@ class ChatManager {
             // If sender is NOT in minimized list, ensure it's in openConversationIds
             if (!this.minimizedConversations.has(msg.senderId)) {
                 if (!this.openConversationIds.includes(msg.senderId)) {
-                    this.openConversationIds.push(msg.senderId);
-                }
-            } else {
+                    this.openConversationIds.push(msg.senderId);}} else {
                 // If minimized, DO NOT remove from minimized, DO NOT expand.
                 // The renderWidgetTabs call below will update the badge.
                 // We make sure it is in openConversationIds so it renders at all (minimized)
                 if (!this.openConversationIds.includes(msg.senderId)) {
-                    this.openConversationIds.push(msg.senderId);
-                }
-            }
-        }
+                    this.openConversationIds.push(msg.senderId);}}}
 
         // 7. Render
         if (this.messagesPageContainer) {
             this.renderConversationsList();
             if (this.activeConversation && this.activeConversation.otherUser.id == targetUserId) {
                 this.renderMessages(this.activeConversation.messages);
-                this.scrollToBottom();
-            }
-        } else {
+                this.scrollToBottom();}} else {
             // Widget Mode
             // FIX: If it was a merge (confirmation), the UI is already correct (optimistic).
             // We SKIP re-rendering to prevent killing the input focus.
@@ -246,30 +210,21 @@ class ChatManager {
                             void tab.offsetWidth; // trigger reflow
                             tab.classList.add('flash-animation');
 
-                            // PERSISTENT FLASH: Stays until input focus (handled in handleInputFocus)
-                        }
-                    }, 50);
-                }
-            } else {
-                console.log('Skipping render for merge confirmation to preserve focus');
-            }
-        }
-    }
+                            // PERSISTENT FLASH: Stays until input focus (handled in handleInputFocus)}}, 50);}} else {
+                console.log('Skipping render for merge confirmation to preserve focus');}}}
 
     async loadConversations() {
         if (this.logDebug) this.logDebug('Fetching conversations...');
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${this.baseUrl}/chat/conversations`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
-            });
+                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store'}});
             if (this.logDebug) this.logDebug(`Status: ${response.status}`);
 
             if (!response.ok) {
                 const txt = await response.text();
                 if (this.logDebug) this.logDebug(`ERR: ${txt.substring(0, 50)}`);
-                throw new Error(txt);
-            }
+                throw new Error(txt);}
 
             const data = await response.json();
             const rawConvs = data.conversations || [];
@@ -289,45 +244,31 @@ class ChatManager {
                     // FIX: Loose equality for ID check
                     const existing = this.conversations.find(c => c.otherUser.id == conv.otherUser.id);
                     if (existing && existing.messages) {
-                        conv.messages = existing.messages;
-                    }
+                        conv.messages = existing.messages;}
 
-                    uniqueConvs.push(conv);
-                }
-            }
+                    uniqueConvs.push(conv);}}
             // Sort: Newest First (Sort by last message created at)
             uniqueConvs.sort((a, b) => {
                 const dateA = new Date(a.lastMessage?.createdAt || 0);
                 const dateB = new Date(b.lastMessage?.createdAt || 0);
-                return dateB - dateA;
-            });
+                return dateB - dateA;});
             this.conversations = uniqueConvs;
 
             // Sync UI with new data
             if (this.messagesPageContainer) {
-                this.renderConversationsList();
-            } else {
-                this.renderWidgetTabs();
-            }
-
-        } catch (error) {
-            console.error('Error loading conversations:', error);
-        }
-    }
+                this.renderConversationsList();} else {
+                this.renderWidgetTabs();}} catch (error) {
+            console.error('Error loading conversations:', error);}}
 
     async loadHistory(userId) {
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${this.baseUrl}/chat/history/${userId}?t=${Date.now()}`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
-            });
+                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store'}});
             const data = await response.json();
-            return data.messages || [];
-        } catch (error) {
+            return data.messages || [];} catch (error) {
             console.error('Error loading history:', error);
-            return [];
-        }
-    }
+            return [];}}
 
     async sendMessage(receiverId, text, computerId = null) {
         try {
@@ -336,31 +277,23 @@ class ChatManager {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                    'Authorization': `Bearer ${token}`},
                 body: JSON.stringify({
                     receiverId,
                     message: text,
-                    computerId
-                })
-            });
+                    computerId})});
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
-            }
+                throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);}
             const data = await response.json();
-            // FIX: Backend returns { message: { ... } }, so we must unwrap it
+            // FIX: Backend returns { message: { ...}}, so we must unwrap it
             if (data.message && typeof data.message === 'object' && !Array.isArray(data.message)) {
-                return data.message;
-            }
-            return data;
-        } catch (error) {
+                return data.message;}
+            return data;} catch (error) {
             console.error('Send error:', error);
             alert(`Error: ${error.message}`);
-            throw error; // Re-throw so caller knows it failed
-        }
-    }
+            throw error; // Re-throw so caller knows it failed}}
 
     // ===========================================
     // View Logic - Full Page (messages.html)
@@ -369,7 +302,7 @@ class ChatManager {
         if (!this.messagesPageContainer) return;
 
         // Ensure container doesn't overflow
-        this.messagesPageContainer.style.overflow = 'hidden';
+        this.messagesPageContainer.style.overflow='hidden';
 
         this.messagesPageContainer.innerHTML = `
             <div class="chat-layout" style="display: grid; grid-template-columns: 420px 1fr; height: 100%; gap: 1.5rem; padding: 1rem; padding-bottom: 2rem; box-sizing: border-box;">
@@ -451,17 +384,16 @@ class ChatManager {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                if (file.size > 5 * 1024 * 1024) {
+                if (file.size> 5 * 1024 * 1024) {
                     alert('El archivo es demasiado grande (Máx 5MB)');
-                    return;
-                }
+                    return;}
 
                 const stagingArea = document.getElementById('fullPageStaging');
                 const isImage = file.type.startsWith('image/');
 
                 this.fullPageStagedFile = file;
 
-                stagingArea.style.display = 'flex';
+                stagingArea.style.display='flex';
                 stagingArea.innerHTML = `
                     <div style="background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);">
                         ${isImage ? `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` : '<span style="font-size: 1.2rem;">📄</span>'}
@@ -472,14 +404,11 @@ class ChatManager {
 
                 document.getElementById('removeFullPageStagedBtn').onclick = () => {
                     this.fullPageStagedFile = null;
-                    fileInput.value = '';
-                    stagingArea.innerHTML = '';
-                    stagingArea.style.display = 'none';
-                };
+                    fileInput.value='';
+                    stagingArea.innerHTML='';
+                    stagingArea.style.display='none';};
 
-                document.getElementById('messageInput').focus();
-            });
-        }
+                document.getElementById('messageInput').focus();});}
 
         // Emoji Handler
         if (emojiBtn && window.EmojiButton) {
@@ -488,25 +417,18 @@ class ChatManager {
                     theme: 'dark',
                     autoHide: false,
                     position: 'top-end',
-                    zIndex: 10000
-                });
+                    zIndex: 10000});
                 const input = document.getElementById('messageInput');
 
                 this.picker.on('emoji', selection => {
                     if (input) {
                         input.value += selection.emoji;
-                        input.focus();
-                    }
-                });
+                        input.focus();}});
 
                 emojiBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    this.picker.togglePicker(emojiBtn);
-                });
-            } catch (e) {
-                console.error("Emoji Picker Init Error:", e);
-            }
-        }
+                    this.picker.togglePicker(emojiBtn);});} catch (e) {
+                console.error("Emoji Picker Init Error:", e);}}
 
         // Submit Handler
         const form = document.getElementById('messageForm');
@@ -526,56 +448,45 @@ class ChatManager {
                     try {
                         const uploadRes = await this.uploadFile(this.activeConversation.otherUser.id, stagedFile);
                         fileUrl = uploadRes.url;
-                        fileType = uploadRes.type;
-                    } catch (err) {
+                        fileType = uploadRes.type;} catch (err) {
                         console.error('Upload failed', err);
                         alert('Error al subir archivo');
-                        return;
-                    }
-                }
+                        return;}}
 
-                input.value = '';
+                input.value='';
                 await this.sendMiniMessage(this.activeConversation.otherUser.id, text, fileUrl, fileType);
 
                 this.fullPageStagedFile = null;
-                if (fileInput) fileInput.value = '';
+                if (fileInput) fileInput.value='';
                 const stagingArea = document.getElementById('fullPageStaging');
                 if (stagingArea) {
-                    stagingArea.innerHTML = '';
-                    stagingArea.style.display = 'none';
-                }
-            };
-        }
-    }
+                    stagingArea.innerHTML='';
+                    stagingArea.style.display='none';}};}}
     handleSearch(searchTerm) {
-        this.renderConversationsList(searchTerm);
-    }
+        this.renderConversationsList(searchTerm);}
 
-    renderConversationsList(filterTerm = '') {
+    renderConversationsList(filterTerm='') {
         const list = document.getElementById('conversationsList');
         if (!list) return;
 
         if (this.conversations.length === 0) {
-            list.innerHTML = '<p style="text-align:center; opacity:0.6; padding: 1rem;">No tienes mensajes aún.</p>';
-            return;
-        }
+            list.innerHTML='<p style="text-align:center; opacity:0.6; padding: 1rem;">No tienes mensajes aún.</p>';
+            return;}
 
         const filtered = this.conversations.filter(conv => {
             if (!filterTerm) return true;
-            return conv.otherUser.name.toLowerCase().includes(filterTerm.toLowerCase());
-        });
+            return conv.otherUser.name.toLowerCase().includes(filterTerm.toLowerCase());});
 
         list.innerHTML = filtered.map(conv => {
             const user = conv.otherUser;
             // Safe sort
             const msgs = conv.messages || [];
             const sortedMessages = msgs.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            const lastMsg = sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1] : conv.lastMessage;
+            const lastMsg = sortedMessages.length> 0 ? sortedMessages[sortedMessages.length - 1] : conv.lastMessage;
 
-            let timeStr = '';
+            let timeStr='';
             if (lastMsg && lastMsg.createdAt) {
-                timeStr = new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            }
+                timeStr = new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});}
 
             const isActive = this.activeConversation && this.activeConversation.otherUser.id == user.id;
             const unreadCount = this.unreadCounts[user.id] || 0;
@@ -584,15 +495,13 @@ class ChatManager {
             const activeBorder = isActive ? 'var(--glass-border)' : 'transparent';
 
             // Preview Text
-            let preview = '<i>Sin mensajes</i>';
+            let preview='<i>Sin mensajes</i>';
             if (lastMsg) {
                 const prefix = lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '';
                 let content = lastMsg.message;
                 if (lastMsg.fileUrl) {
-                    content = lastMsg.fileType === 'image' ? '📷 Imagen' : '📎 Archivo';
-                }
-                preview = prefix + content;
-            }
+                    content = lastMsg.fileType === 'image' ? '📷 Imagen' : '📎 Archivo';}
+                preview = prefix + content;}
 
             return `
                 <div onclick="chatManager.selectConversation(${user.id})" 
@@ -612,18 +521,16 @@ class ChatManager {
                             <span style="font-size: 0.9rem; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">
                                 ${preview}
                             </span>
-                            ${unreadCount > 0 ? `<span style="background: var(--accent-color); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">${unreadCount}</span>` : ''}
+                            ${unreadCount> 0 ? `<span style="background: var(--accent-color); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">${unreadCount}</span>` : ''}
                         </div>
                     </div>
                 </div>
-            `;
-        }).join('');
-    }
+            `;}).join('');}
                     </div>
     <div id="conversationsList" style="flex: 1; overflow-y: auto; padding: 1rem;">
         <!-- Conversations go here -->
     </div>
-                </div >
+                </div>
 
                 <!--Chat Area-->
     <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative;">
@@ -677,7 +584,7 @@ class ChatManager {
             <div id="fullPageStaging" style="display: none; padding-top: 10px;"></div>
         </div>
     </div>
-            </div >
+            </div>
     `;
 
 this.renderConversationsList();
@@ -693,10 +600,9 @@ if (fileInput) {
         if (!file) return;
 
         // Validate
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size> 5 * 1024 * 1024) {
             alert('El archivo es demasiado grande (Máx 5MB)');
-            return;
-        }
+            return;}
 
         // Stage It
         const stagingArea = document.getElementById('fullPageStaging');
@@ -709,26 +615,23 @@ if (fileInput) {
         // Let's use 'this.fullPageStagedFile' to be safe.
         this.fullPageStagedFile = file;
 
-        stagingArea.style.display = 'flex';
+        stagingArea.style.display='flex';
         stagingArea.innerHTML = `
-    <div style="background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);" >
-        ${ isImage ? `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` : '<span style="font-size: 1.2rem;">📄</span>' }
+    <div style="background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);">
+        ${isImage ? `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` : '<span style="font-size: 1.2rem;">📄</span>'}
                         <span style="font-size: 0.9rem; color: white; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
                         <button type="button" id="removeFullPageStagedBtn" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem; margin-left: 5px;">×</button>
-                    </div >
+                    </div>
     `;
 
         document.getElementById('removeFullPageStagedBtn').onclick = () => {
             this.fullPageStagedFile = null;
-            fileInput.value = '';
-            stagingArea.innerHTML = '';
-            stagingArea.style.display = 'none';
-        };
+            fileInput.value='';
+            stagingArea.innerHTML='';
+            stagingArea.style.display='none';};
 
         // Focus input
-        document.getElementById('messageInput').focus();
-    });
-}
+        document.getElementById('messageInput').focus();});}
 
 if (emojiBtn && window.EmojiButton) {
     try {
@@ -736,26 +639,18 @@ if (emojiBtn && window.EmojiButton) {
             theme: 'dark',
             autoHide: false,
             position: 'top-end',
-            zIndex: 10000 // Force high z-index
-        });
+            zIndex: 10000 // Force high z-index});
         const input = document.getElementById('messageInput');
 
         this.picker.on('emoji', selection => {
             if (input) {
                 input.value += selection.emoji;
-                input.focus();
-            }
-        });
+                input.focus();}});
 
         emojiBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent propagation issues
-            this.picker.togglePicker(emojiBtn);
-        });
-    } catch (e) {
-        console.error("Emoji Picker Init Error:", e);
-    }
-}
-    }
+            this.picker.togglePicker(emojiBtn);});} catch (e) {
+        console.error("Emoji Picker Init Error:", e);}}}
 
 renderMessages(messages) {
     messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -763,13 +658,11 @@ renderMessages(messages) {
     if (!area) return;
 
     // Use the Shared Render Logic
-    area.innerHTML = this.renderMessageHTML(messages, this.activeConversation.otherUser);
-}
+    area.innerHTML = this.renderMessageHTML(messages, this.activeConversation.otherUser);}
 
 scrollToBottom() {
     const area = document.getElementById('messagesArea');
-    if (area) area.scrollTop = area.scrollHeight;
-}
+    if (area) area.scrollTop = area.scrollHeight;}
 
 // ===========================================
 // View Logic - Global Widget
@@ -777,18 +670,15 @@ scrollToBottom() {
 renderWidget() {
     // STRICT BLOCK: Never render widget on messages.html
     if (window.location.href.includes('messages.html') || document.getElementById('messagesPageContainer')) {
-        return;
-    }
+        return;}
 
     if (!this.widgetContainer) {
         this.widgetContainer = document.createElement('div');
-        this.widgetContainer.id = 'chatWidgetContainer';
-        this.widgetContainer.style.cssText = 'position: fixed; bottom: 0; right: 20px; display: flex; align-items: flex-end; gap: 10px; z-index: 9999; pointer-events: none;';
-        document.body.appendChild(this.widgetContainer);
-    }
+        this.widgetContainer.id='chatWidgetContainer';
+        this.widgetContainer.style.cssText='position: fixed; bottom: 0; right: 20px; display: flex; align-items: flex-end; gap: 10px; z-index: 9999; pointer-events: none;';
+        document.body.appendChild(this.widgetContainer);}
 
-    this.renderWidgetTabs();
-}
+    this.renderWidgetTabs();}
 
 renderWidgetTabs() {
     if (!this.widgetContainer) return;
@@ -798,9 +688,7 @@ renderWidgetTabs() {
     if (document.activeElement && document.activeElement.tagName === 'INPUT') {
         const tabEl = document.activeElement.closest('.chat-tab');
         if (tabEl && tabEl.id.startsWith('chat-tab-')) {
-            focusedTabId = tabEl.id;
-        }
-    }
+            focusedTabId = tabEl.id;}}
 
     // 1. Persistent "Messages" Bar (Freelancer Style)
     const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
@@ -810,17 +698,17 @@ renderWidgetTabs() {
     this.updateGlobalBadge(totalUnread);
 
     const persistentBar = `
-    <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;" >
+    <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;">
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
-                        ${totalUnread > 0 ? `<span style="background:var(--error-red); color:white; font-size:0.7rem; padding: 2px 6px; border-radius:10px;">${totalUnread}</span>` : ''}
+                        ${totalUnread> 0 ? `<span style="background:var(--error-red); color:white; font-size:0.7rem; padding: 2px 6px; border-radius:10px;">${totalUnread}</span>` : ''}
                     </div>
                     <span style="color: #aaa; font-size: 1.2rem;">${isListOpen ? '−' : '+'}</span>
                 </div>
                 
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
-                    ${this.conversations.length > 0 ? this.conversations.map(conv => `
+                    ${this.conversations.length> 0 ? this.conversations.map(conv => `
                         <div id="widget-list-item-${conv.otherUser.id}" onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
                             <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                             <div style="flex:1; overflow:hidden;">
@@ -830,7 +718,7 @@ renderWidgetTabs() {
                                 </div>
                                 <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
                             </div>
-                            ${(conv.unreadCount > 0) ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
+                            ${(conv.unreadCount> 0) ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
                         </div>
                     `).join('') : '<div style="padding: 20px; text-align: center; color: #666; font-size: 0.9rem;">No hay conversaciones recientes</div>'}
                 </div>
@@ -838,7 +726,7 @@ renderWidgetTabs() {
                 <div style="padding: 10px; border-top: 1px solid #333; text-align: center;">
                    <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
                 </div>
-            </div >
+            </div>
     `;
 
     // 2. Render Active Tabs
@@ -848,8 +736,7 @@ renderWidgetTabs() {
 
     const tabsHtml = tabsToRender.map(id => {
         const conv = this.conversations.find(c => c.otherUser.id === id);
-        return conv ? this.renderChatTab(conv) : '';
-    }).join('');
+        return conv ? this.renderChatTab(conv) : '';}).join('');
 
     // Combine: Tabs (Left) + Persistent Bar (Right)
     this.widgetContainer.innerHTML = tabsHtml + persistentBar;
@@ -861,34 +748,25 @@ renderWidgetTabs() {
             const input = newTab.querySelector('input');
             if (input) {
                 input.focus();
-                // Optional: Restore cursor to end if needed, but usually empty after send.
-            }
-        }
-    }
+                // Optional: Restore cursor to end if needed, but usually empty after send.}}}
 
     // POST-RENDER SCROLL FIX
     // Immediately scroll all chat areas to bottom to prevent visual jumping
     // This replaces the "opacity: 0" hack which was causing invisible chats
     this.widgetContainer.querySelectorAll('.mini-messages-area').forEach(area => {
-        area.scrollTop = area.scrollHeight;
-    });
-}
+        area.scrollTop = area.scrollHeight;});}
 
 updateGlobalBadge(count) {
     const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
     badges.forEach(el => {
-        if (count > 0) {
-            el.innerText = count > 99 ? '99+' : count;
-            el.style.display = 'flex'; // or inline-block depending on css. flex allows centering
-        } else {
-            el.style.display = 'none';
-        }
-    });
-}
+        if (count> 0) {
+            el.innerText = count> 99 ? '99+' : count;
+            el.style.display='flex'; // or inline-block depending on css. flex allows centering} else {
+            el.style.display='none';}});}
 
 renderChatTab(conv) {
     const user = conv.otherUser;
-    const tabId = `chat - tab - ${ user.id } `;
+    const tabId = `chat - tab - ${user.id} `;
     // Check state to persist minimization
     const isMin = this.minimizedConversations.has(user.id);
     const height = isMin ? '50px' : '400px';
@@ -904,7 +782,7 @@ renderChatTab(conv) {
     const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
     return `
-    <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;" >
+    <div id="${tabId}" class="chat-tab expanded ${unreadCount> 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -918,7 +796,7 @@ renderChatTab(conv) {
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
+                        ${unreadCount> 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
                         <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
                         <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
@@ -961,7 +839,7 @@ renderChatTab(conv) {
                     <input type="text" placeholder="Escribe un mensaje..."
                         id="chat-input-${user.id}"
                         onfocus="chatManager.handleInputFocus(${user.id})"
-                        onkeypress="if(event.key === 'Enter') { chatManager.sendStagedMessage(${user.id}); } else { chatManager.emitTyping(${user.id}); }"
+                        onkeypress="if(event.key === 'Enter') { chatManager.sendStagedMessage(${user.id});} else { chatManager.emitTyping(${user.id});}"
                         style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
 
                         <!-- Emoji Icon -->
@@ -977,21 +855,18 @@ renderChatTab(conv) {
                 </button>
         </div>
     </div>
-            </div >
-    `;
-}
+            </div>
+    `;}
 
 toggleMinimize(userId) {
     // 1. Update State
     const isMin = this.minimizedConversations.has(userId);
     if (isMin) {
-        this.minimizedConversations.delete(userId);
-    } else {
-        this.minimizedConversations.add(userId);
-    }
+        this.minimizedConversations.delete(userId);} else {
+        this.minimizedConversations.add(userId);}
 
     // 2. Direct DOM Manipulation (CSS Transition)
-    const tab = document.getElementById(`chat - tab - ${ userId } `);
+    const tab = document.getElementById(`chat - tab - ${userId} `);
     if (tab) {
         const newMin = !isMin; // Toggle logic
         tab.style.height = newMin ? '50px' : '400px';
@@ -1005,19 +880,14 @@ toggleMinimize(userId) {
         // Important: When expanding, enforce scroll to bottom AND focus input
         if (!newMin) {
             // Use the robust helper
-            this.tryFocusInput(userId);
-        }
-    } else {
+            this.tryFocusInput(userId);}} else {
         // Fallback if DOM element missing (rare in this flow)
-        this.renderWidgetTabs();
-    }
-}
+        this.renderWidgetTabs();}}
 
 // Updated toggleTab with Surgical DOM Update
 toggleTab(userId) {
     if (!this.openConversationIds.includes(userId)) {
-        this.openConversationIds.push(userId);
-    }
+        this.openConversationIds.push(userId);}
     // Ensure not minimized on open
     this.minimizedConversations.delete(userId);
 
@@ -1035,53 +905,43 @@ toggleTab(userId) {
             currentMsgs.forEach(m => {
                 const id = String(m.id);
                 if (!mergedMap.has(id)) {
-                    mergedMap.set(id, m);
-                }
-            });
+                    mergedMap.set(id, m);}});
 
             // 3. Convert back to array
             conv.messages = Array.from(mergedMap.values());
 
             // CRITICAL FIX: Surgical Update
             // Do NOT call renderWidgetTabs() here. It destroys the input focus.
-            this.updateMessagesAreaOnly(userId);
-        }
-    });
+            this.updateMessagesAreaOnly(userId);}});
 
     // Initial Render (Creates the DOM)
     this.renderWidgetTabs();
 
     // Immediate Focus Attempt (Will succeed since DOM is created above)
-    this.tryFocusInput(userId);
-}
+    this.tryFocusInput(userId);}
 
 // New Helper: Focus Input Logic
 tryFocusInput(userId) {
     // Retry logic to ensure DOM is ready
     let attempts = 0;
     const attemptFocus = () => {
-        const input = document.getElementById(`chat - input - ${ userId } `);
+        const input = document.getElementById(`chat - input - ${userId} `);
         if (input) {
             input.focus();
             input.click(); // Force active
 
             // Only mark read if we actually have focus (prevents phantom reads)
             if (document.activeElement === input) {
-                this.handleInputFocus(userId);
-            }
+                this.handleInputFocus(userId);}
 
-            this.scrollToBottom(userId);
-        } else {
+            this.scrollToBottom(userId);} else {
             attempts++;
-            if (attempts < 5) setTimeout(attemptFocus, 200);
-        }
-    };
-    setTimeout(attemptFocus, 100);
-}
+            if (attempts <5) setTimeout(attemptFocus, 200);}};
+    setTimeout(attemptFocus, 100);}
 
 // New Helper: Updates ONLY the message list div, leaving Input/Header intact
 updateMessagesAreaOnly(userId) {
-    const msgArea = document.getElementById(`msg - area - ${ userId } `);
+    const msgArea = document.getElementById(`msg - area - ${userId} `);
     const conv = this.conversations.find(c => c.otherUser.id == userId);
     if (msgArea && conv) {
         // Sort
@@ -1091,66 +951,53 @@ updateMessagesAreaOnly(userId) {
         // Append Typing Indicator if needed
         if (this.typingUsers.has(userId)) {
             msgArea.innerHTML += `
-    <div style="display: flex; justify-content: flex-start;" >
+    <div style="display: flex; justify-content: flex-start;">
         <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
             Escribiendo...
         </span>
-                    </div > `;
-        }
+                    </div> `;}
         // Scroll
-        this.scrollToBottom(userId);
-    } else {
+        this.scrollToBottom(userId);} else {
         // Fallback if area doesn't exist (shouldn't happen if tab is open)
         // But be careful not to infinite loop
-        console.warn('Message area not found for surgical update, skipping.');
-    }
-}
+        console.warn('Message area not found for surgical update, skipping.');}}
 
 // Updated scrollToBottom with Multi-Tick Force Scroll
 scrollToBottom(userId) {
     if (userId && this.minimizedConversations.has(userId)) return;
 
-    const area = userId ? document.getElementById(`msg - area - ${ userId } `) : document.getElementById('messagesArea');
+    const area = userId ? document.getElementById(`msg - area - ${userId} `) : document.getElementById('messagesArea');
     if (area) {
         // 1. Immediate Scroll
         area.scrollTop = area.scrollHeight;
-        if (area.style.opacity === '0') area.style.opacity = '1';
+        if (area.style.opacity === '0') area.style.opacity='1';
 
         // 2. Post-Render Scroll (catches layout shifts)
         setTimeout(() => {
-            if (area) area.scrollTop = area.scrollHeight;
-        }, 50);
+            if (area) area.scrollTop = area.scrollHeight;}, 50);
 
         // 3. Image Reflow Scroll (catches fast-loading images)
         setTimeout(() => {
-            if (area) area.scrollTop = area.scrollHeight;
-        }, 300);
-    }
-}
+            if (area) area.scrollTop = area.scrollHeight;}, 300);}}
 
 closeTab(userId) {
     this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
     this.minimizedConversations.delete(userId); // Cleanup
-    this.renderWidgetTabs();
-}
+    this.renderWidgetTabs();}
 
 emitTyping(receiverId) {
     if (!this.currentUser) return;
 
     // Debounce
     if (this.typingTimeouts[receiverId]) {
-        clearTimeout(this.typingTimeouts[receiverId]);
-    } else {
+        clearTimeout(this.typingTimeouts[receiverId]);} else {
         // Start typing
-        this.socket.emit('user-typing', { senderId: this.currentUser.id, receiverId });
-    }
+        this.socket.emit('user-typing', { senderId: this.currentUser.id, receiverId});}
 
     // Stop typing after 2 seconds of inactivity
     this.typingTimeouts[receiverId] = setTimeout(() => {
-        this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId });
-        this.typingTimeouts[receiverId] = null;
-    }, 2000);
-}
+        this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId});
+        this.typingTimeouts[receiverId] = null;}, 2000);}
 
     async openChat(userId) {
     // [Phase AV] Full Page Redirection Logic
@@ -1162,8 +1009,7 @@ emitTyping(receiverId) {
 
         // Also, ensure the header dropdown (if open) is closed
         // This is usually handled by the onclick event in ui-global.js, but good to be safe
-        return;
-    }
+        return;}
 
     // Standard Widget Mode
     if (this.conversations.length === 0) await this.loadConversations();
@@ -1171,36 +1017,28 @@ emitTyping(receiverId) {
     // Ensure tab is added
     // Fix ID check
     if (!this.openConversationIds.some(id => id == userId)) {
-        this.openConversationIds.push(userId);
-    }
+        this.openConversationIds.push(userId);}
 
     const conv = this.conversations.find(c => c.otherUser.id == userId);
     if (conv) {
-        this.toggleTab(userId);
-    } else {
+        this.toggleTab(userId);} else {
         await this.loadConversations();
-        this.toggleTab(userId);
-    }
+        this.toggleTab(userId);}
 
     // UX: Auto-Focus Input
     setTimeout(() => {
-        const tab = document.getElementById(`chat - tab - ${ userId } `);
+        const tab = document.getElementById(`chat - tab - ${userId} `);
         if (tab) {
             const input = tab.querySelector('input');
             if (input) {
                 input.focus();
-                this.scrollToBottom(userId);
-            }
-        }
-    }, 100);
-}
+                this.scrollToBottom(userId);}}}, 100);}
 
 updateUserStatus(userId, isOnline) {
     // Update data
     const conv = this.conversations.find(c => c.otherUser.id == userId);
     if (conv) {
-        conv.otherUser.isOnline = isOnline;
-    }
+        conv.otherUser.isOnline = isOnline;}
 
     // Update UI (Full Page)
     if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
@@ -1209,38 +1047,30 @@ updateUserStatus(userId, isOnline) {
 
         if (headerStatus) {
             headerStatus.textContent = isOnline ? 'En línea' : '';
-            headerStatus.style.color = isOnline ? '#4ade80' : '#999';
-        }
+            headerStatus.style.color = isOnline ? '#4ade80' : '#999';}
         if (headerDot) {
-            headerDot.style.display = isOnline ? 'block' : 'none';
-        }
-    }
+            headerDot.style.display = isOnline ? 'block' : 'none';}}
 
     // Update UI (Full Page List Item)
-    const listDot = document.getElementById(`list - status - dot - ${ userId } `);
+    const listDot = document.getElementById(`list - status - dot - ${userId} `);
     if (listDot) {
-        listDot.style.display = isOnline ? 'block' : 'none';
-    }
+        listDot.style.display = isOnline ? 'block' : 'none';}
 
     // Update UI (Widget Tab) - Rerender just the header if possible or full tab
-    const tabHeader = document.querySelector(`#chat - tab - ${ userId } .user - status - text`);
-    const statusDot = document.querySelector(`#chat - tab - ${ userId } .status - dot`);
+    const tabHeader = document.querySelector(`#chat - tab - ${userId} .user - status - text`);
+    const statusDot = document.querySelector(`#chat - tab - ${userId} .status - dot`);
 
     if (tabHeader) {
         tabHeader.textContent = isOnline ? 'En línea' : '';
-        tabHeader.style.color = isOnline ? '#4ade80' : 'transparent';
-    }
+        tabHeader.style.color = isOnline ? '#4ade80' : 'transparent';}
     if (statusDot) {
         statusDot.style.background = isOnline ? '#4ade80' : 'transparent';
-        statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';
-    }
+        statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';}
 
     // Update UI (Widget List Item)
-    const widgetListDot = document.querySelector(`#widget - list - item - ${ userId } .list - status - dot`);
+    const widgetListDot = document.querySelector(`#widget - list - item - ${userId} .list - status - dot`);
     if (widgetListDot) {
-        widgetListDot.style.display = isOnline ? 'block' : 'none';
-    }
-}
+        widgetListDot.style.display = isOnline ? 'block' : 'none';}}
 
 playSound() {
     // Simple distinct beep
@@ -1258,60 +1088,49 @@ playSound() {
         osc.frequency.setValueAtTime(800, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
 
-        osc.type = 'sine';
+        osc.type='sine';
         gain.gain.setValueAtTime(0.1, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.3);
 
         osc.start();
-        osc.stop(ctx.currentTime + 0.3);
-    } catch (e) {
-        console.error("Audio error", e);
-    }
-}
+        osc.stop(ctx.currentTime + 0.3);} catch (e) {
+        console.error("Audio error", e);}}
 
 // Helper for Input Focus (Read Receipt + Stop Flash + Stop Title Blink)
 handleInputFocus(userId) {
     // 1. Mark Read
     const conv = this.conversations.find(c => c.otherUser.id == userId);
     if (conv) {
-        if (conv.unreadCount > 0) {
+        if (conv.unreadCount> 0) {
             conv.unreadCount = 0;
-            this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
+            this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId});
             // Re-render to clear badge
-            this.renderWidgetTabs();
-        }
-    }
+            this.renderWidgetTabs();}}
 
     // 2. Stop Flash
-    const tab = document.getElementById(`chat - tab - ${ userId } `);
+    const tab = document.getElementById(`chat - tab - ${userId} `);
     if (tab) {
-        tab.classList.remove('flash-animation');
-    }
+        tab.classList.remove('flash-animation');}
 
     // 3. Stop Title Blink
-    this.stopTitleBlink();
-}
+    this.stopTitleBlink();}
 
 startTitleBlink(userName) {
     if (this.titleInterval) clearInterval(this.titleInterval);
 
     let isOriginal = false;
-    const originalTitle = "DeskShare - Alquila Computadoras Potentes";
-    const newTitle = `💬 Nuevo mensaje de ${ userName } `;
+    const originalTitle="DeskShare - Alquila Computadoras Potentes";
+    const newTitle = `💬 Nuevo mensaje de ${userName} `;
 
     this.titleInterval = setInterval(() => {
         document.title = isOriginal ? newTitle : originalTitle;
-        isOriginal = !isOriginal;
-    }, 1000);
-}
+        isOriginal = !isOriginal;}, 1000);}
 
 stopTitleBlink() {
     if (this.titleInterval) {
         clearInterval(this.titleInterval);
         this.titleInterval = null;
-        document.title = "DeskShare - Alquila Computadoras Potentes";
-    }
-}
+        document.title="DeskShare - Alquila Computadoras Potentes";}}
 
 // ==========================================
 // Attachments Logic (Phase B)
@@ -1322,36 +1141,31 @@ stopTitleBlink() {
 // ==========================================
 triggerFileUpload(userId) {
     // Create hidden input dynamically if not exists
-    let input = document.getElementById(`file - input - ${ userId } `);
+    let input = document.getElementById(`file - input - ${userId} `);
     if (!input) {
         input = document.createElement('input');
-        input.type = 'file';
-        input.id = `file - input - ${ userId } `;
-        input.style.display = 'none';
+        input.type='file';
+        input.id = `file - input - ${userId} `;
+        input.style.display='none';
         // Accept Images and Docs. Enable Multiple!
-        input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
+        input.accept='image/*,.pdf,.doc,.docx,.zip,.txt';
         input.multiple = true;
         document.body.appendChild(input);
 
         input.onchange = (e) => {
-            if (e.target.files.length > 0) {
+            if (e.target.files.length> 0) {
                 // Loop through all selected files
                 Array.from(e.target.files).forEach(file => {
-                    this.uploadFile(userId, file);
-                });
-            }
-            input.value = ''; // Reset
-        };
-    }
-    input.click();
-}
+                    this.uploadFile(userId, file);});}
+            input.value=''; // Reset};}
+    input.click();}
 
     async uploadFile(userId, file) {
     if (!file) return;
 
     // Optimistic UI feedback could go here (e.g. spinner)
-    const btn = document.querySelector(`#chat - tab - ${ userId } .chat - footer button`);
-    if (btn) btn.style.opacity = '0.5';
+    const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
+    if (btn) btn.style.opacity='0.5';
 
     try {
         const token = localStorage.getItem('authToken');
@@ -1359,16 +1173,14 @@ triggerFileUpload(userId) {
         formData.append('file', file);
 
         // 1. Upload
-        const res = await fetch(`${ this.baseUrl } /chat/upload`, {
+        const res = await fetch(`${this.baseUrl}/chat/upload`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${ token } ` },
-            body: formData
-        });
+            headers: { 'Authorization': `Bearer ${token} `},
+            body: formData});
 
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `Server Error: ${ res.status } `);
-        }
+            throw new Error(errData.error || `Server Error: ${res.status} `);}
         const data = await res.json();
 
         // 2. STAGE THE FILE (Do not send yet)
@@ -1383,81 +1195,66 @@ triggerFileUpload(userId) {
         currentStaged.push({
             fileUrl: data.fileUrl,
             fileType: data.fileType,
-            fileName: file.name
-        });
+            fileName: file.name});
         this.stagedFiles.set(userId, currentStaged);
 
         // 3. Update UI
         this.renderStagingArea(userId);
 
         // Focus input
-        const chatInput = document.getElementById(`chat - input - ${ userId } `);
-        if (chatInput) chatInput.focus();
-
-    } catch (error) {
+        const chatInput = document.getElementById(`chat - input - ${userId} `);
+        if (chatInput) chatInput.focus();} catch (error) {
         console.error('Upload Error:', error);
-        alert(`Error subiendo archivo: ${ error.message } `);
-    } finally {
-        if (btn) btn.style.opacity = '1';
-    }
-}
+        alert(`Error subiendo archivo: ${error.message} `);} finally {
+        if (btn) btn.style.opacity='1';}}
 
 renderStagingArea(userId) {
-    const stagingArea = document.getElementById(`chat - staging - ${ userId } `);
-    const stagingContent = document.getElementById(`chat - staging - content - ${ userId } `);
+    const stagingArea = document.getElementById(`chat - staging - ${userId} `);
+    const stagingContent = document.getElementById(`chat - staging - content - ${userId} `);
     const files = this.stagedFiles.get(userId) || [];
 
     if (!files.length) {
-        if (stagingArea) stagingArea.style.display = 'none';
-        return;
-    }
+        if (stagingArea) stagingArea.style.display='none';
+        return;}
 
     if (stagingArea && stagingContent) {
-        stagingArea.style.display = 'flex';
-        stagingContent.innerHTML = ''; // Clear current
-        stagingContent.style.overflowX = 'auto'; // Horizontal scroll
+        stagingArea.style.display='flex';
+        stagingContent.innerHTML=''; // Clear current
+        stagingContent.style.overflowX='auto'; // Horizontal scroll
 
         files.forEach((file, index) => {
             const thumb = document.createElement('div');
-            thumb.style.cssText = 'position: relative; display: inline-block; margin-right: 8px; flex-shrink: 0;';
+            thumb.style.cssText='position: relative; display: inline-block; margin-right: 8px; flex-shrink: 0;';
 
-            let innerHTML = '';
+            let innerHTML='';
             if (file.fileType === 'image') {
-                innerHTML = `<img src = "${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;" > `;
-            } else {
+                innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;"> `;} else {
                 innerHTML = `
-    <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;" >
+    <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
                             📄
-                        </div > `;
-            }
+                        </div> `;}
 
             // Add Close Button (X)
             innerHTML += `
-    <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" >& times;</div >
+    <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">&times;</div>
         `;
 
             thumb.innerHTML = innerHTML;
-            stagingContent.appendChild(thumb);
-        });
-    }
-}
+            stagingContent.appendChild(thumb);});}}
 
 removeStagedFile(userId, index) {
     let files = this.stagedFiles.get(userId) || [];
-    if (files.length > index) {
+    if (files.length> index) {
         files.splice(index, 1);
         this.stagedFiles.set(userId, files);
-        this.renderStagingArea(userId);
-    }
-}
+        this.renderStagingArea(userId);}}
 
 clearStaging(userId) {
     this.stagedFiles.delete(userId);
-    this.renderStagingArea(userId); // Update UI after clearing
-}
+    this.renderStagingArea(userId); // Update UI after clearing}
 
     async sendStagedMessage(userId) {
-    const input = document.getElementById(`chat - input - ${ userId } `);
+    const input = document.getElementById(`chat - input - ${userId} `);
     if (!input) return;
 
     const text = input.value.trim();
@@ -1472,23 +1269,19 @@ clearStaging(userId) {
     // Logic: Send text with FIRST file, then send remaining files
     // If no files, just send text.
 
-    if (staged && staged.length > 0) {
+    if (staged && staged.length> 0) {
         // Message 1: Text + File 1
         await this.sendMiniMessage(userId, text, staged[0].fileUrl, staged[0].fileType);
 
         // Remaining files
-        for (let i = 1; i < staged.length; i++) {
-            await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);
-        }
-    } else {
+        for (let i = 1; i <staged.length; i++) {
+            await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);}} else {
         // Just text
-        await this.sendMiniMessage(userId, text);
-    }
+        await this.sendMiniMessage(userId, text);}
 
     // Cleanup
-    input.value = '';
-    this.clearStaging(userId);
-}
+    input.value='';
+    this.clearStaging(userId);}
 
 // Shared Message Rendering for Full Page & Widget
 renderMessageHTML(sortedMessages, user) {
@@ -1497,31 +1290,26 @@ renderMessageHTML(sortedMessages, user) {
 
     // Identify the ID of the very last message sent by ME in the entire list
     let lastMyMsgId = null;
-    for (let i = sortedMessages.length - 1; i >= 0; i--) {
+    for (let i = sortedMessages.length - 1; i>= 0; i--) {
         if (sortedMessages[i].senderId === this.currentUser.id) {
             lastMyMsgId = sortedMessages[i].id;
-            break;
-        }
-    }
+            break;}}
 
     sortedMessages.forEach((msg, idx) => {
         const isImage = msg.fileUrl && msg.fileType === 'image';
-        const prevMsg = idx > 0 ? sortedMessages[idx - 1] : null;
+        const prevMsg = idx> 0 ? sortedMessages[idx - 1] : null;
         const isSameSender = prevMsg && prevMsg.senderId === msg.senderId;
         const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
 
         // Time Break Check
         const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
-        const isTimeBreak = timeDiff > 10 * 60 * 1000; // 10 mins
+        const isTimeBreak = timeDiff> 10 * 60 * 1000; // 10 mins
 
         if (!prevMsg || !isSameSender || (isImage !== isPrevImage) || isTimeBreak) {
-            if (currentGroup.length > 0) groups.push(currentGroup);
-            currentGroup = [msg];
-        } else {
-            currentGroup.push(msg);
-        }
-    });
-    if (currentGroup.length > 0) groups.push(currentGroup);
+            if (currentGroup.length> 0) groups.push(currentGroup);
+            currentGroup = [msg];} else {
+            currentGroup.push(msg);}});
+    if (currentGroup.length> 0) groups.push(currentGroup);
 
     return groups.map(group => {
         const firstMsg = group[0];
@@ -1543,36 +1331,32 @@ max - width: 220px;
 
             if (count === 1) {
                 return `
-    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
         <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
             style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
             <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
         </div>
-            </div >
-    `;
-            }
+            </div>
+    `;}
 
             if (count === 2) {
-                gridContainerStyle += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2/1;';
-            } else {
-                gridContainerStyle += 'grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr;';
-            }
+                gridContainerStyle += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2/1;';} else {
+                gridContainerStyle += 'grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr;';}
 
             const imagesHtml = group.map((msg) => `
     <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
+style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
     <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
     </div>
 `).join('');
 
             return `
-    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
         <div style="${gridContainerStyle}">
             ${imagesHtml}
         </div>
-            </div >
-    `;
-        }
+            </div>
+    `;}
 
         // 2. STANDARD TEXT/FILE MESSAGES
         return group.map((msg) => {
@@ -1581,15 +1365,14 @@ style="cursor: pointer; position: relative; overflow: hidden; height: 100%; widt
             if (isMe && msg.isRead) {
                 const realIdx = sortedMessages.indexOf(msg);
                 const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
-                if (!newerMyMsg) showRead = true;
-            }
+                if (!newerMyMsg) showRead = true;}
 
-            let contentHtml = '';
+            let contentHtml='';
             // File (Non-Image)
             if (msg.fileUrl && msg.fileType !== 'image') {
                 const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
                 contentHtml += `
-    <div style="margin-bottom: 6px;" >
+    <div style="margin-bottom: 6px;">
         <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
@@ -1611,13 +1394,11 @@ style="cursor: pointer; position: relative; overflow: hidden; height: 100%; widt
                                     ">${cleanName}</span>
             </div>
         </div>
-            </div >
-    `;
-            }
+            </div>
+    `;}
 
             if (msg.message && msg.message.trim()) {
-                contentHtml += `<div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
-            }
+                contentHtml += `<div> ${msg.message.replace(/\n/g, '<br>')}</div> `;}
 
             const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
             const bubbleBg = isStandAlone ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
@@ -1626,43 +1407,39 @@ style="cursor: pointer; position: relative; overflow: hidden; height: 100%; widt
             const msgDate = new Date(msg.createdAt);
             const prevMsgOverall = sortedMessages[sortedMessages.indexOf(msg) - 1];
             const timeDiff = prevMsgOverall ? (msgDate - new Date(prevMsgOverall.createdAt)) : Infinity;
-            const showTimeHeader = timeDiff > 10 * 60 * 1000; // 10 minutes
+            const showTimeHeader = timeDiff> 10 * 60 * 1000; // 10 minutes
 
-            const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+            const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true}).toLowerCase();
 
-            let timeHeader = '';
+            let timeHeader='';
             if (group.indexOf(msg) === 0 && showTimeHeader) {
                 timeHeader = `
-    <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;" >
+    <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
         <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
             ${timeStr}
         </span>
-            </div >
-    `;
-            }
+            </div>
+    `;}
 
-            let statusHtml = '';
+            let statusHtml='';
             if (isMe && msg.id === lastMyMsgId) {
-                let statusText = '';
-                let statusColor = '#666';
+                let statusText='';
+                let statusColor='#666';
 
                 if (showRead) {
-                    statusText = 'Visto';
-                    statusColor = '#aaa';
-                } else {
-                    statusText = `Enviado ${ this.getRelativeTime(new Date(msg.createdAt)) } `;
-                    statusColor = '#666';
-                }
+                    statusText='Visto';
+                    statusColor='#aaa';} else {
+                    statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))} `;
+                    statusColor='#666';}
 
                 statusHtml = `
-    <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
-        ${ statusText }
-            </div >
-    `;
-            }
+    <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
+        ${statusText}
+            </div>
+    `;}
 
             return `
-                    ${ timeHeader }
+                    ${timeHeader}
 <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
                          align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
                          max-width: 85%; 
@@ -1686,10 +1463,7 @@ style="cursor: pointer; position: relative; overflow: hidden; height: 100%; widt
     </div>
     ${statusHtml}
 </div>
-`;
-        }).join('');
-    }).join('');
-}
+`;}).join('');}).join('');}
 
 getRelativeTime(date) {
     const now = new Date();
@@ -1698,12 +1472,11 @@ getRelativeTime(date) {
     const diffHrs = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHrs / 24);
 
-    if (diffMins < 1) return 'hace un momento';
-    if (diffMins < 60) return `hace ${ diffMins } min`;
-    if (diffHrs < 24) return `hace ${ diffHrs } h`;
+    if (diffMins <1) return 'hace un momento';
+    if (diffMins <60) return `hace ${diffMins} min`;
+    if (diffHrs <24) return `hace ${diffHrs} h`;
     if (diffDays === 1) return 'ayer';
-    return `hace ${ diffDays } días`;
-}
+    return `hace ${diffDays} días`;}
 
     // Updated send method to support attachments
     async sendMiniMessage(receiverId, text, fileUrl = null, fileType = null) {
@@ -1711,30 +1484,24 @@ getRelativeTime(date) {
         if (!text && !fileUrl) return;
 
         const token = localStorage.getItem('authToken');
-        const res = await fetch(`${ this.baseUrl }/chat`, {
+        const res = await fetch(`${this.baseUrl}/chat`, {
 method: 'POST',
     headers: {
     'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-},
+        'Authorization': `Bearer ${token}`},
 body: JSON.stringify({
     receiverId,
     message: text,
     fileUrl: fileUrl,  // Phase B
-    fileType: fileType // Phase B
-})
-        });
+    fileType: fileType // Phase B})});
 
 if (!res.ok) throw new Error('Failed to send');
 
-const { message } = await res.json();
+const { message} = await res.json();
 
         // UI Update is handled by Socket event 'private-message'
-        // But we can append locally for instant feedback if needed
-    } catch (error) {
-    console.error('Send Error:', error);
-}
-}
+        // But we can append locally for instant feedback if needed} catch (error) {
+    console.error('Send Error:', error);}}
 
     // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
     async downloadFile(url, filename) {
@@ -1745,20 +1512,17 @@ const { message } = await res.json();
         const blobUrl = window.URL.createObjectURL(blob);
 
         const a = document.createElement('a');
-        a.style.display = 'none';
+        a.style.display='none';
         a.href = blobUrl;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
 
         window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-    } catch (error) {
+        document.body.removeChild(a);} catch (error) {
         console.error('Download failed:', error);
         // Fallback
-        window.open(url, '_blank');
-    }
-}
+        window.open(url, '_blank');}}
 
 // ==========================================
 // Helper: Standard Download (Reverted to Safe Mode)
@@ -1767,8 +1531,7 @@ downloadFileSecure(url, filename) {
     // Just open the original signed URL. 
     // If it opens in a new tab (PDF Viewer), user can save from there.
     // We cannot inject fl_attachment client-side without invalidating the signature.
-    window.open(url, '_blank');
-}
+    window.open(url, '_blank');}
 
 // Lightbox Logic (Phase F)
 // ==========================================
@@ -1788,19 +1551,17 @@ openLightbox(currentUrl, userId) {
     let currentIndex = allImages.indexOf(currentUrl);
     if (currentIndex === -1) {
         // Fallback if URL mismatch (e.g. query params)
-        currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
-    }
+        currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));}
     if (currentIndex === -1) {
         // Just show single if not found in list
         allImages.push(currentUrl);
-        currentIndex = 0;
-    }
+        currentIndex = 0;}
 
     let lightbox = document.getElementById('chat-lightbox');
     if (lightbox) lightbox.remove(); // Re-create to ensure clean state
 
     lightbox = document.createElement('div');
-    lightbox.id = 'chat-lightbox';
+    lightbox.id='chat-lightbox';
     lightbox.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 10000;
@@ -1811,11 +1572,11 @@ openLightbox(currentUrl, userId) {
 
     // --- RENDER FUNCTION ---
     const renderContent = () => {
-        lightbox.innerHTML = '';
+        lightbox.innerHTML='';
 
         // Close Button
         const closeBtn = document.createElement('div');
-        closeBtn.innerHTML = '&times;';
+        closeBtn.innerHTML='&times;';
         closeBtn.style.cssText = `
                 position: absolute; top: 10px; right: 20px; color: #fff; font-size: 40px; 
                 cursor: pointer; z-index: 10002; opacity: 0.8;
@@ -1830,15 +1591,14 @@ openLightbox(currentUrl, userId) {
             `;
 
         // Prev Arrow
-        if (allImages.length > 1) {
+        if (allImages.length> 1) {
             const prevBtn = document.createElement('div');
-            prevBtn.innerHTML = '&#10094;';
+            prevBtn.innerHTML='&#10094;';
             prevBtn.style.cssText = `
                     position: absolute; left: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-            prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
-            mainContainer.appendChild(prevBtn);
-        }
+            prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1);};
+            mainContainer.appendChild(prevBtn);}
 
         // Image
         const img = document.createElement('img');
@@ -1850,19 +1610,18 @@ openLightbox(currentUrl, userId) {
         mainContainer.appendChild(img);
 
         // Next Arrow
-        if (allImages.length > 1) {
+        if (allImages.length> 1) {
             const nextBtn = document.createElement('div');
-            nextBtn.innerHTML = '&#10095;';
+            nextBtn.innerHTML='&#10095;';
             nextBtn.style.cssText = `
                     position: absolute; right: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-            nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
-            mainContainer.appendChild(nextBtn);
-        }
+            nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1);};
+            mainContainer.appendChild(nextBtn);}
         lightbox.appendChild(mainContainer);
 
         // Thumbnails Strip
-        if (allImages.length > 1) {
+        if (allImages.length> 1) {
             const strip = document.createElement('div');
             strip.style.cssText = `
                     height: 80px; width: 100%; background: rgba(0,0,0,0.5); 
@@ -1879,43 +1638,35 @@ openLightbox(currentUrl, userId) {
                         border: 2px solid ${isActive ? 'var(--accent-purple)' : 'transparent'};
                         opacity: ${isActive ? '1' : '0.6'}; transition: all 0.2s;
                     `;
-                thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
-                strip.appendChild(thumb);
-            });
-            lightbox.appendChild(strip);
-        }
+                thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent();};
+                strip.appendChild(thumb);});
+            lightbox.appendChild(strip);}
 
         // Click BG to close
         lightbox.onclick = (e) => {
-            if (e.target === lightbox || e.target === mainContainer) close();
-        };
-    };
+            if (e.target === lightbox || e.target === mainContainer) close();};};
 
     // --- HELPERS ---
     const navigate = (dir) => {
         currentIndex += dir;
-        if (currentIndex < 0) currentIndex = allImages.length - 1;
-        if (currentIndex >= allImages.length) currentIndex = 0;
-        renderContent();
-    };
+        if (currentIndex <0) currentIndex = allImages.length - 1;
+        if (currentIndex>= allImages.length) currentIndex = 0;
+        renderContent();};
 
     const close = () => {
-        lightbox.style.opacity = '0';
+        lightbox.style.opacity='0';
         setTimeout(() => lightbox.remove(), 200);
-        document.removeEventListener('keydown', keyHandler);
-    };
+        document.removeEventListener('keydown', keyHandler);};
 
     const keyHandler = (e) => {
         if (e.key === 'Escape') close();
         if (e.key === 'ArrowLeft') navigate(-1);
-        if (e.key === 'ArrowRight') navigate(1);
-    };
+        if (e.key === 'ArrowRight') navigate(1);};
     document.addEventListener('keydown', keyHandler);
 
     // Init
     renderContent();
-    requestAnimationFrame(() => lightbox.style.opacity = '1');
-}
+    requestAnimationFrame(() => lightbox.style.opacity='1');}
 
 // ==========================================
 // Emoji Picker Logic (Inline - No Dependencies)
@@ -1925,8 +1676,7 @@ toggleEmojiPicker(triggerBtn, userId) {
     const existing = document.getElementById(`emoji-picker-${userId}`);
     if (existing) {
         existing.remove();
-        return;
-    }
+        return;}
 
     // Create Picker
     const picker = document.createElement('div');
@@ -1957,9 +1707,9 @@ toggleEmojiPicker(triggerBtn, userId) {
     // Webkit Scrollbar style injection (inline)
     const style = document.createElement('style');
     style.textContent = `
-            #emoji-picker-${userId}::-webkit-scrollbar { width: 6px; }
-            #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222; }
-            #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+            #emoji-picker-${userId}::-webkit-scrollbar { width: 6px;}
+            #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222;}
+            #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px;}
         `;
     picker.appendChild(style);
 
@@ -1974,33 +1724,26 @@ toggleEmojiPicker(triggerBtn, userId) {
     emojis.forEach(emoji => {
         const span = document.createElement('span');
         span.textContent = emoji;
-        span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
-        span.onmouseover = () => span.style.background = '#333';
-        span.onmouseout = () => span.style.background = 'transparent';
+        span.style.cssText='cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
+        span.onmouseover = () => span.style.background='#333';
+        span.onmouseout = () => span.style.background='transparent';
         span.onclick = () => {
             const input = document.getElementById(`chat-input-${userId}`);
             if (input) {
                 input.value += emoji;
-                input.focus();
-            }
+                input.focus();}
             // Keep open or close? Usually close
-            // picker.remove(); 
-        };
-        picker.appendChild(span);
-    });
+            // picker.remove();};
+        picker.appendChild(span);});
 
     // Close on click outside
     const closeHandler = (e) => {
         if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
             picker.remove();
-            document.removeEventListener('click', closeHandler);
-        }
-    };
+            document.removeEventListener('click', closeHandler);}};
     setTimeout(() => document.addEventListener('click', closeHandler), 0);
 
     // Append to footer or body? Footer is safer for positioning
-    triggerBtn.parentElement.parentElement.style.position = 'relative';
-    triggerBtn.parentElement.parentElement.appendChild(picker);
-}
-}
+    triggerBtn.parentElement.parentElement.style.position='relative';
+    triggerBtn.parentElement.parentElement.appendChild(picker);}}
 window.ChatManager = ChatManager;
