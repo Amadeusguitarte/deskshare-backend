@@ -333,9 +333,8 @@ class ChatManager {
         this.messagesPageContainer.style.overflow = 'hidden';
 
         this.messagesPageContainer.innerHTML = `
-        this.messagesPageContainer.innerHTML = `
-            < div class="chat-layout" style = "display: grid; grid-template-columns: 350px 1fr; height: 100%; gap: 1.5rem; padding: 2rem; padding-bottom: 2rem; box-sizing: border-box;" >
-                < !--Sidebar -->
+            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: 100%; gap: 1.5rem; padding: 2rem; padding-bottom: 2rem; box-sizing: border-box;">
+                <!--Sidebar -->
                 <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%;">
                     <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
                         <h2 style="margin: 0; font-size: 1.5rem;">Mensajes</h2>
@@ -346,7 +345,7 @@ class ChatManager {
                     </div>
                 </div>
 
-                <!--Chat Area-- >
+                <!--Chat Area-->
             <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative;">
                 <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0;">
                     <h3 style="margin: 0; color: var(--text-secondary);">Selecciona una conversación</h3>
@@ -516,11 +515,10 @@ class ChatManager {
                 stagingArea.style.display = 'block';
                 stagingArea.innerHTML = `
             < div style = "background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);" >
-                ${
-                    isImage ?
+                ${isImage ?
                         `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` :
                         `<span style="font-size: 1.2rem;">📄</span>`
-        }
+                    }
                         <span style="font-size: 0.9rem; color: white; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
                         <button type="button" id="removeStagedBtn" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem; margin-left: 5px;">×</button>
                     </div >
@@ -735,7 +733,7 @@ class ChatManager {
 
     renderChatTab(conv) {
         const user = conv.otherUser;
-        const tabId = `chat - tab - ${ user.id } `;
+        const tabId = `chat - tab - ${user.id} `;
         // Check state to persist minimization
         const isMin = this.minimizedConversations.has(user.id);
         const height = isMin ? '50px' : '400px';
@@ -836,7 +834,7 @@ class ChatManager {
         }
 
         // 2. Direct DOM Manipulation (CSS Transition)
-        const tab = document.getElementById(`chat - tab - ${ userId } `);
+        const tab = document.getElementById(`chat - tab - ${userId} `);
         if (tab) {
             const newMin = !isMin; // Toggle logic
             tab.style.height = newMin ? '50px' : '400px';
@@ -904,7 +902,7 @@ class ChatManager {
     scrollToBottom(userId) {
         if (userId && this.minimizedConversations.has(userId)) return;
 
-        const area = userId ? document.getElementById(`msg - area - ${ userId } `) : document.getElementById('messagesArea');
+        const area = userId ? document.getElementById(`msg - area - ${userId} `) : document.getElementById('messagesArea');
         if (area) {
             area.scrollTop = area.scrollHeight;
             // Ensure opacity is 1 if it was hidden
@@ -968,7 +966,7 @@ class ChatManager {
 
         // UX: Auto-Focus Input
         setTimeout(() => {
-            const tab = document.getElementById(`chat - tab - ${ userId } `);
+            const tab = document.getElementById(`chat - tab - ${userId} `);
             if (tab) {
                 const input = tab.querySelector('input');
                 if (input) {
@@ -996,8 +994,8 @@ class ChatManager {
         }
 
         // Update UI (Widget Tab) - Rerender just the header if possible or full tab
-        const tabHeader = document.querySelector(`#chat - tab - ${ userId } .user - status - text`);
-        const statusDot = document.querySelector(`#chat - tab - ${ userId } .status - dot`);
+        const tabHeader = document.querySelector(`#chat - tab - ${userId} .user - status - text`);
+        const statusDot = document.querySelector(`#chat - tab - ${userId} .status - dot`);
 
         if (tabHeader) {
             tabHeader.textContent = isOnline ? 'En línea' : '';
@@ -1009,7 +1007,7 @@ class ChatManager {
         }
 
         // Update UI (Widget List Item)
-        const listDot = document.querySelector(`#widget - list - item - ${ userId } .list - status - dot`);
+        const listDot = document.querySelector(`#widget - list - item - ${userId} .list - status - dot`);
         if (listDot) {
             listDot.style.display = isOnline ? 'block' : 'none';
         }
@@ -1056,7 +1054,7 @@ class ChatManager {
         }
 
         // 2. Stop Flash
-        const tab = document.getElementById(`chat - tab - ${ userId } `);
+        const tab = document.getElementById(`chat - tab - ${userId} `);
         if (tab) {
             tab.classList.remove('flash-animation');
         }
@@ -1070,7 +1068,7 @@ class ChatManager {
 
         let isOriginal = false;
         const originalTitle = "DeskShare - Alquila Computadoras Potentes";
-        const newTitle = `💬 Nuevo mensaje de ${ userName } `;
+        const newTitle = `💬 Nuevo mensaje de ${userName} `;
 
         this.titleInterval = setInterval(() => {
             document.title = isOriginal ? newTitle : originalTitle;
@@ -1095,11 +1093,11 @@ class ChatManager {
     // ==========================================
     triggerFileUpload(userId) {
         // Create hidden input dynamically if not exists
-        let input = document.getElementById(`file - input - ${ userId } `);
+        let input = document.getElementById(`file - input - ${userId} `);
         if (!input) {
             input = document.createElement('input');
             input.type = 'file';
-            input.id = `file - input - ${ userId } `;
+            input.id = `file - input - ${userId} `;
             input.style.display = 'none';
             // Accept Images and Docs. Enable Multiple!
             input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
@@ -1123,7 +1121,7 @@ class ChatManager {
         if (!file) return;
 
         // Optimistic UI feedback could go here (e.g. spinner)
-        const btn = document.querySelector(`#chat - tab - ${ userId } .chat - footer button`);
+        const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
         if (btn) btn.style.opacity = '0.5';
 
         try {
@@ -1132,15 +1130,15 @@ class ChatManager {
             formData.append('file', file);
 
             // 1. Upload
-            const res = await fetch(`${ this.baseUrl } /chat/upload`, {
+            const res = await fetch(`${this.baseUrl} /chat/upload`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${ token } ` },
+                headers: { 'Authorization': `Bearer ${token} ` },
                 body: formData
             });
 
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || `Server Error: ${ res.status } `);
+                throw new Error(errData.error || `Server Error: ${res.status} `);
             }
             const data = await res.json();
 
@@ -1164,20 +1162,20 @@ class ChatManager {
             this.renderStagingArea(userId);
 
             // Focus input
-            const chatInput = document.getElementById(`chat - input - ${ userId } `);
+            const chatInput = document.getElementById(`chat - input - ${userId} `);
             if (chatInput) chatInput.focus();
 
         } catch (error) {
             console.error('Upload Error:', error);
-            alert(`Error subiendo archivo: ${ error.message } `);
+            alert(`Error subiendo archivo: ${error.message} `);
         } finally {
             if (btn) btn.style.opacity = '1';
         }
     }
 
     renderStagingArea(userId) {
-        const stagingArea = document.getElementById(`chat - staging - ${ userId } `);
-        const stagingContent = document.getElementById(`chat - staging - content - ${ userId } `);
+        const stagingArea = document.getElementById(`chat - staging - ${userId} `);
+        const stagingContent = document.getElementById(`chat - staging - content - ${userId} `);
         const files = this.stagedFiles.get(userId) || [];
 
         if (!files.length) {
@@ -1230,7 +1228,7 @@ class ChatManager {
     }
 
     async sendStagedMessage(userId) {
-        const input = document.getElementById(`chat - input - ${ userId } `);
+        const input = document.getElementById(`chat - input - ${userId} `);
         if (!input) return;
 
         const text = input.value.trim();
@@ -1389,7 +1387,7 @@ class ChatManager {
                 }
 
                 if (msg.message && msg.message.trim()) {
-                    contentHtml += `< div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
+                    contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
                 }
 
                 const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1423,19 +1421,19 @@ class ChatManager {
                         statusText = 'Visto';
                         statusColor = '#aaa';
                     } else {
-                        statusText = `Enviado ${ this.getRelativeTime(new Date(msg.createdAt)) } `;
+                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))} `;
                         statusColor = '#666';
                     }
 
                     statusHtml = `
             < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
-                ${ statusText }
+                ${statusText}
                         </div >
             `;
                 }
 
                 return `
-                    ${ timeHeader }
+                    ${timeHeader}
         <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
                          align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
                          max-width: 85%; 
@@ -1472,10 +1470,10 @@ class ChatManager {
         const diffDays = Math.floor(diffHrs / 24);
 
         if (diffMins < 1) return 'hace un momento';
-        if (diffMins < 60) return `hace ${ diffMins } min`;
-        if (diffHrs < 24) return `hace ${ diffHrs } h`;
+        if (diffMins < 60) return `hace ${diffMins} min`;
+        if (diffHrs < 24) return `hace ${diffHrs} h`;
         if (diffDays === 1) return 'ayer';
-        return `hace ${ diffDays } días`;
+        return `hace ${diffDays} días`;
     }
 
     // Updated send method to support attachments
@@ -1484,227 +1482,227 @@ class ChatManager {
             if (!text && !fileUrl) return;
 
             const token = localStorage.getItem('authToken');
-            const res = await fetch(`${ this.baseUrl }/chat`, {
-        method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            receiverId,
-            message: text,
-            fileUrl: fileUrl,  // Phase B
-            fileType: fileType // Phase B
-        })
-    });
+            const res = await fetch(`${this.baseUrl}/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    receiverId,
+                    message: text,
+                    fileUrl: fileUrl,  // Phase B
+                    fileType: fileType // Phase B
+                })
+            });
 
-    if(!res.ok) throw new Error('Failed to send');
+            if (!res.ok) throw new Error('Failed to send');
 
-const { message } = await res.json();
+            const { message } = await res.json();
 
             // UI Update is handled by Socket event 'private-message'
             // But we can append locally for instant feedback if needed
         } catch (error) {
-    console.error('Send Error:', error);
-}
+            console.error('Send Error:', error);
+        }
     }
 
     // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
     async downloadFile(url, filename) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
 
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
 
-        window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-    } catch (error) {
-        console.error('Download failed:', error);
-        // Fallback
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback
+            window.open(url, '_blank');
+        }
+    }
+
+    // ==========================================
+    // Helper: Standard Download (Reverted to Safe Mode)
+    // Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
+    downloadFileSecure(url, filename) {
+        // Just open the original signed URL. 
+        // If it opens in a new tab (PDF Viewer), user can save from there.
+        // We cannot inject fl_attachment client-side without invalidating the signature.
         window.open(url, '_blank');
     }
-}
 
-// ==========================================
-// Helper: Standard Download (Reverted to Safe Mode)
-// Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
-downloadFileSecure(url, filename) {
-    // Just open the original signed URL. 
-    // If it opens in a new tab (PDF Viewer), user can save from there.
-    // We cannot inject fl_attachment client-side without invalidating the signature.
-    window.open(url, '_blank');
-}
+    // Lightbox Logic (Phase F)
+    // ==========================================
+    // ==========================================
+    // Lightbox Logic (Phase G - Carousel)
+    // ==========================================
+    openLightbox(currentUrl, userId) {
+        // 1. Get all images in conversation
+        let conversation = this.conversations.find(c => c.otherUser.id == userId);
+        // If not found in active list, try to find in messagesPageContainer or fallback
+        // Fallback: Scan DOM if needed, but state is better. 
+        // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
+        // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
+        // Let's use the DOM-rendered images to be 100% sync with what the user sees.
 
-// Lightbox Logic (Phase F)
-// ==========================================
-// ==========================================
-// Lightbox Logic (Phase G - Carousel)
-// ==========================================
-openLightbox(currentUrl, userId) {
-    // 1. Get all images in conversation
-    let conversation = this.conversations.find(c => c.otherUser.id == userId);
-    // If not found in active list, try to find in messagesPageContainer or fallback
-    // Fallback: Scan DOM if needed, but state is better. 
-    // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
-    // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
-    // Let's use the DOM-rendered images to be 100% sync with what the user sees.
+        const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
+        let currentIndex = allImages.indexOf(currentUrl);
+        if (currentIndex === -1) {
+            // Fallback if URL mismatch (e.g. query params)
+            currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
+        }
+        if (currentIndex === -1) {
+            // Just show single if not found in list
+            allImages.push(currentUrl);
+            currentIndex = 0;
+        }
 
-    const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
-    let currentIndex = allImages.indexOf(currentUrl);
-    if (currentIndex === -1) {
-        // Fallback if URL mismatch (e.g. query params)
-        currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
-    }
-    if (currentIndex === -1) {
-        // Just show single if not found in list
-        allImages.push(currentUrl);
-        currentIndex = 0;
-    }
+        let lightbox = document.getElementById('chat-lightbox');
+        if (lightbox) lightbox.remove(); // Re-create to ensure clean state
 
-    let lightbox = document.getElementById('chat-lightbox');
-    if (lightbox) lightbox.remove(); // Re-create to ensure clean state
-
-    lightbox = document.createElement('div');
-    lightbox.id = 'chat-lightbox';
-    lightbox.style.cssText = `
+        lightbox = document.createElement('div');
+        lightbox.id = 'chat-lightbox';
+        lightbox.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 10000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             user-select: none; opacity: 0; transition: opacity 0.2s;
         `;
-    document.body.appendChild(lightbox);
+        document.body.appendChild(lightbox);
 
-    // --- RENDER FUNCTION ---
-    const renderContent = () => {
-        lightbox.innerHTML = '';
+        // --- RENDER FUNCTION ---
+        const renderContent = () => {
+            lightbox.innerHTML = '';
 
-        // Close Button
-        const closeBtn = document.createElement('div');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.style.cssText = `
+            // Close Button
+            const closeBtn = document.createElement('div');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = `
                 position: absolute; top: 10px; right: 20px; color: #fff; font-size: 40px; 
                 cursor: pointer; z-index: 10002; opacity: 0.8;
             `;
-        closeBtn.onclick = () => close();
-        lightbox.appendChild(closeBtn);
+            closeBtn.onclick = () => close();
+            lightbox.appendChild(closeBtn);
 
-        // Container for Main Image + Arrows
-        const mainContainer = document.createElement('div');
-        mainContainer.style.cssText = `
+            // Container for Main Image + Arrows
+            const mainContainer = document.createElement('div');
+            mainContainer.style.cssText = `
                 flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;
             `;
 
-        // Prev Arrow
-        if (allImages.length > 1) {
-            const prevBtn = document.createElement('div');
-            prevBtn.innerHTML = '&#10094;';
-            prevBtn.style.cssText = `
+            // Prev Arrow
+            if (allImages.length > 1) {
+                const prevBtn = document.createElement('div');
+                prevBtn.innerHTML = '&#10094;';
+                prevBtn.style.cssText = `
                     position: absolute; left: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-            prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
-            mainContainer.appendChild(prevBtn);
-        }
+                prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
+                mainContainer.appendChild(prevBtn);
+            }
 
-        // Image
-        const img = document.createElement('img');
-        img.src = allImages[currentIndex];
-        img.style.cssText = `
+            // Image
+            const img = document.createElement('img');
+            img.src = allImages[currentIndex];
+            img.style.cssText = `
                 max-width: 90%; max-height: 80vh; border-radius: 4px; 
                 box-shadow: 0 0 30px rgba(0,0,0,0.5); transition: transform 0.2s;
             `;
-        mainContainer.appendChild(img);
+            mainContainer.appendChild(img);
 
-        // Next Arrow
-        if (allImages.length > 1) {
-            const nextBtn = document.createElement('div');
-            nextBtn.innerHTML = '&#10095;';
-            nextBtn.style.cssText = `
+            // Next Arrow
+            if (allImages.length > 1) {
+                const nextBtn = document.createElement('div');
+                nextBtn.innerHTML = '&#10095;';
+                nextBtn.style.cssText = `
                     position: absolute; right: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-            nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
-            mainContainer.appendChild(nextBtn);
-        }
-        lightbox.appendChild(mainContainer);
+                nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
+                mainContainer.appendChild(nextBtn);
+            }
+            lightbox.appendChild(mainContainer);
 
-        // Thumbnails Strip
-        if (allImages.length > 1) {
-            const strip = document.createElement('div');
-            strip.style.cssText = `
+            // Thumbnails Strip
+            if (allImages.length > 1) {
+                const strip = document.createElement('div');
+                strip.style.cssText = `
                     height: 80px; width: 100%; background: rgba(0,0,0,0.5); 
                     display: flex; align-items: center; justify-content: center; gap: 10px; 
                     overflow-x: auto; padding: 10px; box-sizing: border-box;
                 `;
 
-            allImages.forEach((src, idx) => {
-                const thumb = document.createElement('img');
-                thumb.src = src;
-                const isActive = idx === currentIndex;
-                thumb.style.cssText = `
+                allImages.forEach((src, idx) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = src;
+                    const isActive = idx === currentIndex;
+                    thumb.style.cssText = `
                         height: 50px; width: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; 
                         border: 2px solid ${isActive ? 'var(--accent-purple)' : 'transparent'};
                         opacity: ${isActive ? '1' : '0.6'}; transition: all 0.2s;
                     `;
-                thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
-                strip.appendChild(thumb);
-            });
-            lightbox.appendChild(strip);
-        }
+                    thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
+                    strip.appendChild(thumb);
+                });
+                lightbox.appendChild(strip);
+            }
 
-        // Click BG to close
-        lightbox.onclick = (e) => {
-            if (e.target === lightbox || e.target === mainContainer) close();
+            // Click BG to close
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox || e.target === mainContainer) close();
+            };
         };
-    };
 
-    // --- HELPERS ---
-    const navigate = (dir) => {
-        currentIndex += dir;
-        if (currentIndex < 0) currentIndex = allImages.length - 1;
-        if (currentIndex >= allImages.length) currentIndex = 0;
+        // --- HELPERS ---
+        const navigate = (dir) => {
+            currentIndex += dir;
+            if (currentIndex < 0) currentIndex = allImages.length - 1;
+            if (currentIndex >= allImages.length) currentIndex = 0;
+            renderContent();
+        };
+
+        const close = () => {
+            lightbox.style.opacity = '0';
+            setTimeout(() => lightbox.remove(), 200);
+            document.removeEventListener('keydown', keyHandler);
+        };
+
+        const keyHandler = (e) => {
+            if (e.key === 'Escape') close();
+            if (e.key === 'ArrowLeft') navigate(-1);
+            if (e.key === 'ArrowRight') navigate(1);
+        };
+        document.addEventListener('keydown', keyHandler);
+
+        // Init
         renderContent();
-    };
-
-    const close = () => {
-        lightbox.style.opacity = '0';
-        setTimeout(() => lightbox.remove(), 200);
-        document.removeEventListener('keydown', keyHandler);
-    };
-
-    const keyHandler = (e) => {
-        if (e.key === 'Escape') close();
-        if (e.key === 'ArrowLeft') navigate(-1);
-        if (e.key === 'ArrowRight') navigate(1);
-    };
-    document.addEventListener('keydown', keyHandler);
-
-    // Init
-    renderContent();
-    requestAnimationFrame(() => lightbox.style.opacity = '1');
-}
-
-// ==========================================
-// Emoji Picker Logic (Inline - No Dependencies)
-// ==========================================
-toggleEmojiPicker(triggerBtn, userId) {
-    // Close if open
-    const existing = document.getElementById(`emoji-picker-${userId}`);
-    if (existing) {
-        existing.remove();
-        return;
+        requestAnimationFrame(() => lightbox.style.opacity = '1');
     }
 
-    // Create Picker
-    const picker = document.createElement('div');
-    picker.id = `emoji-picker-${userId}`;
-    picker.style.cssText = `
+    // ==========================================
+    // Emoji Picker Logic (Inline - No Dependencies)
+    // ==========================================
+    toggleEmojiPicker(triggerBtn, userId) {
+        // Close if open
+        const existing = document.getElementById(`emoji-picker-${userId}`);
+        if (existing) {
+            existing.remove();
+            return;
+        }
+
+        // Create Picker
+        const picker = document.createElement('div');
+        picker.id = `emoji-picker-${userId}`;
+        picker.style.cssText = `
             position: absolute;
             bottom: 60px;
             right: 10px;
@@ -1724,80 +1722,80 @@ toggleEmojiPicker(triggerBtn, userId) {
             scrollbar-color: #555 #222;
         `;
 
-    // Webkit Scrollbar style injection (inline)
-    const style = document.createElement('style');
-    style.textContent = `
+        // Webkit Scrollbar style injection (inline)
+        const style = document.createElement('style');
+        style.textContent = `
             #emoji-picker-${userId}::-webkit-scrollbar { width: 6px; }
             #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222; }
             #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
         `;
-    picker.appendChild(style);
+        picker.appendChild(style);
 
-    const emojis = [
-        '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-        '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-        '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-        '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-        '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
-    ];
+        const emojis = [
+            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+            '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
+        ];
 
-    emojis.forEach(emoji => {
-        const span = document.createElement('span');
-        span.textContent = emoji;
-        span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
-        span.onmouseover = () => span.style.background = '#333';
-        span.onmouseout = () => span.style.background = 'transparent';
-        span.onclick = () => {
-            const input = document.getElementById(`chat-input-${userId}`);
-            if (input) {
-                input.value += emoji;
-                input.focus();
+        emojis.forEach(emoji => {
+            const span = document.createElement('span');
+            span.textContent = emoji;
+            span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
+            span.onmouseover = () => span.style.background = '#333';
+            span.onmouseout = () => span.style.background = 'transparent';
+            span.onclick = () => {
+                const input = document.getElementById(`chat-input-${userId}`);
+                if (input) {
+                    input.value += emoji;
+                    input.focus();
+                }
+                // Keep open or close? Usually close
+                // picker.remove(); 
+            };
+            picker.appendChild(span);
+        });
+
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', closeHandler);
             }
-            // Keep open or close? Usually close
-            // picker.remove(); 
         };
-        picker.appendChild(span);
-    });
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
 
-    // Close on click outside
-    const closeHandler = (e) => {
-        if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
-            picker.remove();
-            document.removeEventListener('click', closeHandler);
-        }
-    };
-    setTimeout(() => document.addEventListener('click', closeHandler), 0);
-
-    // Append to footer or body? Footer is safer for positioning
-    triggerBtn.parentElement.parentElement.style.position = 'relative';
-    triggerBtn.parentElement.parentElement.appendChild(picker);
-}
-toggleEmojiPicker(triggerBtn, userId) {
-    if (!window.EmojiButton) return;
-
-    if (!this.pickers) this.pickers = {};
-
-    if (!this.pickers[userId]) {
-        const picker = new EmojiButton({
-            theme: 'dark',
-            autoHide: false,
-            position: 'top-start'
-        });
-
-        const input = document.getElementById(`chat-input-${userId}`);
-
-        picker.on('emoji', selection => {
-            if (input) {
-                input.value += selection.emoji;
-                input.focus();
-            }
-        });
-
-        this.pickers[userId] = picker;
+        // Append to footer or body? Footer is safer for positioning
+        triggerBtn.parentElement.parentElement.style.position = 'relative';
+        triggerBtn.parentElement.parentElement.appendChild(picker);
     }
+    toggleEmojiPicker(triggerBtn, userId) {
+        if (!window.EmojiButton) return;
 
-    this.pickers[userId].togglePicker(triggerBtn);
-}
+        if (!this.pickers) this.pickers = {};
+
+        if (!this.pickers[userId]) {
+            const picker = new EmojiButton({
+                theme: 'dark',
+                autoHide: false,
+                position: 'top-start'
+            });
+
+            const input = document.getElementById(`chat-input-${userId}`);
+
+            picker.on('emoji', selection => {
+                if (input) {
+                    input.value += selection.emoji;
+                    input.focus();
+                }
+            });
+
+            this.pickers[userId] = picker;
+        }
+
+        this.pickers[userId].togglePicker(triggerBtn);
+    }
 }
 
 // Make globally available
