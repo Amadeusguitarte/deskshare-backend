@@ -806,19 +806,17 @@ textarea:focus {
 }
 
 /* 
-   Phase AQ: Pro-Grade Hybrid Scrollbar (Solid Structure)
-   - Width: 16px (Standard Mechanical)
-   - Thumb: 12px Effective (16px - 2px Solid Borders)
-   - Buttons: integrated 16px Square
-   - Icons: Fat Rounded Triangles (User Mime-Type)
-   Implemented: v273 
+   Phase AR: Compact Refinement (12px Buttons / Min-Height 50px)
+   - Width: 16px (Solid)
+   - Buttons: 12px Height (Eliminates Void)
+   - Thumb: Min-Height 50px (Fixes Micro-Pill)
+   Implemented: v274
 */
 
 /* Container */
 ::-webkit-scrollbar {
   width: 16px;
   background-color: var(--bg-primary);
-  /* Solid Body Match */
 }
 
 /* Track */
@@ -830,29 +828,37 @@ textarea:focus {
 ::-webkit-scrollbar-thumb {
   background-color: var(--primary-purple);
   border-radius: 6px;
-  /* Soft Rounding */
   border: 2px solid var(--bg-primary);
-  /* Color Masking (Not Air) */
   background-clip: padding-box;
+  min-height: 50px;
+  /* FIX: Prevents tiny thumb in long chats */
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--primary-purple-dark);
 }
 
-/* Buttons (Fixed Mechanical Squares) */
+/* Buttons (Compact 12px Height) */
 ::-webkit-scrollbar-button {
   display: block;
   width: 16px;
-  height: 16px;
+  height: 12px;
+  /* FIX: Reduced to remove void */
   background-color: var(--bg-primary);
   background-repeat: no-repeat;
   background-position: center;
+  background-size: 10px;
+  /* Scaled to fit compact box */
 }
 
 ::-webkit-scrollbar-button:hover {
   background-color: var(--bg-tertiary);
-  /* Visual Feedback Area */
+}
+
+/* Hide Ghost Buttons (Prevent Extra Spacing) */
+::-webkit-scrollbar-button:start:increment,
+::-webkit-scrollbar-button:end:decrement {
+  display: none;
 }
 
 /* Arrows: Fat Rounded Triangles (Stroke-Width: 4, Line-Join: Round) */
