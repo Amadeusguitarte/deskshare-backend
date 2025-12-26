@@ -655,7 +655,7 @@ class ChatManager {
         this.updateGlobalBadge(totalUnread);
 
         const persistentBar = `
-            < div id = "chat-global-bar" class="chat-tab" style = "width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;" >
+            <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;">
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
@@ -683,7 +683,7 @@ class ChatManager {
                 <div style="padding: 10px; border-top: 1px solid #333; text-align: center;">
                    <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
                 </div>
-            </div >
+            </div>
             `;
 
         // 2. Render Active Tabs
@@ -733,7 +733,7 @@ class ChatManager {
 
     renderChatTab(conv) {
         const user = conv.otherUser;
-        const tabId = `chat - tab - ${user.id} `;
+        const tabId = `chat-tab-${user.id}`;
         // Check state to persist minimization
         const isMin = this.minimizedConversations.has(user.id);
         const height = isMin ? '50px' : '400px';
@@ -749,8 +749,8 @@ class ChatManager {
         const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
         return `
-            < div id = "${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style = "width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;" >
-                 < !--HEADER -->
+            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+                 <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
@@ -769,7 +769,7 @@ class ChatManager {
                     </div>
                 </div>
                 
-                <!--MESSAGES AREA-- >
+                <!--MESSAGES AREA-->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${this.renderMessageHTML(sortedMessages, user)}
                     
@@ -820,7 +820,7 @@ class ChatManager {
                     </button>
                 </div>
             </div>
-            </div >
+            </div>
             `;
     }
 
@@ -834,7 +834,7 @@ class ChatManager {
         }
 
         // 2. Direct DOM Manipulation (CSS Transition)
-        const tab = document.getElementById(`chat - tab - ${userId} `);
+        const tab = document.getElementById(`chat-tab-${userId}`);
         if (tab) {
             const newMin = !isMin; // Toggle logic
             tab.style.height = newMin ? '50px' : '400px';
@@ -1306,20 +1306,20 @@ class ChatManager {
         display: grid;
         gap: 2px;
         background: transparent;
-        border - radius: 18px;
+        border-radius: 18px;
         overflow: hidden;
-        width: 100 %;
-        max - width: 220px;
+        width: 100%;
+        max-width: 220px;
         `;
 
                 if (count === 1) {
                     return `
-            < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                 <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
                     style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
                     <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                 </div>
-                        </div >
+            </div>
             `;
                 }
 
@@ -1330,18 +1330,18 @@ class ChatManager {
                 }
 
                 const imagesHtml = group.map((msg) => `
-            < div onclick = "event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-        style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
+            <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+        style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
             <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
         `).join('');
 
                 return `
-            < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                 <div style="${gridContainerStyle}">
                     ${imagesHtml}
                 </div>
-                    </div >
+            </div>
             `;
             }
 
@@ -1360,7 +1360,7 @@ class ChatManager {
                 if (msg.fileUrl && msg.fileType !== 'image') {
                     const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
                     contentHtml += `
-            < div style = "margin-bottom: 6px;" >
+            <div style="margin-bottom: 6px;">
                 <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
@@ -1376,18 +1376,18 @@ class ChatManager {
                     </div>
                     <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
                         <span style="
-                                        font-size: 0.85em; fontWeight: 600; 
+                                        font-size: 0.85em; font-weight: 600; 
                                         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
                                         display: block; width: 100%;
                                     ">${cleanName}</span>
                     </div>
                 </div>
-                        </div >
+            </div>
             `;
                 }
 
                 if (msg.message && msg.message.trim()) {
-                    contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
+                    contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                 }
 
                 const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1404,11 +1404,11 @@ class ChatManager {
                 let timeHeader = '';
                 if (group.indexOf(msg) === 0 && showTimeHeader) {
                     timeHeader = `
-            < div style = "width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;" >
+            <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
                 <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
                     ${timeStr}
                 </span>
-                        </div >
+            </div>
             `;
                 }
 
@@ -1421,14 +1421,14 @@ class ChatManager {
                         statusText = 'Visto';
                         statusColor = '#aaa';
                     } else {
-                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))} `;
+                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))}`;
                         statusColor = '#666';
                     }
 
                     statusHtml = `
-            < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
+            <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
                 ${statusText}
-                        </div >
+            </div>
             `;
                 }
 
