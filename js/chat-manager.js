@@ -1023,7 +1023,7 @@ class ChatManager {
                 
                 <!-- MESSAGES AREA -->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
-                    // Grouping Logic for "Collage" Effect
+
                     ${(() => {
                 const groups = [];
                 let currentGroup = [];
