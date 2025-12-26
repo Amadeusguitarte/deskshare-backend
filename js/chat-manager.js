@@ -867,14 +867,12 @@ class ChatManager {
 
             // Important: When expanding, enforce scroll to bottom AND focus input
             if (!newMin) {
-                setTimeout(() => {
-                    this.scrollToBottom(userId);
-                    // UX Improvement: Auto-focus input on open
-                    // This creates the "Ready to type" feel and triggers 'mark-read' via onfocus handler
-                    const input = tab.querySelector('input');
-                    if (input) input.focus();
-                }, 300); // Wait for transition
+                // Use the robust helper
+                this.tryFocusInput(userId);
             }
+        } else {
+            // Fallback if DOM element missing (rare in this flow)
+            this.renderWidgetTabs();
         }
     }
 
