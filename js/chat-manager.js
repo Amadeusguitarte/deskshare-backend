@@ -438,9 +438,9 @@ class ChatManager {
             const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
             return `
-            < div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'active' : ''}"
-        onclick = "chatManager.selectConversation('${user.id}')"
-        style = "display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};" >
+            <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'active' : ''}"
+        onclick="chatManager.selectConversation('${user.id}')"
+        style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
             <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
                 <div style="flex: 1; overflow: hidden;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
