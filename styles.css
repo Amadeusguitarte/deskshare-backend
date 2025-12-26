@@ -378,21 +378,23 @@ p {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 12px;
-  /* Master Container 12px */
+  width: 14px;
+  /* Master Container 14px */
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
+  /* CRITICAL: Transparent track creates real 'air' */
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
   border-radius: 5px;
-  border: 1px solid transparent;
-  /* Visual Width becomes 10px */
+  border: 2px solid transparent;
+  /* creates 2px of real empty space on sides */
   background-clip: content-box;
+  /* Ensures color stays inside the 10px core */
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -402,13 +404,13 @@ p {
 /* Scrollbar Arrows (Buttons) */
 ::-webkit-scrollbar-button {
   display: block;
-  background-size: 100% 100%;
-  /* Force fill */
+  background-size: 12px 100%;
+  /* Arrow is 12px wide, centered in 14px box */
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
-  width: 12px;
-  /* Full 12px width */
+  width: 14px;
+  /* Full box width */
   height: 10px;
   /* Tight height */
 }
