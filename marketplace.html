@@ -23,11 +23,11 @@
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
             <ul class="nav-links" id="navLinks">
                 <li><a href="index.html">Inicio</a></li>
-                <li><a href="marketplace.html" style="color: var(--primary-purple);">Explorar</a></li>
+                <li><a href="marketplace.html">Explorar</a></li>
                 <li><a href="index.html#how-it-works">Cómo Funciona</a></li>
                 <li><a href="publish.html" class="btn btn-primary">Publicar PC</a></li>
-                <!-- Show when logged in -->
-                <!-- Profile Dropdown (Hardcoded for stability) -->
+
+                <!-- Profile Dropdown & Messages -->
                 <li id="navMessageIcon" class="auth-only" style="display: none; position: relative; margin-right: 8px;">
                     <a href="#" onclick="event.preventDefault(); toggleHeaderMessageDropdown();"
                         style="position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s; color: white;"
@@ -105,7 +105,7 @@
                             <li>
                                 <a href="#" onclick="handleLogout(event)"
                                     style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #dc3545; text-decoration: none; font-size: 0.95rem; transition: background 0.1s;"
-                                    onmouseover="this.style.background='#fff0f1'"
+                                    onmouseover="this.style.background='#fff0f0'"
                                     onmouseout="this.style.background='transparent'">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
                                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -120,8 +120,9 @@
                         </ul>
                     </div>
                 </li>
-                <!-- Show when NOT logged in -->
-                <li class="guest-only"><a href="login.html" class="btn btn-secondary">Iniciar Sesión</a></li>
+
+                <li class="guest-only"><a href="login.html" class="btn btn-secondary" id="loginBtn">Iniciar Sesión</a>
+                </li>
             </ul>
         </div>
     </nav>
@@ -284,10 +285,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.4/dist/index.min.js"></script>
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <script src="js/chat-manager.js?v=RESTORE_278"></script>
+    <script src="js/chat-manager.js?v=FIX_279"></script>
     <script src="script.js?v=127"></script>
     <script src="marketplace-v4.js?v=124"></script>
-    <script src="ui-global.js?v=126"></script>
+    <script src="ui-global.js?v=FIX_279"></script>
 
     <script>
         function resetFilters() {

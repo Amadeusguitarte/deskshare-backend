@@ -847,6 +847,19 @@ class ChatManager {
     }
 
     async openChat(userId) {
+        // [Phase AV] Full Page Redirection Logic
+        // If we are on the messages page, do NOT open a widget tab. 
+        // Instead, switch the main view to this conversation.
+        if (this.messagesPageContainer) {
+            if (this.conversations.length === 0) await this.loadConversations();
+            this.selectConversation(userId);
+
+            // Also, ensure the header dropdown (if open) is closed
+            // This is usually handled by the onclick event in ui-global.js, but good to be safe
+            return;
+        }
+
+        // Standard Widget Mode
         if (this.conversations.length === 0) await this.loadConversations();
 
         // Ensure tab is added
