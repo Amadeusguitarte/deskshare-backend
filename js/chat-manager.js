@@ -1075,14 +1075,7 @@ class ChatManager {
                         const count = group.length;
 
                         // Facebook-style Grid Logic:
-                        let gridContainerStyle = `
-                            display: grid; 
-                            gap: 2px; 
-                            border-radius: 12px; 
-                            overflow: hidden; 
-                            max-width: 220px;
-                            width: 100%;
-                        `;
+                        let gridContainerStyle = "display: grid; gap: 2px; border-radius: 12px; overflow: hidden; max-width: 220px; width: 100%;";
 
                         // Grid Templates
                         if (count === 2) {
