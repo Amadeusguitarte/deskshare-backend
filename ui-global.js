@@ -149,7 +149,7 @@ function renderHeaderDropdown(conversations) {
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                          <div style="font-size: 0.85rem; color: ${isUnread ? '#333' : '#777'}; font-weight: ${isUnread ? '600' : '400'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
-                            ${lastMsg ? (lastMsg.senderId === user.id ? '' : 'You: ') + lastMsg.message : 'Started a conversation'}
+                             ${lastMsg ? (lastMsg.senderId === user.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📎 Archivo') : '')) : 'Nueva conversación'}
                         </div>
                         ${isUnread ? `<span style="background: #dc3545; color: white; border-radius: 10px; padding: 0 6px; font-size: 0.7rem; font-weight: bold; min-width: 18px; text-align: center;">${conv.unreadCount}</span>` : ''}
                     </div>

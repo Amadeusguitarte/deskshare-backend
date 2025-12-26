@@ -1300,16 +1300,16 @@ class ChatManager {
                     border-radius: 18px; 
                     overflow: hidden; 
                     width: 100%; 
-                    max-width: 300px;
+                    max-width: 220px;
                 `;
 
                 if (count === 1) {
-                    // Single Image
+                    // Single Image - Reduced Size & Alignment
                     return `
                         <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                             <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')" 
-                                 style="cursor: zoom-in; position: relative;">
-                                <img src="${group[0].fileUrl}" alt="Imagen" style="max-width: 240px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
+                                 style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
+                                <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                             </div>
                         </div>
                     `;
@@ -1387,11 +1387,9 @@ class ChatManager {
                 const bubbleBg = isStandAlone ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
                 const bubblePad = isStandAlone ? '0' : '8px 12px';
 
-                // Read Receipt Icon
+                // Read Receipt (Text)
                 const readIcon = showRead ? `
-                    <span style="margin-left: 4px; display: inline-flex; align-items: center;" title="Leído">
-                        <img src="assets/checked-done.svg" style="width: 14px; height: 14px; filter: brightness(0) invert(1);">
-                    </span>
+                    <span style="font-size: 0.65rem; color: #aaa; margin-top: 2px; text-align: right; display: block;">Visto</span>
                 ` : '';
 
                 // Time
