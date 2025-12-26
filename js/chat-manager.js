@@ -397,7 +397,7 @@ class ChatManager {
                     <div id="fullPageStaging" style="display: none; padding-top: 10px;"></div>
                 </div>
             </div>
-            </div >
+            </div>
             `;
 
         this.renderConversationsList();
@@ -438,9 +438,9 @@ class ChatManager {
             const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
             return `
-            < div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'active' : ''}"
-        onclick = "chatManager.selectConversation(${user.id})"
-        style = "display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};" >
+            <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'active' : ''}"
+        onclick="chatManager.selectConversation(${user.id})"
+        style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
             <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
                 <div style="flex: 1; overflow: hidden;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
@@ -477,7 +477,7 @@ class ChatManager {
         const user = conv.otherUser;
         const header = document.getElementById('chatHeader');
         header.innerHTML = `
-            < div style = "display: flex; align-items: center; gap: 1rem;" >
+            <div style="display: flex; align-items: center; gap: 1rem;">
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
                     <h3 style="margin: 0; color: white;">${user.name}</h3>
