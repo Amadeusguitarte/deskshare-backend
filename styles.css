@@ -781,6 +781,97 @@ textarea:focus {
     grid-template-columns: 1fr !important;
   }
 }
+
 /* Chat Flash Animation */
-@keyframes chatFlash { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.7); border-color: #ff00ff; } 50% { box-shadow: 0 0 20px 5px rgba(255, 0, 255, 0.7); border-color: #ffffff; background: #333; } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 255, 0); border-color: var(--glass-border); } }
-.flash-animation { animation: chatFlash 1s ease-in-out infinite; }
+@keyframes chatFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.7);
+    border-color: #ff00ff;
+  }
+
+  50% {
+    box-shadow: 0 0 20px 5px rgba(255, 0, 255, 0.7);
+    border-color: #ffffff;
+    background: #333;
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 255, 0);
+    border-color: var(--glass-border);
+  }
+}
+
+.flash-animation {
+  animation: chatFlash 1s ease-in-out infinite;
+}
+
+/* 
+   Phase AQ: Pro-Grade Hybrid Scrollbar (Solid Structure)
+   - Width: 16px (Standard Mechanical)
+   - Thumb: 12px Effective (16px - 2px Solid Borders)
+   - Buttons: integrated 16px Square
+   - Icons: Fat Rounded Triangles (User Mime-Type)
+   Implemented: v273 
+*/
+
+/* Container */
+::-webkit-scrollbar {
+  width: 16px;
+  background-color: var(--bg-primary);
+  /* Solid Body Match */
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background-color: var(--bg-primary);
+}
+
+/* Thumb (The Bar) */
+::-webkit-scrollbar-thumb {
+  background-color: var(--primary-purple);
+  border-radius: 6px;
+  /* Soft Rounding */
+  border: 2px solid var(--bg-primary);
+  /* Color Masking (Not Air) */
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-purple-dark);
+}
+
+/* Buttons (Fixed Mechanical Squares) */
+::-webkit-scrollbar-button {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: var(--bg-primary);
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+::-webkit-scrollbar-button:hover {
+  background-color: var(--bg-tertiary);
+  /* Visual Feedback Area */
+}
+
+/* Arrows: Fat Rounded Triangles (Stroke-Width: 4, Line-Join: Round) */
+/* Vertical Up */
+::-webkit-scrollbar-button:vertical:start:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 6L4 18H20L12 6Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Vertical Down */
+::-webkit-scrollbar-button:vertical:end:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 18L20 6H4L12 18Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Horizontal Left */
+::-webkit-scrollbar-button:horizontal:start:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M6 12L18 4V20L6 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Horizontal Right */
+::-webkit-scrollbar-button:horizontal:end:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M18 12L6 20V4L18 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
