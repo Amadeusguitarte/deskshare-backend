@@ -625,7 +625,7 @@ class ChatManager {
     </div>
                 </div >
 
-                < !--Chat Area-- >
+                <!--Chat Area-->
     <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative;">
         <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0;">
             <h3 style="margin: 0; color: var(--text-secondary);">Selecciona una conversación</h3>
@@ -711,7 +711,7 @@ if (fileInput) {
 
         stagingArea.style.display = 'flex';
         stagingArea.innerHTML = `
-    < div style = "background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);" >
+    <div style="background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);" >
         ${ isImage ? `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` : '<span style="font-size: 1.2rem;">📄</span>' }
                         <span style="font-size: 0.9rem; color: white; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
                         <button type="button" id="removeFullPageStagedBtn" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem; margin-left: 5px;">×</button>
@@ -810,7 +810,7 @@ renderWidgetTabs() {
     this.updateGlobalBadge(totalUnread);
 
     const persistentBar = `
-    < div id = "chat-global-bar" class="chat-tab" style = "width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;" >
+    <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;" >
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
@@ -904,8 +904,8 @@ renderChatTab(conv) {
     const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
     return `
-    < div id = "${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style = "width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;" >
-                 < !--HEADER -->
+    <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;" >
+                 <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
@@ -924,7 +924,7 @@ renderChatTab(conv) {
                     </div>
                 </div>
                 
-                <!--MESSAGES AREA-- >
+                <!--MESSAGES AREA-->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${this.renderMessageHTML(sortedMessages, user)}
                     
@@ -1091,7 +1091,7 @@ updateMessagesAreaOnly(userId) {
         // Append Typing Indicator if needed
         if (this.typingUsers.has(userId)) {
             msgArea.innerHTML += `
-    < div style = "display: flex; justify-content: flex-start;" >
+    <div style="display: flex; justify-content: flex-start;" >
         <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
             Escribiendo...
         </span>
@@ -1423,17 +1423,17 @@ renderStagingArea(userId) {
 
             let innerHTML = '';
             if (file.fileType === 'image') {
-                innerHTML = `< img src = "${file.fileUrl}" style = "height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;" > `;
+                innerHTML = `<img src = "${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;" > `;
             } else {
                 innerHTML = `
-    < div style = "height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;" >
+    <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;" >
                             📄
                         </div > `;
             }
 
             // Add Close Button (X)
             innerHTML += `
-    < div onclick = "chatManager.removeStagedFile(${userId}, ${index})" style = "position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" >& times;</div >
+    <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" >& times;</div >
         `;
 
             thumb.innerHTML = innerHTML;
@@ -1543,7 +1543,7 @@ max - width: 220px;
 
             if (count === 1) {
                 return `
-    < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
         <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
             style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
             <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
@@ -1559,14 +1559,14 @@ max - width: 220px;
             }
 
             const imagesHtml = group.map((msg) => `
-    < div onclick = "event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
+    <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
     <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
     </div>
 `).join('');
 
             return `
-    < div style = "display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+    <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
         <div style="${gridContainerStyle}">
             ${imagesHtml}
         </div>
@@ -1589,7 +1589,7 @@ style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; wi
             if (msg.fileUrl && msg.fileType !== 'image') {
                 const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
                 contentHtml += `
-    < div style = "margin-bottom: 6px;" >
+    <div style="margin-bottom: 6px;" >
         <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
@@ -1616,7 +1616,7 @@ style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; wi
             }
 
             if (msg.message && msg.message.trim()) {
-                contentHtml += `< div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
+                contentHtml += `<div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
             }
 
             const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1633,7 +1633,7 @@ style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; wi
             let timeHeader = '';
             if (group.indexOf(msg) === 0 && showTimeHeader) {
                 timeHeader = `
-    < div style = "width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;" >
+    <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;" >
         <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
             ${timeStr}
         </span>
@@ -1655,7 +1655,7 @@ style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; wi
                 }
 
                 statusHtml = `
-    < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
+    <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
         ${ statusText }
             </div >
     `;
@@ -2002,143 +2002,5 @@ toggleEmojiPicker(triggerBtn, userId) {
     triggerBtn.parentElement.parentElement.style.position = 'relative';
     triggerBtn.parentElement.parentElement.appendChild(picker);
 }
-toggleEmojiPicker(triggerBtn, userId) {
-    if (!window.EmojiButton) return;
-
-    if (!this.pickers) this.pickers = {};
-
-    if (!this.pickers[userId]) {
-        const picker = new EmojiButton({
-            theme: 'dark',
-            autoHide: false,
-            position: 'top-start'
-        });
-
-        const input = document.getElementById(`chat-input-${userId}`);
-
-        picker.on('emoji', selection => {
-            if (input) {
-                input.value += selection.emoji;
-                input.focus();
-            }
-        });
-
-        this.pickers[userId] = picker;
-    }
-
-    this.pickers[userId].togglePicker(triggerBtn);
 }
-handleSearch(searchTerm) {
-    this.renderConversationsList(searchTerm);
-}
-
-renderConversationsList(filterTerm = '') {
-    const list = document.getElementById('conversationsList');
-    if (!list) return;
-
-    if (this.conversations.length === 0) {
-        list.innerHTML = '<p style="text-align:center; opacity:0.6; padding: 1rem;">No tienes mensajes aún.</p>';
-        return;
-    }
-
-    list.innerHTML = this.conversations
-        .filter(conv => {
-            if (!filterTerm) return true;
-            return conv.otherUser.name.toLowerCase().includes(filterTerm.toLowerCase());
-        })
-        .map(conv => {
-            const user = conv.otherUser;
-            const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            const lastMsg = sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1] : conv.lastMessage;
-            const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-            const isActive = this.activeConversation && this.activeConversation.otherUser.id == user.id;
-            const unreadCount = this.unreadCounts[user.id] || 0;
-
-            return `
-                <div onclick="chatManager.selectConversation(${user.id})" 
-                     style="padding: 10px; display: flex; align-items: center; gap: 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s; background: ${isActive ? 'rgba(255,255,255,0.1)' : 'transparent'}; border: 1px solid ${isActive ? 'var(--glass-border)' : 'transparent'};">
-                    
-                    <div style="position: relative;">
-                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
-                        ${user.isOnline ? '<div style="position: absolute; bottom: 2px; right: 2px; width: 10px; height: 10px; background: #4ade80; border-radius: 50%; border: 2px solid #1a1a1a;"></div>' : ''}
-                    </div>
-
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span style="font-weight: 600; color: white;">${user.name}</span>
-                            <span style="font-size: 0.8rem; color: #888;">${time}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 0.9rem; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">
-                                ${(lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Imagen' : '📎 Archivo') : lastMsg.message) : '<i>Sin mensajes</i>')}
-                            </span>
-                            ${unreadCount > 0 ? `<span style="background: var(--accent-color); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">${unreadCount}</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-                `;
-        }).join('');
-}
-
-    async selectConversation(userId) {
-    let conv = this.conversations.find(c => c.otherUser.id == userId);
-    if (!conv) return;
-
-    this.activeConversation = conv;
-    conv.unreadCount = 0;
-    this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
-    this.renderConversationsList();
-
-    const messages = await this.loadHistory(userId);
-    this.activeConversation.messages = messages;
-
-    // Update Header
-    const user = conv.otherUser;
-    const header = document.getElementById('chatHeader');
-    if (header) {
-        header.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 40px; height: 40px; border-radius: 50%;">
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <h3 style="margin: 0; color: white;">${user.name}</h3>
-                            <div class="header-status-dot" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; display: ${user.isOnline ? 'block' : 'none'};"></div>
-                        </div>
-                        <span class="header-status-text" style="font-size: 0.8rem; color: ${user.isOnline ? '#4ade80' : '#666'};">
-                            ${user.isOnline ? 'En línea' : ''}
-                        </span>
-                    </div>
-                </div>
-                 <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn btn-secondary" style="padding: 0.5rem;" onclick="window.location.href='marketplace.html'">Explorar PC</button>
-                </div>
-            `;
-    }
-
-    const inputArea = document.getElementById('inputArea');
-    if (inputArea) inputArea.style.display = 'block';
-
-    // Clear Staging Logic (But don't rebind)
-    this.fullPageStagedFile = null;
-    const stagingArea = document.getElementById('fullPageStaging');
-    const fileInput = document.getElementById('fullPageFileInput');
-    if (stagingArea) {
-        stagingArea.innerHTML = '';
-        stagingArea.style.display = 'none';
-    }
-    if (fileInput) fileInput.value = '';
-
-    // Focus
-    const msgInput = document.getElementById('messageInput');
-    if (msgInput) msgInput.focus();
-
-    this.renderMessages(messages);
-    this.scrollToBottom();
-}
-
-
-}
-
-// Make globally available
 window.ChatManager = ChatManager;
