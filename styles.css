@@ -379,7 +379,7 @@ p {
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 16px;
-  /* Master Container 16px for comfortable spacing */
+  /* Master Container 16px */
   height: 6px;
 }
 
@@ -389,26 +389,31 @@ p {
 
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
-  border-radius: 99px;
-  /* Perfect Capsule Shape */
-  border-style: solid;
-  border-color: transparent;
-  border-width: 0 3px;
-  /* 0px Vertical Gap (close to arrow), 3px Lateral Gap (breathe from edge) */
+  border-radius: 5px;
+  /* Perfect semi-circle for 10px width (Fixed "Oval" issue) */
+  border: 3px solid transparent;
+  /* 16px - 6px = 10px Visual Width */
+  border-top: none;
+  /* No vertical gap */
+  border-bottom: none;
+  /* No vertical gap */
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-purple-dark);
-  border-width: 0 3px;
-  /* Ensure hover doesn't expand the bar */
+  border: 3px solid transparent;
+  /* Lock borders to prevent "Expansion" effect */
+  border-top: none;
+  border-bottom: none;
+  background-clip: content-box;
 }
 
 /* Scrollbar Arrows (Buttons) */
 ::-webkit-scrollbar-button {
   display: block;
-  background-size: 14px 100%;
-  /* Arrow is 14px wide, centered in 16px box */
+  background-size: 10px 100%;
+  /* Arrow reduced to 10px for breathing room */
   background-repeat: no-repeat;
   background-position: center;
   background-color: transparent;
