@@ -1271,12 +1271,17 @@ class ChatManager {
             const isSameSender = prevMsg && prevMsg.senderId === msg.senderId;
             const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
 
+            // Time Break Check
+            const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
+            const isTimeBreak = timeDiff > 5 * 60 * 1000; // 5 mins
+
             // Start new group if:
             // 1. No previous message
             // 2. Different sender
             // 3. Current is image but prev wasn't
             // 4. Prev was image but current isn't
-            if (!prevMsg || !isSameSender || (isImage !== isPrevImage)) {
+            // 5. Time break > 5 mins (Visual separation + Time Header trigger)
+            if (!prevMsg || !isSameSender || (isImage !== isPrevImage) || isTimeBreak) {
                 if (currentGroup.length > 0) groups.push(currentGroup);
                 currentGroup = [msg];
             } else {
@@ -1388,15 +1393,31 @@ class ChatManager {
                 const bubblePad = isStandAlone ? '0' : '8px 12px';
 
                 // Time Logic (Header above message)
-                // We show time header if:
-                // 1. It's the first message of the group
-                // 2. AND (First message overall OR Time diff > 5 mins from prev group last msg) (Simplified: just show for group start)
+                // Show time header ONLY if:
+                // 1. It is the very first message of the entire list.
+                // 2. OR The time difference from the PREVIOUS message (any sender) is > 5 minutes.
 
-                const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+                const msgDate = new Date(msg.createdAt);
+                const prevMsgOverall = sortedMessages[sortedMessages.indexOf(msg) - 1];
+                const timeDiff = prevMsgOverall ? (msgDate - new Date(prevMsgOverall.createdAt)) : Infinity;
+                const showTimeHeader = timeDiff > 5 * 60 * 1000; // 5 minutes
+
+                const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
 
                 let timeHeader = '';
-                // Only show time header for the first message in the group
-                if (group.indexOf(msg) === 0) {
+                // Only render header if we determined it's needed AND it's the first in this specific group rendering context 
+                // (Otherwise we might inject it in the middle of a bubble group, though our logic usually splits groups by time? No, we split by sender/type)
+                // Improved logic: If this message requires a time header, we should probably treat it as a group breaker visually, 
+                // but for now, let's just insert it. If it's middle of a group, it might look odd? 
+                // Actually, renderMessageHTML groups by sender. If 5 mins pass, usually it's a new conversation flow.
+                // But if I sent a message, waited 10 mins, sent another, they might be in same "group" if no one else replied?
+                // `renderMessageHTML` grouping logic: 
+                // if (!prevMsg || !isSameSender || (isImage !== isPrevImage)) -> New Group.
+                // We should probably consider >5 mins as a "New Group" trigger too in the grouping logic? 
+                // For now, let's just stick to the requested UI change inside the existing groups. 
+
+                // If it's the first message of the GROUP, checks if we need time header.
+                if (group.indexOf(msg) === 0 && showTimeHeader) {
                     timeHeader = `
                         <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
                             <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
@@ -1407,9 +1428,9 @@ class ChatManager {
                 }
 
                 // Status Logic (Enviado / Visto)
-                // Only show for my messages.
+                // Only show for my messages AND if it's the LAST message of the group.
                 let statusHtml = '';
-                if (isMe) {
+                if (isMe && group.indexOf(msg) === group.length - 1) {
                     const statusText = showRead ? 'Visto' : 'Enviado';
                     const statusColor = showRead ? '#aaa' : '#666'; // Visto = distinct, Enviado = subtle
                     statusHtml = `
