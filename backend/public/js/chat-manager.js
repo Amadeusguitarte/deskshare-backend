@@ -1,16 +1,28 @@
 
 class ChatManager {
     constructor(currentUser, socketUrl) {
+        window.chatManagerInstance = this; // Make instance globally available for inline handlers
         this.currentUser = currentUser;
         this.socketUrl = socketUrl;
         this.socket = null;
         this.conversations = [];
         // Multi-tab support: Track IDs of open conversations
         this.openConversationIds = [];
+        this.minimizedConversations = new Set();
+        // New Features
+        this.typingUsers = new Set();
+        this.typingTimeouts = {};
+        this.stagedFiles = new Map(); // Init here explicitly
 
         // UI Elements
         this.widgetContainer = null;
         this.messagesPageContainer = null;
+
+        // Base API URL
+        // If socketUrl is 'https://backend.app', API is usually 'https://backend.app/api'
+        // If socketUrl is '/', API is '/api'
+        this.baseUrl = this.socketUrl.endsWith('/') ? `${this.socketUrl}api` : `${this.socketUrl}/api`;
+        if (this.baseUrl.includes('//api')) this.baseUrl = this.baseUrl.replace('//api', '/api'); // Sanity check
 
         this.init();
     }
@@ -33,11 +45,21 @@ class ChatManager {
         // Load data
         await this.loadConversations();
 
+        // Check Online Status (Now that we have users)
+        if (this.socket && this.conversations.length > 0) {
+            const ids = this.conversations.map(c => c.otherUser.id);
+            this.socket.emit('check-status', { userIds: ids });
+        }
+
         // Render
         if (this.messagesPageContainer) {
             this.renderFullPage();
         } else {
-            this.renderWidget();
+            // FIX: Do not render widget if we are on the messages page but container detection failed for some reason,
+            // or if we just want to be extra safe.
+            if (!window.location.href.includes('messages.html')) {
+                this.renderWidget();
+            }
         }
     }
 
@@ -55,121 +77,166 @@ class ChatManager {
             this.handleNewMessage(msg);
         });
 
-        // this.socket.on('new-message', (msg) => {
-        //     this.handleNewMessage(msg);
-        // });
-    }
+        // Listeners for Online Status
+        this.socket.on('user-online', ({ userId }) => {
+            this.updateUserStatus(userId, true);
+        });
 
-    handleNewMessage(msg) {
-        // Dedup check (keep existing logic)
-        if (this.activeConversation &&
-            (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
-            const exists = this.activeConversation.messages.some(m => m.id === msg.id);
-            if (exists) return;
-        }
+        this.socket.on('user-offline', ({ userId }) => {
+            this.updateUserStatus(userId, false);
+        });
 
-        this.loadConversations().then(() => {
-            if (this.messagesPageContainer) {
-                // ... Full page logic (keep existing) ...
-                this.renderConversationsList();
-                if (this.activeConversation &&
-                    (this.activeConversation.otherUser.id === msg.senderId || this.activeConversation.otherUser.id === msg.receiverId)) {
-                    this.loadHistory(this.activeConversation.otherUser.id).then(msgs => {
-                        this.activeConversation.messages = msgs;
-                        this.renderMessages(msgs);
-                        this.scrollToBottom();
-                    });
+        this.socket.on('users-status', (statuses) => {
+            Object.keys(statuses).forEach(uid => {
+                this.updateUserStatus(uid, statuses[uid]);
+            });
+        });
+
+        // Typing Indicators
+        this.socket.on('typing', ({ senderId }) => {
+            this.typingUsers.add(senderId);
+            this.renderWidgetTabs(); // Update UI
+        });
+
+        this.socket.on('stop-typing', ({ senderId }) => {
+            this.typingUsers.delete(senderId);
+            this.renderWidgetTabs();
+        });
+
+        // Read Receipts
+        this.socket.on('messages-read', ({ readerId }) => {
+            const conv = this.conversations.find(c => c.otherUser.id == readerId);
+            if (conv && conv.messages) {
+                // Mark all messages as read
+                conv.messages.forEach(m => m.isRead = true);
+                if (this.activeConversation && this.activeConversation.otherUser.id == readerId) {
+                    this.renderMessages(this.activeConversation.messages);
                 }
-            } else {
-                // WIDGET LOGIC (OPTIMIZED)
-                const currentUserId = parseInt(this.currentUser.id);
-                const senderId = parseInt(msg.senderId);
-                const relevantUserId = (senderId === currentUserId) ? parseInt(msg.receiverId) : senderId;
-
-                // Ensure IDs are numbers
-                this.openConversationIds = this.openConversationIds.map(id => parseInt(id));
-
-                // 1. Check if Tab Exists in DOM
-                const tabId = `chat-tab-${relevantUserId}`;
-                const tabEl = document.getElementById(tabId);
-                const tabIsOpen = this.openConversationIds.includes(relevantUserId);
-
-                // 2. Handle Auto-Open (Facebook Style)
-                if (senderId !== currentUserId && !tabIsOpen) {
-                    this.openConversationIds.push(relevantUserId);
-                    console.log(`Auto-opening chat for user ${relevantUserId}`);
-                    // Since it wasn't open, we MUST render to show it
-                    this.renderWidgetTabs();
-                    return; // Render handles content
-                }
-
-                // 3. If Tab is open, APPEND message naturally (No Re-Render)
-                if (tabIsOpen && tabEl) {
-                    const conv = this.conversations.find(c => parseInt(c.otherUser.id) === relevantUserId);
-                    if (conv) {
-                        // Update data model silently
-                        if (!conv.messages) conv.messages = [];
-                        // Check dedup in memory
-                        if (!conv.messages.some(m => m.id === msg.id)) {
-                            conv.messages.push(msg);
-                        }
-
-                        // Append to DOM
-                        const msgArea = tabEl.querySelector('.mini-messages-area');
-                        if (msgArea) {
-                            const isMe = senderId === currentUserId;
-                            const msgHtml = `
-                                <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
-                                    <span style="background: ${isMe ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
-                                        ${msg.message}
-                                    </span>
-                                </div>
-                            `;
-                            msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                            msgArea.scrollTop = msgArea.scrollHeight; // Scroll to bottom naturally
-                        }
-
-                        // Pulse Effect if incoming
-                        if (senderId !== currentUserId) {
-                            const header = tabEl.querySelector('div[onclick^="chatManager.closeTab"]');
-                            if (header) {
-                                header.style.animation = 'none';
-                                header.offsetHeight; /* trigger reflow */
-                                header.style.animation = 'highlightPulse 0.5s 4';
-                            }
-                        }
-                    } else {
-                        // Conversation not in list somehow, safety net
-                        this.renderWidgetTabs();
-                    }
-                } else if (tabIsOpen && !tabEl) {
-                    // ID is in open list but DOM missing? Render.
-                    this.renderWidgetTabs();
-                }
-
-                // Update Badges (Global count)
-                // We can do this without full re-render if we target the badge ID
-                const totalUnread = this.conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-                this.updateGlobalBadge(totalUnread);
+                this.renderWidgetTabs();
             }
         });
     }
 
-    scrollToBottom(userId) {
-        setTimeout(() => {
-            const tab = document.getElementById(userId ? `chat-tab-${userId}` : 'chatMessages'); // Handle widget or full page
-            if (tab) {
-                const area = userId ? tab.querySelector('.mini-messages-area') : tab;
-                if (area) area.scrollTop = area.scrollHeight;
+    handleNewMessage(msg) {
+        // 1. Identify Target
+        // Use loose equality for IDs to be safe
+        let targetUserId = (msg.senderId == this.currentUser.id) ? msg.receiverId : msg.senderId;
+
+        // 2. Find Conversation or Create Dummy
+        let conv = this.conversations.find(c => c.otherUser.id == targetUserId);
+
+        if (!conv) {
+            // If completely missing, we have to load to get metadata (name, avatar).
+            this.loadConversations().then(() => {
+                // Retry
+                let retryConv = this.conversations.find(c => c.otherUser.id == targetUserId);
+                if (retryConv) {
+                    this.handleNewMessage(msg);
+                }
+            });
+            return; // Stop here, wait for reload
+        }
+
+        // 3. Dedup & Optimistic Merge
+        if (!conv.messages) conv.messages = [];
+
+        // Check if it's a duplicate of an existing REAL message
+        if (conv.messages.some(m => m.id == msg.id)) {
+            return;
+        }
+
+        // OPTIMISTIC MERGE FIX (v162)
+        // Check if this incoming real message corresponds to a temporary optimistic message we just pushed.
+        // If matches, we REPLACE the temp message with this real one, preventing duplicates.
+        let wasMerge = false;
+        const lastMsg = conv.messages[conv.messages.length - 1];
+        if (msg.senderId == this.currentUser.id &&
+            lastMsg &&
+            String(lastMsg.id).startsWith('temp-') &&
+            lastMsg.message === msg.message) {
+
+            // It's a match! Replace the temp placeholder with the real confirmed message.
+            // This prevents the "Double Bubble" issue.
+            conv.messages[conv.messages.length - 1] = msg;
+            wasMerge = true;
+        } else {
+            // standard append
+            conv.messages.push(msg);
+        }
+
+        // 5. Update Metadata
+        conv.lastMessage = msg;
+        if (msg.receiverId == this.currentUser.id) conv.unreadCount = (conv.unreadCount || 0) + 1;
+
+        // 6. Manual Reorder (Move to top)
+        const idx = this.conversations.indexOf(conv);
+        if (idx > 0) {
+            this.conversations.splice(idx, 1);
+            this.conversations.unshift(conv);
+        }
+
+        // AUTO-OPEN & FLASH logic
+        if (msg.senderId !== this.currentUser.id) {
+            // SOUND
+            this.playSound();
+
+            // TAB NOTIFICATION (Blink Title)
+            this.startTitleBlink(conv.otherUser.name);
+
+            // AUTO-OPEN LOGIC (Improved)
+            // If sender is NOT in minimized list, ensure it's in openConversationIds
+            if (!this.minimizedConversations.has(msg.senderId)) {
+                if (!this.openConversationIds.includes(msg.senderId)) {
+                    this.openConversationIds.push(msg.senderId);
+                }
+            } else {
+                // If minimized, DO NOT remove from minimized, DO NOT expand.
+                // The renderWidgetTabs call below will update the badge.
+                // We make sure it is in openConversationIds so it renders at all (minimized)
+                if (!this.openConversationIds.includes(msg.senderId)) {
+                    this.openConversationIds.push(msg.senderId);
+                }
             }
-        }, 50);
+        }
+
+        // 7. Render
+        if (this.messagesPageContainer) {
+            this.renderConversationsList();
+            if (this.activeConversation && this.activeConversation.otherUser.id == targetUserId) {
+                this.renderMessages(this.activeConversation.messages);
+                this.scrollToBottom();
+            }
+        } else {
+            // Widget Mode
+            // FIX: If it was a merge (confirmation), the UI is already correct (optimistic).
+            // We SKIP re-rendering to prevent killing the input focus.
+            if (!wasMerge) {
+                this.renderWidgetTabs();
+
+                // Add FLASH Class after render
+                if (msg.senderId !== this.currentUser.id) {
+                    setTimeout(() => {
+                        const tab = document.getElementById(`chat-tab-${msg.senderId}`);
+                        if (tab) {
+                            tab.classList.remove('flash-animation'); // reset
+                            void tab.offsetWidth; // trigger reflow
+                            tab.classList.add('flash-animation');
+
+                            // PERSISTENT FLASH: Stays until input focus (handled in handleInputFocus)
+                        }
+                    }, 50);
+                }
+            } else {
+                console.log('Skipping render for merge confirmation to preserve focus');
+            }
+        }
     }
 
     async loadConversations() {
         try {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/chat/conversations`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
             });
             const data = await response.json();
             // Deduplicate conversations by otherUser.id
@@ -180,10 +247,34 @@ class ChatManager {
             for (const conv of rawConvs) {
                 if (!seenIds.has(conv.otherUser.id)) {
                     seenIds.add(conv.otherUser.id);
+
+                    // PRESERVE HISTORY FIX:
+                    // Check if we already have messages for this user in memory
+                    // and copy them over so we don't wipe the UI while loading.
+                    // FIX: Loose equality for ID check
+                    const existing = this.conversations.find(c => c.otherUser.id == conv.otherUser.id);
+                    if (existing && existing.messages) {
+                        conv.messages = existing.messages;
+                    }
+
                     uniqueConvs.push(conv);
                 }
             }
+            // Sort: Newest First (Sort by last message created at)
+            uniqueConvs.sort((a, b) => {
+                const dateA = new Date(a.lastMessage?.createdAt || 0);
+                const dateB = new Date(b.lastMessage?.createdAt || 0);
+                return dateB - dateA;
+            });
             this.conversations = uniqueConvs;
+
+            // Sync UI with new data
+            if (this.messagesPageContainer) {
+                this.renderConversationsList();
+            } else {
+                this.renderWidgetTabs();
+            }
+
         } catch (error) {
             console.error('Error loading conversations:', error);
         }
@@ -192,8 +283,8 @@ class ChatManager {
     async loadHistory(userId) {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/chat/history/${userId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch(`${API_BASE_URL}/chat/history/${userId}?t=${Date.now()}`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Pragma': 'no-cache', 'Cache-Control': 'no-store' }
             });
             const data = await response.json();
             return data.messages || [];
@@ -223,42 +314,16 @@ class ChatManager {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.error || errData.message || `Server Error: ${response.status}`);
             }
-            return await response.json();
+            const data = await response.json();
+            // FIX: Backend returns { message: { ... } }, so we must unwrap it
+            if (data.message && typeof data.message === 'object' && !Array.isArray(data.message)) {
+                return data.message;
+            }
+            return data;
         } catch (error) {
             console.error('Send error:', error);
             alert(`Error: ${error.message}`);
             throw error; // Re-throw so caller knows it failed
-        }
-    }
-
-    // Public API to open a chat
-    async openChat(userId) {
-        // Ensure conversations are loaded
-        if (this.conversations.length === 0) await this.loadConversations();
-
-        // Find existing or create dummy for new chat
-        let conv = this.conversations.find(c => c.otherUser.id === userId);
-
-        if (!conv) {
-            // Re-load conversations to check if backend created it
-            await this.loadConversations();
-            conv = this.conversations.find(c => c.otherUser.id === userId);
-        }
-
-        if (conv) {
-            // Set active and render
-            this.activeConversation = conv;
-
-            // Fetch latest history
-            const msgs = await this.loadHistory(userId);
-            this.activeConversation.messages = msgs;
-
-            if (this.messagesPageContainer) {
-                this.renderConversationsList();
-                this.selectConversation(userId);
-            } else {
-                this.renderWidgetTabs();
-            }
         }
     }
 
@@ -268,10 +333,13 @@ class ChatManager {
     renderFullPage() {
         if (!this.messagesPageContainer) return;
 
+        // Ensure container doesn't overflow
+        this.messagesPageContainer.style.overflow = 'hidden';
+
         this.messagesPageContainer.innerHTML = `
-            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: calc(100vh - 80px); gap: 1rem; padding: 1rem;">
-                <!-- Sidebar -->
-                <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column;">
+            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: 100%; gap: 1.5rem; padding: 2rem; padding-bottom: 2rem; box-sizing: border-box;">
+                <!--Sidebar -->
+                <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%;">
                     <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
                         <h2 style="margin: 0; font-size: 1.5rem;">Mensajes</h2>
                         <input type="text" placeholder="Buscar..." style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 0.5rem; width: 100%; margin-top: 1rem; border-radius: 8px; color: white;">
@@ -281,31 +349,82 @@ class ChatManager {
                     </div>
                 </div>
 
-                <!-- Chat Area -->
-                <div class="chat-main glass-card" style="display: flex; flex-direction: column; overflow: hidden;">
-                    <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between;">
-                        <h3 style="margin: 0; color: var(--text-secondary);">Selecciona una conversación</h3>
-                    </div>
-                    
-                    <div id="messagesArea" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                         <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); flex-direction: column;">
-                            <span style="font-size: 3rem; margin-bottom: 1rem;">👋</span>
-                            <p>¡Bienvenido al Chat de DeskShare!</p>
-                            <small>Selecciona un usuario a la izquierda para comenzar.</small>
-                        </div>
-                    </div>
+                <!--Chat Area-->
+            <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative;">
+                <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0;">
+                    <h3 style="margin: 0; color: var(--text-secondary);">Selecciona una conversación</h3>
+                </div>
 
-                    <div id="inputArea" style="padding: 1rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); display: none;">
-                        <form id="messageForm" style="display: flex; gap: 1rem;">
-                            <input type="text" id="messageInput" placeholder="Escribe un mensaje..." style="flex: 1; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white;">
-                            <button type="submit" class="btn btn-primary">Enviar</button>
-                        </form>
+                <div id="messagesArea" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; background: rgba(0,0,0,0.2);">
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); flex-direction: column;">
+                        <span style="font-size: 3rem; margin-bottom: 1rem;">👋</span>
+                        <p>¡Bienvenido al Chat de DeskShare!</p>
+                        <small>Selecciona un usuario a la izquierda para comenzar.</small>
                     </div>
                 </div>
+
+                <!-- Input Area -->
+                <div id="inputArea" style="padding: 1rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); display: none; flex-shrink: 0;">
+                    <form id="messageForm" style="display: flex; gap: 0.8rem; align-items: center;">
+                        <!-- File Button -->
+                        <input type="file" id="fullPageFileInput" style="display: none;" accept="image/*,application/pdf,.doc,.docx,.zip">
+                            <button type="button" onclick="document.getElementById('fullPageFileInput').click()"
+                                style="background: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;"
+                                onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                                </svg>
+                            </button>
+
+                            <!-- Text Input -->
+                            <div style="flex: 1; position: relative; display: flex; align-items: center;">
+                                <input type="text" id="messageInput" placeholder="Escribe un mensaje..." autocomplete="off"
+                                    style="width: 100%; padding: 12px 45px 12px 16px; border-radius: 24px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; font-family: 'Outfit', sans-serif;">
+
+                                    <!-- Emoji Button -->
+                                    <button type="button" id="fullPageEmojiBtn"
+                                        style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
+                                        😊
+                                    </button>
+                            </div>
+
+                            <!-- Send Button -->
+                            <button type="submit" class="btn btn-primary" style="width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <citation>M22 2L11 13</citation>
+                                    <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+                                </svg>
+                            </button>
+                    </form>
+
+                    <!-- Staging Area for File -->
+                    <div id="fullPageStaging" style="display: none; padding-top: 10px;"></div>
+                </div>
             </div>
-        `;
+            </div >
+            `;
 
         this.renderConversationsList();
+
+        // Init Full Page Emoji Picker
+        const emojiBtn = document.getElementById('fullPageEmojiBtn');
+        if (emojiBtn && window.EmojiButton) {
+            this.picker = new EmojiButton({
+                theme: 'dark',
+                autoHide: false,
+                position: 'top-end'
+            });
+            const input = document.getElementById('messageInput');
+
+            this.picker.on('emoji', selection => {
+                input.value += selection.emoji;
+                input.focus();
+            });
+
+            emojiBtn.addEventListener('click', () => {
+                this.picker.togglePicker(emojiBtn);
+            });
+        }
     }
 
     renderConversationsList() {
@@ -323,13 +442,16 @@ class ChatManager {
             const time = lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
             return `
-            <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'active' : ''}" 
-                 onclick="chatManager.selectConversation(${user.id})"
-                 style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
-                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+            <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'active' : ''}"
+        onclick="chatManager.selectConversation('${user.id}')"
+        style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
+            <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
                 <div style="flex: 1; overflow: hidden;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
-                        <span style="font-weight: 600; color: white;">${user.name || 'Usuario'}</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-weight: 600; color: white;">${user.name || 'Usuario'}</span>
+                            <div id="list-status-dot-${user.id}" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; display: ${user.isOnline ? 'block' : 'none'};"></div>
+                        </div>
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">${time}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -340,15 +462,20 @@ class ChatManager {
                     </div>
                 </div>
             </div>
-            `;
+        `;
         }).join('');
     }
 
     async selectConversation(userId) {
-        let conv = this.conversations.find(c => c.otherUser.id === userId);
+        // Loose equality to handle '5' vs 5 from HTML attributes
+        let conv = this.conversations.find(c => c.otherUser.id == userId);
         if (!conv) return;
 
         this.activeConversation = conv;
+
+        // Mark as Read (Full Page)
+        conv.unreadCount = 0;
+        this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
         this.renderConversationsList();
 
         const messages = await this.loadHistory(userId);
@@ -359,10 +486,15 @@ class ChatManager {
         const header = document.getElementById('chatHeader');
         header.innerHTML = `
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
+                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
-                    <h3 style="margin: 0; color: white;">${user.name}</h3>
-                    <span style="font-size: 0.8rem; color: var(--success-green);">En línea</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h3 style="margin: 0; color: white;">${user.name}</h3>
+                        <div class="header-status-dot" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; display: ${user.isOnline ? 'block' : 'none'};"></div>
+                    </div>
+                    <span class="header-status-text" style="font-size: 0.8rem; color: ${user.isOnline ? '#4ade80' : '#666'};">
+                        ${user.isOnline ? 'En línea' : ''}
+                    </span>
                 </div>
             </div>
              <div style="display: flex; gap: 0.5rem;">
@@ -372,19 +504,128 @@ class ChatManager {
 
         document.getElementById('inputArea').style.display = 'block';
 
+        // Re-init Staging Logic for Full Page
+        const stagingArea = document.getElementById('fullPageStaging');
+        const fileInput = document.getElementById('fullPageFileInput');
+        let stagedFile = null;
+
+        if (fileInput) {
+            fileInput.value = ''; // Reset
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validate (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('El archivo es demasiado grande (Máx 5MB)');
+                    return;
+                }
+
+                stagedFile = file;
+                const isImage = file.type.startsWith('image/');
+
+                stagingArea.style.display = 'block';
+                stagingArea.innerHTML = `
+            <div style="background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);">
+                ${isImage ?
+                        `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` :
+                        `<span style="font-size: 1.2rem;">📄</span>`
+                    }
+                        <span style="font-size: 0.9rem; color: white; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
+                        <button type="button" id="removeStagedBtn" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem; margin-left: 5px;">×</button>
+                    </div>
+            `;
+
+                document.getElementById('removeStagedBtn').onclick = () => {
+                    stagedFile = null;
+                    fileInput.value = '';
+                    stagingArea.innerHTML = '';
+                    stagingArea.style.display = 'none';
+                };
+            };
+        }
+
+        // FOCUS FIX: Focus input immediately after selection
+        setTimeout(() => {
+            const msgInput = document.getElementById('messageInput');
+            if (msgInput) {
+                msgInput.focus();
+                msgInput.click(); // Force active
+            }
+            // Mark read immediately when selecting conversation
+            if (this.activeConversation) {
+                const userId = this.activeConversation.otherUser.id;
+                this.handleInputFocus(userId);
+            }
+        }, 100);
+
         const form = document.getElementById('messageForm');
         form.onsubmit = async (e) => {
             e.preventDefault();
             const input = document.getElementById('messageInput');
             const text = input.value;
-            if (!text.trim()) return;
+
+            if (!text.trim() && !stagedFile) return;
+
+            // Handle File Upload if present
+            let fileUrl = null;
+            let fileType = null;
+
+            if (stagedFile) {
+                // Optimistic UI for Upload? No, wait for it.
+                try {
+                    const uploadData = await this.uploadFile(userId, stagedFile); // Reuse logic? Need confirm it returns URL
+                    // Actually existing uploadFile method does everything. Let's create a Helper or just use Cloudinary logic directly if needed.
+                    // Wait, existing uploadFile is specific to Widgets? 
+                    // Let's check renderChatTab's uploadFile... it's `uploadFile(userId, file)` -> returns {url, type}
+
+                    const uploadRes = await this.uploadFile(userId, stagedFile);
+                    fileUrl = uploadRes.url;
+                    fileType = uploadRes.type;
+
+                } catch (err) {
+                    console.error('Upload failed', err);
+                    alert('Error al subir archivo');
+                    return;
+                }
+            }
 
             input.value = '';
-            await this.sendMessage(user.id, text);
-            // Optimistic
-            const msg = { senderId: this.currentUser.id, message: text, createdAt: new Date().toISOString() };
-            this.activeConversation.messages.push(msg);
-            this.renderMessages(this.activeConversation.messages);
+
+            // Send Message (using update sendMiniMessage which now supports attachments)
+            // But wait, sendMiniMessage is for widgets? No, it's just a method name.
+            // Let's use `sendMessage` for consistency? No, sendMessage doesn't support files in previous signature?
+            // Let's double check sendMessage vs sendMiniMessage. 
+            // `sendMessage(receiverId, text, computerId = null)` vs `sendMiniMessage(receiverId, text, fileUrl, fileType)`
+            // We should use `sendMiniMessage` logic or update `sendMessage` to support files. 
+            // Since `sendMiniMessage` was updated in previous steps to support files, let's use that one or alias it.
+            // ACTUALLY, checking `sendMessage` (line 293), it DOES NOT support files yet.
+            // `sendMiniMessage` (line 1434) DOES support files. 
+            // So we call `sendMiniMessage`.
+
+            await this.sendMiniMessage(user.id, text, fileUrl, fileType);
+
+            // Clear Staging
+            stagedFile = null;
+            if (fileInput) fileInput.value = '';
+            if (stagingArea) {
+                stagingArea.innerHTML = '';
+                stagingArea.style.display = 'none';
+            }
+
+            // Optimistic Update manual? `sendMiniMessage` likely emits, but maybe we want instant feedback?
+            // `sendMiniMessage` does optimistically append? Let's check. 
+            // No, we should probably manually append here if we want instant feedback for Full Page.
+            const newMsg = {
+                senderId: this.currentUser.id,
+                message: text,
+                fileUrl,
+                fileType,
+                createdAt: new Date().toISOString()
+            };
+
+            this.activeConversation.messages.push(newMsg);
+            this.renderMessages(this.activeConversation.messages); // Re-render full list
             this.scrollToBottom();
         };
 
@@ -395,20 +636,10 @@ class ChatManager {
     renderMessages(messages) {
         messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         const area = document.getElementById('messagesArea');
-        area.innerHTML = messages.map(msg => {
-            const isMe = msg.senderId === this.currentUser.id;
-            return `
-            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
-                <div style="max-width: 70%; padding: 0.8rem 1rem; border-radius: 12px; background: ${isMe ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}; color: white; border-bottom-${isMe ? 'right' : 'left'}-radius: 2px;">
-                    <p style="margin: 0; line-height: 1.4;">${msg.message}</p>
-                    <span style="display: block; font-size: 0.7rem; opacity: 0.7; margin-top: 4px; text-align: right;">
-                        ${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        ${isMe ? (msg.isRead ? '✓✓' : '✓') : ''}
-                    </span>
-                </div>
-            </div>
-            `;
-        }).join('');
+        if (!area) return;
+
+        // Use the Shared Render Logic
+        area.innerHTML = this.renderMessageHTML(messages, this.activeConversation.otherUser);
     }
 
     scrollToBottom() {
@@ -420,6 +651,11 @@ class ChatManager {
     // View Logic - Global Widget
     // ===========================================
     renderWidget() {
+        // STRICT BLOCK: Never render widget on messages.html
+        if (window.location.href.includes('messages.html') || document.getElementById('messagesPageContainer')) {
+            return;
+        }
+
         if (!this.widgetContainer) {
             this.widgetContainer = document.createElement('div');
             this.widgetContainer.id = 'chatWidgetContainer';
@@ -432,6 +668,15 @@ class ChatManager {
 
     renderWidgetTabs() {
         if (!this.widgetContainer) return;
+
+        // FOCUS PROTECTION: Capture which input is focused before we destroy the DOM
+        let focusedTabId = null;
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+            const tabEl = document.activeElement.closest('.chat-tab');
+            if (tabEl && tabEl.id.startsWith('chat-tab-')) {
+                focusedTabId = tabEl.id;
+            }
+        }
 
         // 1. Persistent "Messages" Bar (Freelancer Style)
         const isListOpen = this.widgetContainer.dataset.listOpen === 'true';
@@ -452,10 +697,13 @@ class ChatManager {
                 
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
                     ${this.conversations.length > 0 ? this.conversations.map(conv => `
-                        <div onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
-                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <div id="widget-list-item-${conv.otherUser.id}" onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
+                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                             <div style="flex:1; overflow:hidden;">
-                                <div style="font-weight: 500; font-size: 0.9rem; color: white;">${conv.otherUser.name}</div>
+                                <div style="font-weight: 500; font-size: 0.9rem; color: white; display: flex; align-items: center; gap: 6px;">
+                                    ${conv.otherUser.name}
+                                    <div class="list-status-dot" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; display: ${conv.otherUser.isOnline ? 'block' : 'none'}; box-shadow: 0 0 5px #4ade80;"></div>
+                                </div>
                                 <div style="font-size: 0.8rem; color: #888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(conv.lastMessage?.message || '')}</div>
                             </div>
                             ${(conv.unreadCount > 0) ? `<div style="width:8px; height:8px; background:var(--accent-purple); border-radius:50%;"></div>` : ''}
@@ -467,7 +715,7 @@ class ChatManager {
                    <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
                 </div>
             </div>
-        `;
+            `;
 
         // 2. Render Active Tabs
         // We render ALL IDs in openConversationIds
@@ -481,6 +729,25 @@ class ChatManager {
 
         // Combine: Tabs (Left) + Persistent Bar (Right)
         this.widgetContainer.innerHTML = tabsHtml + persistentBar;
+
+        // RESTORE FOCUS: If we had focus, put it back
+        if (focusedTabId) {
+            const newTab = document.getElementById(focusedTabId);
+            if (newTab) {
+                const input = newTab.querySelector('input');
+                if (input) {
+                    input.focus();
+                    // Optional: Restore cursor to end if needed, but usually empty after send.
+                }
+            }
+        }
+
+        // POST-RENDER SCROLL FIX
+        // Immediately scroll all chat areas to bottom to prevent visual jumping
+        // This replaces the "opacity: 0" hack which was causing invisible chats
+        this.widgetContainer.querySelectorAll('.mini-messages-area').forEach(area => {
+            area.scrollTop = area.scrollHeight;
+        });
     }
 
     updateGlobalBadge(count) {
@@ -497,171 +764,1140 @@ class ChatManager {
 
     renderChatTab(conv) {
         const user = conv.otherUser;
-        // Always expanded in multi-tab mode for now
         const tabId = `chat-tab-${user.id}`;
+        // Check state to persist minimization
+        const isMin = this.minimizedConversations.has(user.id);
+        const height = isMin ? '50px' : '400px';
+        const borderRadius = isMin ? '8px' : '8px 8px 0 0';
+        const minIcon = isMin ? '' : '−';
 
         // SORT MESSAGES: Oldest -> Newest
         const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const unreadCount = conv.unreadCount || 0;
+
+        // Ensure "Desconectado" never appears. Use empty string.
+        const statusText = user.isOnline ? 'En línea' : '';
+        const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
         return `
-            <div id="${tabId}" class="chat-tab expanded" style="width: 300px; height: 400px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px;">
-                <div onclick="chatManager.closeTab(${user.id})" style="padding: 10px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
-                        <span style="font-size: 0.9rem; font-weight: 600; color: white;">${user.name}</span>
+            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+                 <!--HEADER -->
+                <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                        <div style="display: flex; flex-direction: column;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>
+                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
+                            </div>
+                            <span class="user-status-text" style="font-size: 0.7rem; color: ${statusColor}; line-height: 1; margin-top: 2px; height: 10px;">${statusText}</span>
+                        </div>
                     </div>
-                    <span style="color: #aaa; font-size: 1.2rem; line-height:0.8;">×</span>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
+                        <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
+                        <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
+                    </div>
                 </div>
                 
-                <div class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
-                    ${sortedMessages.map(msg => `
-                        <div style="display: flex; justify-content: ${msg.senderId === this.currentUser.id ? 'flex-end' : 'flex-start'};">
-                            <span style="background: ${msg.senderId === this.currentUser.id ? 'var(--accent-purple)' : '#333'}; color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
-                                ${msg.message}
+                <!--MESSAGES AREA-->
+                <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
+                    ${this.renderMessageHTML(sortedMessages, user)}
+                    
+                    ${this.typingUsers.has(user.id) ? `
+                        <div style="display: flex; justify-content: flex-start;">
+                            <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
+                                Escribiendo...
                             </span>
                         </div>
-                    `).join('')}
+                    ` : ''}
                 </div>
                 
-                <!-- FREELANCER STYLE FOOTER -->
-                <div style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; align-items: center; gap: 8px;">
-                     <!-- Attach Icon -->
-                    <button onclick="alert('Attachment coming soon')" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center;">
+                <!--FOOTER -->
+            <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; flex-direction: column; gap: 8px;">
+
+                <!-- STAGING AREA (Preview) -->
+                <div id="chat-staging-${user.id}" style="display: none; padding: 8px; background: #333; border-radius: 8px; margin-bottom: 4px; align-items: center; justify-content: space-between;">
+                    <div id="chat-staging-content-${user.id}" style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                        <!-- Content injected by JS -->
+                    </div>
+                    <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.2em;">&times;</button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                    <!-- Attach Icon -->
+                    <button onclick="chatManager.triggerFileUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     </button>
-                    
+
                     <!-- Input Container -->
                     <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                        <input type="text" placeholder="Escribe un mensaje..." 
-                               onkeypress="if(event.key === 'Enter') { chatManager.sendMiniMessage(${user.id}, this.value); this.value=''; }"
-                               style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white;">
-                        
-                        <!-- Emoji Icon -->
-                        <button onclick="alert('Emoji picker coming soon')" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                        </button>
+                        <input type="text" placeholder="Escribe un mensaje..."
+                            id="chat-input-${user.id}"
+                            onfocus="chatManager.handleInputFocus(${user.id})"
+                            onkeypress="if(event.key === 'Enter') { chatManager.sendStagedMessage(${user.id}); } else { chatManager.emitTyping(${user.id}); }"
+                            style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
+
+                            <!-- Emoji Icon -->
+                            <button onclick="chatManager.toggleEmojiPicker(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                            </button>
                     </div>
 
                     <!-- Send Icon -->
-                    <button onclick="const inp = this.previousElementSibling.querySelector('input'); if(inp.value.trim()) { chatManager.sendMiniMessage(${user.id}, inp.value); inp.value=''; }" 
-                            style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                    <button onclick="chatManager.sendStagedMessage(${user.id})"
+                        style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
                 </div>
             </div>
-        `;
+            </div>
+            `;
     }
 
+    toggleMinimize(userId) {
+        // 1. Update State
+        const isMin = this.minimizedConversations.has(userId);
+        if (isMin) {
+            this.minimizedConversations.delete(userId);
+        } else {
+            this.minimizedConversations.add(userId);
+        }
+
+        // 2. Direct DOM Manipulation (CSS Transition)
+        const tab = document.getElementById(`chat-tab-${userId}`);
+        if (tab) {
+            const newMin = !isMin; // Toggle logic
+            tab.style.height = newMin ? '50px' : '400px';
+            // If minimized, radius 8px all around. If expanded, 8px 8px 0 0.
+            tab.style.borderRadius = newMin ? '8px' : '8px 8px 0 0';
+
+            // Toggle Icon
+            const icon = tab.querySelector('.minimize-icon');
+            if (icon) icon.textContent = newMin ? '' : '−';
+
+            // Important: When expanding, enforce scroll to bottom AND focus input
+            if (!newMin) {
+                // Use the robust helper
+                this.tryFocusInput(userId);
+            }
+        } else {
+            // Fallback if DOM element missing (rare in this flow)
+            this.renderWidgetTabs();
+        }
+    }
+
+    // Updated toggleTab with Surgical DOM Update
     toggleTab(userId) {
-        // In multi-tab mode, "toggle" means "open if not open, bring to front/focus if open"
-        // Since we render side-by-side, we just ensure it's in the list.
         if (!this.openConversationIds.includes(userId)) {
             this.openConversationIds.push(userId);
         }
+        // Ensure not minimized on open
+        this.minimizedConversations.delete(userId);
 
-        // Refresh history
-        this.loadHistory(userId).then(msgs => {
-            const conv = this.conversations.find(c => c.otherUser.id === userId);
+        this.loadHistory(userId).then(fetchedMsgs => {
+            const conv = this.conversations.find(c => c.otherUser.id == userId);
             if (conv) {
-                conv.messages = msgs;
-                this.renderWidgetTabs();
-                setTimeout(() => {
-                    const tab = document.getElementById(`chat-tab-${userId}`);
-                    if (tab) {
-                        const area = tab.querySelector('.mini-messages-area');
-                        if (area) area.scrollTop = area.scrollHeight;
+                // SAFE MERGE STRATEGY:
+                const currentMsgs = conv.messages || [];
+                const mergedMap = new Map();
+
+                // 1. Add Fetched (DB) Messages
+                fetchedMsgs.forEach(m => mergedMap.set(String(m.id), m));
+
+                // 2. Add Local (Optimistic) Messages
+                currentMsgs.forEach(m => {
+                    const id = String(m.id);
+                    if (!mergedMap.has(id)) {
+                        mergedMap.set(id, m);
                     }
-                }, 100);
+                });
+
+                // 3. Convert back to array
+                conv.messages = Array.from(mergedMap.values());
+
+                // CRITICAL FIX: Surgical Update
+                // Do NOT call renderWidgetTabs() here. It destroys the input focus.
+                this.updateMessagesAreaOnly(userId);
             }
         });
 
+        // Initial Render (Creates the DOM)
         this.renderWidgetTabs();
+
+        // Immediate Focus Attempt (Will succeed since DOM is created above)
+        this.tryFocusInput(userId);
+    }
+
+    // New Helper: Focus Input Logic
+    tryFocusInput(userId) {
+        // Retry logic to ensure DOM is ready
+        let attempts = 0;
+        const attemptFocus = () => {
+            const input = document.getElementById(`chat-input-${userId}`);
+            if (input) {
+                input.focus();
+                input.click(); // Force active
+
+                // Only mark read if we actually have focus (prevents phantom reads)
+                if (document.activeElement === input) {
+                    this.handleInputFocus(userId);
+                }
+
+                this.scrollToBottom(userId);
+            } else {
+                attempts++;
+                if (attempts < 5) setTimeout(attemptFocus, 200);
+            }
+        };
+        setTimeout(attemptFocus, 100);
+    }
+
+    // New Helper: Updates ONLY the message list div, leaving Input/Header intact
+    updateMessagesAreaOnly(userId) {
+        const msgArea = document.getElementById(`msg-area-${userId}`);
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (msgArea && conv) {
+            // Sort
+            const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            // Update HTML
+            msgArea.innerHTML = this.renderMessageHTML(sortedMessages, conv.otherUser);
+            // Append Typing Indicator if needed
+            if (this.typingUsers.has(userId)) {
+                msgArea.innerHTML += `
+                    <div style="display: flex; justify-content: flex-start;">
+                        <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
+                            Escribiendo...
+                        </span>
+                    </div>`;
+            }
+            // Scroll
+            this.scrollToBottom(userId);
+        } else {
+            // Fallback if area doesn't exist (shouldn't happen if tab is open)
+            // But be careful not to infinite loop
+            console.warn('Message area not found for surgical update, skipping.');
+        }
+    }
+
+    // Updated scrollToBottom with Multi-Tick Force Scroll
+    scrollToBottom(userId) {
+        if (userId && this.minimizedConversations.has(userId)) return;
+
+        const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
+        if (area) {
+            // 1. Immediate Scroll
+            area.scrollTop = area.scrollHeight;
+            if (area.style.opacity === '0') area.style.opacity = '1';
+
+            // 2. Post-Render Scroll (catches layout shifts)
+            setTimeout(() => {
+                if (area) area.scrollTop = area.scrollHeight;
+            }, 50);
+
+            // 3. Image Reflow Scroll (catches fast-loading images)
+            setTimeout(() => {
+                if (area) area.scrollTop = area.scrollHeight;
+            }, 300);
+        }
     }
 
     closeTab(userId) {
         this.openConversationIds = this.openConversationIds.filter(id => id !== userId);
+        this.minimizedConversations.delete(userId); // Cleanup
         this.renderWidgetTabs();
     }
 
-    async sendMiniMessage(userId, text) {
-        if (!text.trim()) return;
+    emitTyping(receiverId) {
+        if (!this.currentUser) return;
 
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
+        // Debounce
+        if (this.typingTimeouts[receiverId]) {
+            clearTimeout(this.typingTimeouts[receiverId]);
+        } else {
+            // Start typing
+            this.socket.emit('user-typing', { senderId: this.currentUser.id, receiverId });
+        }
+
+        // Stop typing after 2 seconds of inactivity
+        this.typingTimeouts[receiverId] = setTimeout(() => {
+            this.socket.emit('user-stop-typing', { senderId: this.currentUser.id, receiverId });
+            this.typingTimeouts[receiverId] = null;
+        }, 2000);
+    }
+
+    async openChat(userId) {
+        // [Phase AV] Full Page Redirection Logic
+        // If we are on the messages page, do NOT open a widget tab. 
+        // Instead, switch the main view to this conversation.
+        if (this.messagesPageContainer) {
+            if (this.conversations.length === 0) await this.loadConversations();
+            this.selectConversation(userId);
+
+            // Also, ensure the header dropdown (if open) is closed
+            // This is usually handled by the onclick event in ui-global.js, but good to be safe
+            return;
+        }
+
+        // Standard Widget Mode
+        if (this.conversations.length === 0) await this.loadConversations();
+
+        // Ensure tab is added
+        // Fix ID check
+        if (!this.openConversationIds.some(id => id == userId)) {
+            this.openConversationIds.push(userId);
+        }
+
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
         if (conv) {
-            const tempMsg = {
-                id: 'temp-' + Date.now(),
-                senderId: this.currentUser.id,
-                message: text,
-                createdAt: new Date().toISOString(),
-                isRead: false
-            };
-            if (!conv.messages) conv.messages = [];
-            conv.messages.push(tempMsg);
+            this.toggleTab(userId);
+        } else {
+            await this.loadConversations();
+            this.toggleTab(userId);
+        }
 
-            // OPTIMIZED RENDER: Append to DOM instead of Re-Render Widget
-            const tabId = `chat-tab-${userId}`;
-            const tabEl = document.getElementById(tabId);
-
-            if (tabEl) {
-                const msgArea = tabEl.querySelector('.mini-messages-area');
-                if (msgArea) {
-                    const msgHtml = `
-                        <div style="display: flex; justify-content: flex-end;">
-                            <span style="background: var(--accent-purple); color: white; padding: 6px 10px; border-radius: 12px; max-width: 85%; word-wrap: break-word;">
-                                ${text}
-                            </span>
-                        </div>
-                    `;
-                    // Append smoothly
-                    msgArea.insertAdjacentHTML('beforeend', msgHtml);
-                    // Instant scroll to bottom
-                    msgArea.scrollTop = msgArea.scrollHeight;
-                } else {
-                    // Fallback if area not found
-                    this.renderWidgetTabs();
+        // UX: Auto-Focus Input
+        setTimeout(() => {
+            const tab = document.getElementById(`chat - tab - ${userId} `);
+            if (tab) {
+                const input = tab.querySelector('input');
+                if (input) {
+                    input.focus();
+                    this.scrollToBottom(userId);
                 }
-            } else {
-                // Fallback if tab not found
+            }
+        }, 100);
+    }
+
+    updateUserStatus(userId, isOnline) {
+        // Update data
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (conv) {
+            conv.otherUser.isOnline = isOnline;
+        }
+
+        // Update UI (Full Page)
+        if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
+            const headerStatus = document.querySelector('#chatHeader .header-status-text');
+            const headerDot = document.querySelector('#chatHeader .header-status-dot');
+
+            if (headerStatus) {
+                headerStatus.textContent = isOnline ? 'En línea' : '';
+                headerStatus.style.color = isOnline ? '#4ade80' : '#999';
+            }
+            if (headerDot) {
+                headerDot.style.display = isOnline ? 'block' : 'none';
+            }
+        }
+
+        // Update UI (Full Page List Item)
+        const listDot = document.getElementById(`list-status-dot-${userId}`);
+        if (listDot) {
+            listDot.style.display = isOnline ? 'block' : 'none';
+        }
+
+        // Update UI (Widget Tab) - Rerender just the header if possible or full tab
+        const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
+        const statusDot = document.querySelector(`#chat-tab-${userId} .status-dot`);
+
+        if (tabHeader) {
+            tabHeader.textContent = isOnline ? 'En línea' : '';
+            tabHeader.style.color = isOnline ? '#4ade80' : 'transparent';
+        }
+        if (statusDot) {
+            statusDot.style.background = isOnline ? '#4ade80' : 'transparent';
+            statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';
+        }
+
+        // Update UI (Widget List Item)
+        const widgetListDot = document.querySelector(`#widget-list-item-${userId} .list-status-dot`);
+        if (widgetListDot) {
+            widgetListDot.style.display = isOnline ? 'block' : 'none';
+        }
+    }
+
+    playSound() {
+        // Simple distinct beep
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            // Nice notification chime
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.3);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        } catch (e) {
+            console.error("Audio error", e);
+        }
+    }
+
+    // Helper for Input Focus (Read Receipt + Stop Flash + Stop Title Blink)
+    handleInputFocus(userId) {
+        // 1. Mark Read
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (conv) {
+            if (conv.unreadCount > 0) {
+                conv.unreadCount = 0;
+                this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
+                // Re-render to clear badge
                 this.renderWidgetTabs();
             }
         }
 
-        try {
-            await this.sendMessage(userId, text);
-            // Success: Silent update (socket or future load will sync IDs)
-        } catch (e) {
-            console.error("Failed to send", e);
-            // Optional: Show error state in UI
+        // 2. Stop Flash
+        const tab = document.getElementById(`chat - tab - ${userId} `);
+        if (tab) {
+            tab.classList.remove('flash-animation');
+        }
+
+        // 3. Stop Title Blink
+        this.stopTitleBlink();
+    }
+
+    startTitleBlink(userName) {
+        if (this.titleInterval) clearInterval(this.titleInterval);
+
+        let isOriginal = false;
+        const originalTitle = "DeskShare - Alquila Computadoras Potentes";
+        const newTitle = `💬 Nuevo mensaje de ${userName} `;
+
+        this.titleInterval = setInterval(() => {
+            document.title = isOriginal ? newTitle : originalTitle;
+            isOriginal = !isOriginal;
+        }, 1000);
+    }
+
+    stopTitleBlink() {
+        if (this.titleInterval) {
+            clearInterval(this.titleInterval);
+            this.titleInterval = null;
+            document.title = "DeskShare - Alquila Computadoras Potentes";
         }
     }
-    async openChat(userId) {
-        // Ensure conversations are loaded
-        if (this.conversations.length === 0) {
-            await this.loadConversations();
+
+    // ==========================================
+    // Attachments Logic (Phase B)
+    // ==========================================
+
+    // ==========================================
+    // File Upload & Staging (Phase D)
+    // ==========================================
+    triggerFileUpload(userId) {
+        // Create hidden input dynamically if not exists
+        let input = document.getElementById(`file - input - ${userId} `);
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = `file - input - ${userId} `;
+            input.style.display = 'none';
+            // Accept Images and Docs. Enable Multiple!
+            input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
+            input.multiple = true;
+            document.body.appendChild(input);
+
+            input.onchange = (e) => {
+                if (e.target.files.length > 0) {
+                    // Loop through all selected files
+                    Array.from(e.target.files).forEach(file => {
+                        this.uploadFile(userId, file);
+                    });
+                }
+                input.value = ''; // Reset
+            };
+        }
+        input.click();
+    }
+
+    async uploadFile(userId, file) {
+        if (!file) return;
+
+        // Optimistic UI feedback could go here (e.g. spinner)
+        const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
+        if (btn) btn.style.opacity = '0.5';
+
+        try {
+            const token = localStorage.getItem('authToken');
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // 1. Upload
+            const res = await fetch(`${this.baseUrl} /chat/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token} ` },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Server Error: ${res.status} `);
+            }
+            const data = await res.json();
+
+            // 2. STAGE THE FILE (Do not send yet)
+            // Lazy Init safety check
+            if (!this.stagedFiles) this.stagedFiles = new Map();
+
+            // Get existing or init array
+            let currentStaged = this.stagedFiles.get(userId) || [];
+            // Ensure it's an array (migration safety from Phase D)
+            if (!Array.isArray(currentStaged)) currentStaged = [currentStaged];
+
+            currentStaged.push({
+                fileUrl: data.fileUrl,
+                fileType: data.fileType,
+                fileName: file.name
+            });
+            this.stagedFiles.set(userId, currentStaged);
+
+            // 3. Update UI
+            this.renderStagingArea(userId);
+
+            // Focus input
+            const chatInput = document.getElementById(`chat-input-${userId}`);
+            if (chatInput) chatInput.focus();
+
+        } catch (error) {
+            console.error('Upload Error:', error);
+            alert(`Error subiendo archivo: ${error.message} `);
+        } finally {
+            if (btn) btn.style.opacity = '1';
+        }
+    }
+
+    renderStagingArea(userId) {
+        const stagingArea = document.getElementById(`chat-staging-${userId}`);
+        const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
+        const files = this.stagedFiles.get(userId) || [];
+
+        if (!files.length) {
+            if (stagingArea) stagingArea.style.display = 'none';
+            return;
         }
 
-        const conv = this.conversations.find(c => c.otherUser.id === userId);
-        if (conv) {
-            this.toggleTab(userId);
-        } else {
-            // Create new optimistic conversation logic if needed, 
-            // or just rely on sendMessage creating it on backend.
-            // For now, let's try to fetch specific conversation or start fresh UI
-            // But toggleTab handles existing.
-            // If not existing, we might need a "Pending" tab or just force it open
+        if (stagingArea && stagingContent) {
+            stagingArea.style.display = 'flex';
+            stagingContent.innerHTML = ''; // Clear current
+            stagingContent.style.overflowX = 'auto'; // Horizontal scroll
 
-            // Simplified: If not found, create a dummy one for UI
-            // This requires fetching user details which we might pass or fetch
-            // But for "Contact Host", we usually send a message FIRST.
-            // computer-detail-dynamic.js sends message first, so conversation SHOULD exist after reload.
-            // But we don't reload page.
-            // Let's rely on handleNewMessage or force reload conversations
-            await this.loadConversations();
-            const retryConv = this.conversations.find(c => c.otherUser.id === userId);
-            if (retryConv) {
-                this.toggleTab(userId);
+            files.forEach((file, index) => {
+                const thumb = document.createElement('div');
+                thumb.style.cssText = 'position: relative; display: inline-block; margin-right: 8px; flex-shrink: 0;';
+
+                let innerHTML = '';
+                if (file.fileType === 'image') {
+                    innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;">`;
+                } else {
+                    innerHTML = `
+            <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
+                            📄
+                        </div>`;
+                }
+
+                // Add Close Button (X)
+                innerHTML += `
+            <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">&times;</div>
+                `;
+
+                thumb.innerHTML = innerHTML;
+                stagingContent.appendChild(thumb);
+            });
+        }
+    }
+
+    removeStagedFile(userId, index) {
+        let files = this.stagedFiles.get(userId) || [];
+        if (files.length > index) {
+            files.splice(index, 1);
+            this.stagedFiles.set(userId, files);
+            this.renderStagingArea(userId);
+        }
+    }
+
+    clearStaging(userId) {
+        this.stagedFiles.delete(userId);
+        this.renderStagingArea(userId); // Update UI after clearing
+    }
+
+    async sendStagedMessage(userId) {
+        const input = document.getElementById(`chat - input - ${userId} `);
+        if (!input) return;
+
+        const text = input.value.trim();
+        // Safety check
+        if (!this.stagedFiles) this.stagedFiles = new Map();
+
+        let staged = this.stagedFiles.get(userId);
+        if (staged && !Array.isArray(staged)) staged = [staged]; // Safety
+
+        if (!text && (!staged || staged.length === 0)) return; // Nothing to send
+
+        // Logic: Send text with FIRST file, then send remaining files
+        // If no files, just send text.
+
+        if (staged && staged.length > 0) {
+            // Message 1: Text + File 1
+            await this.sendMiniMessage(userId, text, staged[0].fileUrl, staged[0].fileType);
+
+            // Remaining files
+            for (let i = 1; i < staged.length; i++) {
+                await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);
+            }
+        } else {
+            // Just text
+            await this.sendMiniMessage(userId, text);
+        }
+
+        // Cleanup
+        input.value = '';
+        this.clearStaging(userId);
+    }
+
+    // Shared Message Rendering for Full Page & Widget
+    renderMessageHTML(sortedMessages, user) {
+        const groups = [];
+        let currentGroup = [];
+
+        // Identify the ID of the very last message sent by ME in the entire list
+        let lastMyMsgId = null;
+        for (let i = sortedMessages.length - 1; i >= 0; i--) {
+            if (sortedMessages[i].senderId === this.currentUser.id) {
+                lastMyMsgId = sortedMessages[i].id;
+                break;
             }
         }
+
+        sortedMessages.forEach((msg, idx) => {
+            const isImage = msg.fileUrl && msg.fileType === 'image';
+            const prevMsg = idx > 0 ? sortedMessages[idx - 1] : null;
+            const isSameSender = prevMsg && prevMsg.senderId === msg.senderId;
+            const isPrevImage = prevMsg && prevMsg.fileUrl && prevMsg.fileType === 'image';
+
+            // Time Break Check
+            const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
+            const isTimeBreak = timeDiff > 10 * 60 * 1000; // 10 mins
+
+            if (!prevMsg || !isSameSender || (isImage !== isPrevImage) || isTimeBreak) {
+                if (currentGroup.length > 0) groups.push(currentGroup);
+                currentGroup = [msg];
+            } else {
+                currentGroup.push(msg);
+            }
+        });
+        if (currentGroup.length > 0) groups.push(currentGroup);
+
+        return groups.map(group => {
+            const firstMsg = group[0];
+            const isMe = firstMsg.senderId === this.currentUser.id;
+            const isImageGroup = firstMsg.fileUrl && firstMsg.fileType === 'image';
+
+            // 1. IMAGE COLLAGE LOGIC
+            if (isImageGroup) {
+                const count = group.length;
+                let gridContainerStyle = `
+        display: grid;
+        gap: 2px;
+        background: transparent;
+        border-radius: 18px;
+        overflow: hidden;
+        width: 100%;
+        max-width: 220px;
+        `;
+
+                if (count === 1) {
+                    return `
+            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
+                    style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
+                    <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
+                </div>
+            </div>
+            `;
+                }
+
+                if (count === 2) {
+                    gridContainerStyle += 'grid-template-columns: 1fr 1fr; aspect-ratio: 2/1;';
+                } else {
+                    gridContainerStyle += 'grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr;';
+                }
+
+                const imagesHtml = group.map((msg) => `
+            <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+        style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
+            <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+        `).join('');
+
+                return `
+            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                <div style="${gridContainerStyle}">
+                    ${imagesHtml}
+                </div>
+            </div>
+            `;
+            }
+
+            // 2. STANDARD TEXT/FILE MESSAGES
+            return group.map((msg) => {
+                const isMe = msg.senderId === this.currentUser.id;
+                let showRead = false;
+                if (isMe && msg.isRead) {
+                    const realIdx = sortedMessages.indexOf(msg);
+                    const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
+                    if (!newerMyMsg) showRead = true;
+                }
+
+                let contentHtml = '';
+                // File (Non-Image)
+                if (msg.fileUrl && msg.fileType !== 'image') {
+                    const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
+                    contentHtml += `
+            <div style="margin-bottom: 6px;">
+                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
+                                display: flex; align-items: center; gap: 12px; cursor: pointer;
+                                background: #242526; padding: 10px 14px; 
+                                border-radius: 18px; text-decoration: none; color: white; 
+                                border: 1px solid rgba(255,255,255,0.05); 
+                                max-width: 220px; transition: background 0.2s;
+                            ">
+                    <div style="
+                                    background: rgba(255,255,255,0.1); width: 40px; height: 40px; 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+                                ">
+                        <span style="font-size: 1.2em;">📄</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                        <span style="
+                                        font-size: 0.85em; font-weight: 600; 
+                                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+                                        display: block; width: 100%;
+                                    ">${cleanName}</span>
+                    </div>
+                </div>
+            </div>
+            `;
+                }
+
+                if (msg.message && msg.message.trim()) {
+                    contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                }
+
+                const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
+                const bubbleBg = isStandAlone ? 'transparent' : (isMe ? 'var(--accent-purple)' : '#333');
+                const bubblePad = isStandAlone ? '0' : '8px 12px';
+
+                const msgDate = new Date(msg.createdAt);
+                const prevMsgOverall = sortedMessages[sortedMessages.indexOf(msg) - 1];
+                const timeDiff = prevMsgOverall ? (msgDate - new Date(prevMsgOverall.createdAt)) : Infinity;
+                const showTimeHeader = timeDiff > 10 * 60 * 1000; // 10 minutes
+
+                const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+
+                let timeHeader = '';
+                if (group.indexOf(msg) === 0 && showTimeHeader) {
+                    timeHeader = `
+            <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
+                <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
+                    ${timeStr}
+                </span>
+            </div>
+            `;
+                }
+
+                let statusHtml = '';
+                if (isMe && msg.id === lastMyMsgId) {
+                    let statusText = '';
+                    let statusColor = '#666';
+
+                    if (showRead) {
+                        statusText = 'Visto';
+                        statusColor = '#aaa';
+                    } else {
+                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))}`;
+                        statusColor = '#666';
+                    }
+
+                    statusHtml = `
+            <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
+                ${statusText}
+            </div>
+            `;
+                }
+
+                return `
+                    ${timeHeader}
+        <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
+                         align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
+                         max-width: 85%; 
+                         margin-bottom: 2px; 
+                         display: flex; 
+                         flex-direction: column; 
+                         align-items: ${isMe ? 'flex-end' : 'flex-start'};
+                    ">
+            <div style="
+                             background: ${bubbleBg}; 
+                             padding: ${bubblePad}; 
+                             border-radius: 18px; 
+                             border-bottom-${isMe ? 'right' : 'left'}-radius: 4px; 
+                             color: white; 
+                             line-height: 1.4; 
+                             font-size: 0.95rem; 
+                             word-break: break-word;
+                             min-width: 60px;
+                        ">
+                ${contentHtml}
+            </div>
+            ${statusHtml}
+        </div>
+        `;
+            }).join('');
+        }).join('');
+    }
+
+    getRelativeTime(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHrs = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHrs / 24);
+
+        if (diffMins < 1) return 'hace un momento';
+        if (diffMins < 60) return `hace ${diffMins} min`;
+        if (diffHrs < 24) return `hace ${diffHrs} h`;
+        if (diffDays === 1) return 'ayer';
+        return `hace ${diffDays} días`;
+    }
+
+    // Updated send method to support attachments
+    async sendMiniMessage(receiverId, text, fileUrl = null, fileType = null) {
+        try {
+            if (!text && !fileUrl) return;
+
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`${this.baseUrl}/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    receiverId,
+                    message: text,
+                    fileUrl: fileUrl,  // Phase B
+                    fileType: fileType // Phase B
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to send');
+
+            const { message } = await res.json();
+
+            // UI Update is handled by Socket event 'private-message'
+            // But we can append locally for instant feedback if needed
+        } catch (error) {
+            console.error('Send Error:', error);
+        }
+    }
+
+    // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
+    async downloadFile(url, filename) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback
+            window.open(url, '_blank');
+        }
+    }
+
+    // ==========================================
+    // Helper: Standard Download (Reverted to Safe Mode)
+    // Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
+    downloadFileSecure(url, filename) {
+        // Just open the original signed URL. 
+        // If it opens in a new tab (PDF Viewer), user can save from there.
+        // We cannot inject fl_attachment client-side without invalidating the signature.
+        window.open(url, '_blank');
+    }
+
+    // Lightbox Logic (Phase F)
+    // ==========================================
+    // ==========================================
+    // Lightbox Logic (Phase G - Carousel)
+    // ==========================================
+    openLightbox(currentUrl, userId) {
+        // 1. Get all images in conversation
+        let conversation = this.conversations.find(c => c.otherUser.id == userId);
+        // If not found in active list, try to find in messagesPageContainer or fallback
+        // Fallback: Scan DOM if needed, but state is better. 
+        // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
+        // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
+        // Let's use the DOM-rendered images to be 100% sync with what the user sees.
+
+        const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
+        let currentIndex = allImages.indexOf(currentUrl);
+        if (currentIndex === -1) {
+            // Fallback if URL mismatch (e.g. query params)
+            currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
+        }
+        if (currentIndex === -1) {
+            // Just show single if not found in list
+            allImages.push(currentUrl);
+            currentIndex = 0;
+        }
+
+        let lightbox = document.getElementById('chat-lightbox');
+        if (lightbox) lightbox.remove(); // Re-create to ensure clean state
+
+        lightbox = document.createElement('div');
+        lightbox.id = 'chat-lightbox';
+        lightbox.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            user-select: none; opacity: 0; transition: opacity 0.2s;
+        `;
+        document.body.appendChild(lightbox);
+
+        // --- RENDER FUNCTION ---
+        const renderContent = () => {
+            lightbox.innerHTML = '';
+
+            // Close Button
+            const closeBtn = document.createElement('div');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = `
+                position: absolute; top: 10px; right: 20px; color: #fff; font-size: 40px; 
+                cursor: pointer; z-index: 10002; opacity: 0.8;
+            `;
+            closeBtn.onclick = () => close();
+            lightbox.appendChild(closeBtn);
+
+            // Container for Main Image + Arrows
+            const mainContainer = document.createElement('div');
+            mainContainer.style.cssText = `
+                flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;
+            `;
+
+            // Prev Arrow
+            if (allImages.length > 1) {
+                const prevBtn = document.createElement('div');
+                prevBtn.innerHTML = '&#10094;';
+                prevBtn.style.cssText = `
+                    position: absolute; left: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
+                `;
+                prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
+                mainContainer.appendChild(prevBtn);
+            }
+
+            // Image
+            const img = document.createElement('img');
+            img.src = allImages[currentIndex];
+            img.style.cssText = `
+                max-width: 90%; max-height: 80vh; border-radius: 4px; 
+                box-shadow: 0 0 30px rgba(0,0,0,0.5); transition: transform 0.2s;
+            `;
+            mainContainer.appendChild(img);
+
+            // Next Arrow
+            if (allImages.length > 1) {
+                const nextBtn = document.createElement('div');
+                nextBtn.innerHTML = '&#10095;';
+                nextBtn.style.cssText = `
+                    position: absolute; right: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
+                `;
+                nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
+                mainContainer.appendChild(nextBtn);
+            }
+            lightbox.appendChild(mainContainer);
+
+            // Thumbnails Strip
+            if (allImages.length > 1) {
+                const strip = document.createElement('div');
+                strip.style.cssText = `
+                    height: 80px; width: 100%; background: rgba(0,0,0,0.5); 
+                    display: flex; align-items: center; justify-content: center; gap: 10px; 
+                    overflow-x: auto; padding: 10px; box-sizing: border-box;
+                `;
+
+                allImages.forEach((src, idx) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = src;
+                    const isActive = idx === currentIndex;
+                    thumb.style.cssText = `
+                        height: 50px; width: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; 
+                        border: 2px solid ${isActive ? 'var(--accent-purple)' : 'transparent'};
+                        opacity: ${isActive ? '1' : '0.6'}; transition: all 0.2s;
+                    `;
+                    thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
+                    strip.appendChild(thumb);
+                });
+                lightbox.appendChild(strip);
+            }
+
+            // Click BG to close
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox || e.target === mainContainer) close();
+            };
+        };
+
+        // --- HELPERS ---
+        const navigate = (dir) => {
+            currentIndex += dir;
+            if (currentIndex < 0) currentIndex = allImages.length - 1;
+            if (currentIndex >= allImages.length) currentIndex = 0;
+            renderContent();
+        };
+
+        const close = () => {
+            lightbox.style.opacity = '0';
+            setTimeout(() => lightbox.remove(), 200);
+            document.removeEventListener('keydown', keyHandler);
+        };
+
+        const keyHandler = (e) => {
+            if (e.key === 'Escape') close();
+            if (e.key === 'ArrowLeft') navigate(-1);
+            if (e.key === 'ArrowRight') navigate(1);
+        };
+        document.addEventListener('keydown', keyHandler);
+
+        // Init
+        renderContent();
+        requestAnimationFrame(() => lightbox.style.opacity = '1');
+    }
+
+    // ==========================================
+    // Emoji Picker Logic (Inline - No Dependencies)
+    // ==========================================
+    toggleEmojiPicker(triggerBtn, userId) {
+        // Close if open
+        const existing = document.getElementById(`emoji-picker-${userId}`);
+        if (existing) {
+            existing.remove();
+            return;
+        }
+
+        // Create Picker
+        const picker = document.createElement('div');
+        picker.id = `emoji-picker-${userId}`;
+        picker.style.cssText = `
+            position: absolute;
+            bottom: 60px;
+            right: 10px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            max-height: 200px;
+            overflow-y: auto;
+            /* Scrollbar Style */
+            scrollbar-width: thin;
+            scrollbar-color: #555 #222;
+        `;
+
+        // Webkit Scrollbar style injection (inline)
+        const style = document.createElement('style');
+        style.textContent = `
+            #emoji-picker-${userId}::-webkit-scrollbar { width: 6px; }
+            #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222; }
+            #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        `;
+        picker.appendChild(style);
+
+        const emojis = [
+            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+            '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
+        ];
+
+        emojis.forEach(emoji => {
+            const span = document.createElement('span');
+            span.textContent = emoji;
+            span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
+            span.onmouseover = () => span.style.background = '#333';
+            span.onmouseout = () => span.style.background = 'transparent';
+            span.onclick = () => {
+                const input = document.getElementById(`chat-input-${userId}`);
+                if (input) {
+                    input.value += emoji;
+                    input.focus();
+                }
+                // Keep open or close? Usually close
+                // picker.remove(); 
+            };
+            picker.appendChild(span);
+        });
+
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+
+        // Append to footer or body? Footer is safer for positioning
+        triggerBtn.parentElement.parentElement.style.position = 'relative';
+        triggerBtn.parentElement.parentElement.appendChild(picker);
+    }
+    toggleEmojiPicker(triggerBtn, userId) {
+        if (!window.EmojiButton) return;
+
+        if (!this.pickers) this.pickers = {};
+
+        if (!this.pickers[userId]) {
+            const picker = new EmojiButton({
+                theme: 'dark',
+                autoHide: false,
+                position: 'top-start'
+            });
+
+            const input = document.getElementById(`chat-input-${userId}`);
+
+            picker.on('emoji', selection => {
+                if (input) {
+                    input.value += selection.emoji;
+                    input.focus();
+                }
+            });
+
+            this.pickers[userId] = picker;
+        }
+
+        this.pickers[userId].togglePicker(triggerBtn);
     }
 }
 
