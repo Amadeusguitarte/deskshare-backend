@@ -55,7 +55,11 @@ class ChatManager {
         if (this.messagesPageContainer) {
             this.renderFullPage();
         } else {
-            this.renderWidget();
+            // FIX: Do not render widget if we are on the messages page but container detection failed for some reason,
+            // or if we just want to be extra safe.
+            if (!window.location.href.includes('messages.html')) {
+                this.renderWidget();
+            }
         }
     }
 
@@ -482,7 +486,9 @@ class ChatManager {
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
                     <h3 style="margin: 0; color: white;">${user.name}</h3>
-                    <span style="font-size: 0.8rem; color: var(--success-green);">En línea</span>
+                    <span style="font-size: 0.8rem; color: ${user.isOnline ? 'var(--success-green)' : '#666'};">
+                        ${user.isOnline ? 'En línea' : ''}
+                    </span>
                 </div>
             </div>
              <div style="display: flex; gap: 0.5rem;">
@@ -531,6 +537,12 @@ class ChatManager {
                     stagingArea.style.display = 'none';
                 };
             };
+        }
+
+        // FOCUS FIX: Focus input immediately after selection
+        const msgInput = document.getElementById('messageInput');
+        if (msgInput) {
+            msgInput.focus();
         }
 
         const form = document.getElementById('messageForm');
