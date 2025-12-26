@@ -125,7 +125,8 @@
     </nav>
 
     <!-- Main Content -->
-    <main style="padding-top: 0; height: 100vh; box-sizing: border-box; overflow: hidden; background: #0a0a0a;">
+    <!-- FIX: Added padding-top and margin to clear the fixed navbar -->
+    <main style="padding-top: 90px; height: 100vh; box-sizing: border-box; overflow: hidden; background: #0a0a0a;">
         <div id="messagesPageContainer" style="height: 100%;">
             <!-- ChatManager will render the full UI here -->
             <div
@@ -141,8 +142,8 @@
         const API_BASE_URL = 'https://deskshare-backend-production.up.railway.app/api';
     </script>
     <script src="config.js"></script>
-    <script src="ui-global.js?v=FIX_297"></script>
-    <script src="js/chat-manager.js?v=FIX_297"></script>
+    <script src="ui-global.js?v=FIX_298"></script>
+    <script src="js/chat-manager.js?v=FIX_298"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Check auth

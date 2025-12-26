@@ -56,6 +56,9 @@ function initGlobalChat(user) {
     if (window.chatManager) return; // Already init
 
     // 1. Ensure Widget Container Exists
+    // FIX: Do NOT create widget container on the full-page messages view
+    if (window.location.href.includes('messages.html')) return;
+
     let container = document.getElementById('chatWidgetContainer');
     if (!container) {
         container = document.createElement('div');

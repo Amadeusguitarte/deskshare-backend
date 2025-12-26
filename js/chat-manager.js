@@ -540,10 +540,18 @@ class ChatManager {
         }
 
         // FOCUS FIX: Focus input immediately after selection
-        const msgInput = document.getElementById('messageInput');
-        if (msgInput) {
-            msgInput.focus();
-        }
+        setTimeout(() => {
+            const msgInput = document.getElementById('messageInput');
+            if (msgInput) {
+                msgInput.focus();
+                msgInput.click(); // Force active
+            }
+            // Mark read immediately when selecting conversation
+            if (this.activeConversation) {
+                const userId = this.activeConversation.otherUser.id;
+                this.handleInputFocus(userId);
+            }
+        }, 100);
 
         const form = document.getElementById('messageForm');
         form.onsubmit = async (e) => {
