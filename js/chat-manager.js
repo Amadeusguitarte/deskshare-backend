@@ -969,15 +969,25 @@ class ChatManager {
         }
     }
 
-    // Updated scrollToBottom to support ID targeting and minimized check
+    // Updated scrollToBottom with Multi-Tick Force Scroll
     scrollToBottom(userId) {
         if (userId && this.minimizedConversations.has(userId)) return;
 
-        const area = userId ? document.getElementById(`msg - area - ${userId} `) : document.getElementById('messagesArea');
+        const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
         if (area) {
+            // 1. Immediate Scroll
             area.scrollTop = area.scrollHeight;
-            // Ensure opacity is 1 if it was hidden
             if (area.style.opacity === '0') area.style.opacity = '1';
+
+            // 2. Post-Render Scroll (catches layout shifts)
+            setTimeout(() => {
+                if (area) area.scrollTop = area.scrollHeight;
+            }, 50);
+
+            // 3. Image Reflow Scroll (catches fast-loading images)
+            setTimeout(() => {
+                if (area) area.scrollTop = area.scrollHeight;
+            }, 300);
         }
     }
 
