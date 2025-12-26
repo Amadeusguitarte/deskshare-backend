@@ -478,7 +478,7 @@ class ChatManager {
         const user = conv.otherUser;
         const header = document.getElementById('chatHeader');
         header.innerHTML = `
-            < div style = "display: flex; align-items: center; gap: 1rem;" >
+            <div style="display: flex; align-items: center; gap: 1rem;">
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
                     <h3 style="margin: 0; color: white;">${user.name}</h3>
@@ -514,14 +514,14 @@ class ChatManager {
 
                 stagingArea.style.display = 'block';
                 stagingArea.innerHTML = `
-            < div style = "background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);" >
+            <div style="background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--glass-border);">
                 ${isImage ?
                         `<img src="${URL.createObjectURL(file)}" style="width: 30px; height: 30px; border-radius: 4px; object-fit: cover;">` :
                         `<span style="font-size: 1.2rem;">📄</span>`
                     }
                         <span style="font-size: 0.9rem; color: white; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
                         <button type="button" id="removeStagedBtn" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem; margin-left: 5px;">×</button>
-                    </div >
+                    </div>
             `;
 
                 document.getElementById('removeStagedBtn').onclick = () => {
@@ -1162,7 +1162,7 @@ class ChatManager {
             this.renderStagingArea(userId);
 
             // Focus input
-            const chatInput = document.getElementById(`chat - input - ${userId} `);
+            const chatInput = document.getElementById(`chat-input-${userId}`);
             if (chatInput) chatInput.focus();
 
         } catch (error) {
@@ -1174,8 +1174,8 @@ class ChatManager {
     }
 
     renderStagingArea(userId) {
-        const stagingArea = document.getElementById(`chat - staging - ${userId} `);
-        const stagingContent = document.getElementById(`chat - staging - content - ${userId} `);
+        const stagingArea = document.getElementById(`chat-staging-${userId}`);
+        const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
         const files = this.stagedFiles.get(userId) || [];
 
         if (!files.length) {
@@ -1194,17 +1194,17 @@ class ChatManager {
 
                 let innerHTML = '';
                 if (file.fileType === 'image') {
-                    innerHTML = `< img src = "${file.fileUrl}" style = "height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;" > `;
+                    innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;">`;
                 } else {
                     innerHTML = `
-            < div style = "height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;" >
+            <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
                             📄
-                        </div > `;
+                        </div>`;
                 }
 
                 // Add Close Button (X)
                 innerHTML += `
-            < div onclick = "chatManager.removeStagedFile(${userId}, ${index})" style = "position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" >& times;</div >
+            <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">&times;</div>
                 `;
 
                 thumb.innerHTML = innerHTML;
