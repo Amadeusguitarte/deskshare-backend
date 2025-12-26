@@ -781,6 +781,82 @@ textarea:focus {
     grid-template-columns: 1fr !important;
   }
 }
+
 /* Chat Flash Animation */
-@keyframes chatFlash { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.7); border-color: #ff00ff; } 50% { box-shadow: 0 0 20px 5px rgba(255, 0, 255, 0.7); border-color: #ffffff; background: #333; } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 255, 0); border-color: var(--glass-border); } }
-.flash-animation { animation: chatFlash 1s ease-in-out infinite; }
+@keyframes chatFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.7);
+    border-color: #ff00ff;
+  }
+
+  50% {
+    box-shadow: 0 0 20px 5px rgba(255, 0, 255, 0.7);
+    border-color: #ffffff;
+    background: #333;
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 255, 0);
+    border-color: var(--glass-border);
+  }
+}
+
+.flash-animation {
+  animation: chatFlash 1s ease-in-out infinite;
+}
+
+/* 
+   Phase AP: Precision Scrollbar (14px Container / 3px Air Gap / Solid Buttons) 
+   Implemented: v272 
+*/
+::-webkit-scrollbar {
+  width: 14px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--primary-purple);
+  border-radius: 99px;
+  border: 3px solid transparent;
+  /* Creates 3px Air Gap */
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-purple-dark);
+  border: 3px solid transparent;
+}
+
+/* Scrollbar Buttons - Integrated 14px Square */
+::-webkit-scrollbar-button {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: transparent;
+}
+
+/* Vertical Up - Solid Rounded Triangle (Fill + Stroke) */
+::-webkit-scrollbar-button:vertical:start:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 6L4 18H20L12 6Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Vertical Down - Solid Rounded Triangle */
+::-webkit-scrollbar-button:vertical:end:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 18L20 6H4L12 18Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Horizontal Left */
+::-webkit-scrollbar-button:horizontal:start:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M6 12L18 4V20L6 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Horizontal Right */
+::-webkit-scrollbar-button:horizontal:end:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M18 12L6 20V4L18 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
