@@ -333,7 +333,7 @@ class ChatManager {
         this.messagesPageContainer.style.overflow = 'hidden';
 
         this.messagesPageContainer.innerHTML = `
-            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: calc(100vh - 70px); gap: 1rem; padding: 1rem; padding-bottom: 0; box-sizing: border-box;">
+            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: 100%; gap: 1rem; padding: 1rem; padding-bottom: 0; box-sizing: border-box;">
                 <!--Sidebar -->
                 <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%;">
                     <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
@@ -345,7 +345,7 @@ class ChatManager {
                     </div>
                 </div>
 
-                <!--Chat Area-- >
+                <!--Chat Area-->
             <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative;">
                 <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0;">
                     <h3 style="margin: 0; color: var(--text-secondary);">Selecciona una conversación</h3>
@@ -439,7 +439,7 @@ class ChatManager {
 
             return `
             <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'active' : ''}"
-        onclick="chatManager.selectConversation(${user.id})"
+        onclick="chatManager.selectConversation('${user.id}')"
         style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id === user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
             <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
                 <div style="flex: 1; overflow: hidden;">
