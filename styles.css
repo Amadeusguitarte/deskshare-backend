@@ -376,68 +376,63 @@ p {
   box-shadow: 0 12px 40px rgba(138, 43, 226, 0.3);
 }
 
-/* Scrollbar - Final Hybrid (Squat Button + Lateral Air) */
+/* Scrollbar - Phase AN: Solid Rounded Triangles & Square Buttons */
 ::-webkit-scrollbar {
   width: 16px;
-  height: 6px;
+  background-color: #1a1a1a;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background-color: #1a1a1a;
+  /* Solid standard track */
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--primary-purple);
-  border-radius: 99px;
-  /* Full capsule */
+  border-radius: 8px;
+  /* Standard Pill */
   border: 4px solid transparent;
-  /* Start with uniform... */
-  border-top: none;
-  /* Remove vertical bumpers */
-  border-bottom: none;
-  /* Remove vertical bumpers */
+  /* Floating Effect (4px gap all around) */
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-purple-dark);
-  /* Color change only */
   border: 4px solid transparent;
-  border-top: none;
-  border-bottom: none;
+  /* Locked */
   background-clip: content-box;
 }
 
-/* Scrollbar Arrows - Squat Compact Buttons */
+/* Scrollbar Arrows - Square Standard Buttons */
 ::-webkit-scrollbar-button {
   display: block;
   background-repeat: no-repeat;
   background-position: center;
-  background-color: transparent;
+  /* Button matches track color for solid look */
+  background-color: #1a1a1a;
   width: 16px;
-  height: 10px;
-  /* Squat button (10px) = 0 Gap to Thumb */
+  height: 16px;
+  /* Square Button */
 }
 
-/* Vertical Up - Truly Rounded Triangle */
+/* Vertical Up - Solid Rounded Triangle */
 ::-webkit-scrollbar-button:vertical:start:decrement {
-  /* Using a smaller path with thick round stroke to ensure corners are soft */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4 18 L12 6 L20 18' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 6L4 18H20L12 6Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Vertical Down - Truly Rounded Triangle */
+/* Vertical Down - Solid Rounded Triangle */
 ::-webkit-scrollbar-button:vertical:end:increment {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4 6 L12 18 L20 6' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M12 18L20 6H4L12 18Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Horizontal Left */
+/* Horizontal Left - Solid Rounded Triangle */
 ::-webkit-scrollbar-button:horizontal:start:decrement {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M18 20 L6 12 L18 4' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M6 12L18 4V20L6 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Horizontal Right */
+/* Horizontal Right - Solid Rounded Triangle */
 ::-webkit-scrollbar-button:horizontal:end:increment {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 20 L18 12 L6 4' stroke='%238a2be2' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a2be2'%3E%3Cpath d='M18 12L6 20V4L18 12Z' stroke='%238a2be2' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .computer-image {

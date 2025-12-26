@@ -1172,11 +1172,12 @@ class ChatManager {
                         }
 
                         if (msg.message && msg.message.trim()) {
-                            // Phase AL: Defensive Filter for Ghost Comments (e.g. "// Grouping Logic")
+                            // Phase AN: Nuclear Filter for Ghost Text
                             const rawText = msg.message.trim();
-                            const isComment = rawText.startsWith('//') || rawText.startsWith('/*');
+                            // Block specific debug strings seen by user
+                            const isGhost = rawText.includes('Grouping Logic') || rawText.startsWith('//') || rawText.startsWith('/*');
 
-                            if (!isComment) {
+                            if (!isGhost) {
                                 contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                             }
                         }
