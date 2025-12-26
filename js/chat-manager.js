@@ -445,7 +445,7 @@ class ChatManager {
             <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'active' : ''}"
         onclick="chatManager.selectConversation('${user.id}')"
         style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
-            <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+            <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
                 <div style="flex: 1; overflow: hidden;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
                         <div style="display: flex; align-items: center; gap: 6px;">
@@ -486,7 +486,7 @@ class ChatManager {
         const header = document.getElementById('chatHeader');
         header.innerHTML = `
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%;">
+                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 40px; height: 40px; border-radius: 50%;">
                 <div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <h3 style="margin: 0; color: white;">${user.name}</h3>
@@ -698,7 +698,7 @@ class ChatManager {
                 <div class="chat-list-area" style="flex: 1; overflow-y: auto; background: #111;">
                     ${this.conversations.length > 0 ? this.conversations.map(conv => `
                         <div id="widget-list-item-${conv.otherUser.id}" onclick="chatManager.openChat(${conv.otherUser.id})" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">
-                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                            <img src="${conv.otherUser.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                             <div style="flex:1; overflow:hidden;">
                                 <div style="font-weight: 500; font-size: 0.9rem; color: white; display: flex; align-items: center; gap: 6px;">
                                     ${conv.otherUser.name}
@@ -784,7 +784,7 @@ class ChatManager {
                  <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
                         <div style="display: flex; flex-direction: column;">
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>

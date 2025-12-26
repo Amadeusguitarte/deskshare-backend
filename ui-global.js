@@ -40,7 +40,10 @@ function enhanceHeaderProfile(user) {
     const dropdownName = document.getElementById('headerDropdownName');
 
     // Safety check: if elements don't exist, we might be on a page without them or index.html hasn't updated.
-    if (avatarImg) avatarImg.src = user.avatarUrl || 'assets/default-avatar.svg';
+    if (avatarImg) {
+        avatarImg.src = user.avatarUrl || 'assets/default-avatar.svg';
+        avatarImg.onerror = () => { avatarImg.src = 'assets/default-avatar.svg'; };
+    }
     if (nameSpan) nameSpan.textContent = user.name.split(' ')[0];
     if (dropdownName) dropdownName.textContent = user.name;
 
@@ -83,9 +86,6 @@ function initGlobalChat(user) {
     console.log('Global Chat Widget Initialized');
 
     // Header enhancement is now done separately in enhanceHeaderProfile
-}
-console.log('Global Chat Widget Initialized');
-
     // Header enhancement is now done separately in enhanceHeaderProfile
 }
 
