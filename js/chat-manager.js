@@ -1413,27 +1413,17 @@ class ChatManager {
         overflow: hidden;
         width: 100%;
         max-width: 220px;
-            const isImageGroup = firstMsg.fileUrl && firstMsg.fileType === 'image';
-
-                display: grid;
-                gap: 2px;
-                background: transparent;
-                border - radius: 18px;
-                overflow: hidden;
-                width: 100 %;
-                max - width: 220px;
-                `;
+        `;
 
                 if (count === 1) {
                     return `
-                    < div style = "display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
-                        <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${firstMsg.senderId}')"
-                            style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
-                            <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
-                        </div>
-                 ${isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
-            </div >
-                    `;
+            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
+                    style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
+                    <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
+                </div>
+            </div>
+            `;
                 }
 
                 if (count === 2) {
@@ -1443,43 +1433,29 @@ class ChatManager {
                 }
 
                 const imagesHtml = group.map((msg) => `
-                    < div onclick = "event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-                style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
-                    <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                `).join('');
-
-                // Helper to render Status for Collage
-                const getStatusHtml = (time) => {
-                    const statusText = showRead && isMe && (group.indexOf(group[group.length - 1]) === group.length - 1) ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(time))} `;
-                    return `
-                    < div style = "font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
-                        ${statusText}
-                        </div >
-                    `;
-                };
+            <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+        style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
+            <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+        `).join('');
 
                 return `
-                    < div style = "display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
-                        <div style="${gridContainerStyle}">
-                            ${imagesHtml}
-                        </div>
-                 ${isMe && firstMsg.id === lastMyMsgId ? getStatusHtml(firstMsg.createdAt) : ''}
-            </div >
-                    `;
+            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                <div style="${gridContainerStyle}">
+                    ${imagesHtml}
+                </div>
+            </div>
+            `;
             }
 
             // 2. STANDARD TEXT/FILE MESSAGES
             return group.map((msg) => {
                 const isMe = msg.senderId === this.currentUser.id;
-                // showRead is already calculated for the group, but we might want per-message if needed.
-                // For standard bubbles, we rely on the group calculation or recalculate per bubble if strictly needed.
-                // However, the original code recalculated it. Let's keep it robust.
-                let msgShowRead = false;
+                let showRead = false;
                 if (isMe && msg.isRead) {
                     const realIdx = sortedMessages.indexOf(msg);
                     const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
-                    if (!newerMyMsg) msgShowRead = true;
+                    if (!newerMyMsg) showRead = true;
                 }
 
                 let contentHtml = '';
@@ -1487,34 +1463,34 @@ class ChatManager {
                 if (msg.fileUrl && msg.fileType !== 'image') {
                     const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
                     contentHtml += `
-                    < div style = "margin-bottom: 6px;" >
-                        <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
+            <div style="margin-bottom: 6px;">
+                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
                                 border-radius: 18px; text-decoration: none; color: white; 
                                 border: 1px solid rgba(255,255,255,0.05); 
                                 max-width: 220px; transition: background 0.2s;
                             ">
-                            <div style="
+                    <div style="
                                     background: rgba(255,255,255,0.1); width: 40px; height: 40px; 
                                     border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
                                 ">
-                                <span style="font-size: 1.2em;">📄</span>
-                            </div>
-                            <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
-                                <span style="
+                        <span style="font-size: 1.2em;">📄</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                        <span style="
                                         font-size: 0.85em; font-weight: 600; 
                                         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
                                         display: block; width: 100%;
                                     ">${cleanName}</span>
-                            </div>
-                        </div>
-            </div >
-                    `;
+                    </div>
+                </div>
+            </div>
+            `;
                 }
 
                 if (msg.message && msg.message.trim()) {
-                    contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
+                    contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                 }
 
                 const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1531,12 +1507,12 @@ class ChatManager {
                 let timeHeader = '';
                 if (group.indexOf(msg) === 0 && showTimeHeader) {
                     timeHeader = `
-                    < div style = "width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;" >
-                        <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
-                            ${timeStr}
-                        </span>
-            </div >
-                    `;
+            <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
+                <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
+                    ${timeStr}
+                </span>
+            </div>
+            `;
                 }
 
                 let statusHtml = '';
@@ -1544,24 +1520,24 @@ class ChatManager {
                     let statusText = '';
                     let statusColor = '#666';
 
-                    if (msgShowRead) {
+                    if (showRead) {
                         statusText = 'Visto';
                         statusColor = '#aaa';
                     } else {
-                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))} `;
+                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))}`;
                         statusColor = '#666';
                     }
 
                     statusHtml = `
-                    < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
-                        ${statusText}
-            </div >
-                    `;
+            <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
+                ${statusText}
+            </div>
+            `;
                 }
 
                 return `
                     ${timeHeader}
-                <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
+        <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
                          align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
                          max-width: 85%; 
                          margin-bottom: 2px; 
@@ -1569,7 +1545,7 @@ class ChatManager {
                          flex-direction: column; 
                          align-items: ${isMe ? 'flex-end' : 'flex-start'};
                     ">
-                    <div style="
+            <div style="
                              background: ${bubbleBg}; 
                              padding: ${bubblePad}; 
                              border-radius: 18px; 
@@ -1580,11 +1556,11 @@ class ChatManager {
                              word-break: break-word;
                              min-width: 60px;
                         ">
-                        ${contentHtml}
-                    </div>
-                    ${statusHtml}
-                </div>
-                `;
+                ${contentHtml}
+            </div>
+            ${statusHtml}
+        </div>
+        `;
             }).join('');
         }).join('');
     }
