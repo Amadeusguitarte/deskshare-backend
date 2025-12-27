@@ -1873,32 +1873,7 @@ class ChatManager {
         triggerBtn.parentElement.parentElement.style.position = 'relative';
         triggerBtn.parentElement.parentElement.appendChild(picker);
     }
-    toggleEmojiPicker(triggerBtn, userId) {
-        if (!window.EmojiButton) return;
 
-        if (!this.pickers) this.pickers = {};
-
-        if (!this.pickers[userId]) {
-            const picker = new EmojiButton({
-                theme: 'dark',
-                autoHide: false,
-                position: 'top-start'
-            });
-
-            const input = document.getElementById(`chat-input-${userId}`);
-
-            picker.on('emoji', selection => {
-                if (input) {
-                    input.value += selection.emoji;
-                    input.focus();
-                }
-            });
-
-            this.pickers[userId] = picker;
-        }
-
-        this.pickers[userId].togglePicker(triggerBtn);
-    }
 }
 
 // Make globally available
