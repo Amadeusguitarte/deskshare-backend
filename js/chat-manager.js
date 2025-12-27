@@ -411,7 +411,24 @@ class ChatManager {
         if (emojiBtn && window.EmojiButton) {
             this.picker = new EmojiButton({
                 theme: 'dark',
-                autoHide: false,
+                // Safe Global Wrappers for Inline HTML
+                window.safeTriggerUpload = (userId) => {
+                    if (window.chatManager) window.chatManager.triggerFileUpload(userId);
+                    else console.error('ChatManager instance not found');
+                };
+
+                window.safeToggleEmoji = (btn, userId) => {
+                    if (window.chatManager) window.chatManager.toggleEmojiPicker(btn, userId);
+                    else console.error('ChatManager instance not found');
+                };
+
+                window.safeOpenLightbox = (url, userId) => {
+                    if (window.chatManager) window.chatManager.openLightbox(url, userId);
+                    else if (window.chatManagerInstance) window.chatManagerInstance.openLightbox(url, userId);
+                };
+
+                // Aliasing for compatibility
+                window.chatManagerInstance = window.chatManager;
                 position: 'top-end'
             });
             const input = document.getElementById('messageInput');
@@ -782,7 +799,7 @@ class ChatManager {
         return `
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!--HEADER -->
-                <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="chatManager.toggleMinimize(${user.id})">
+                <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="window.safeMinimize(${user.id})">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
                         <div style="display: flex; flex-direction: column;">
@@ -796,7 +813,7 @@ class ChatManager {
                     <div style="display: flex; gap: 12px; align-items: center;">
                         ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
                         <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
-                        <span onclick="event.stopPropagation(); chatManager.closeTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
+                        <span onclick="event.stopPropagation(); window.safeCloseTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
                 </div>
                 
@@ -826,7 +843,7 @@ class ChatManager {
 
                 <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
                     <!-- Attach Icon -->
-                    <button onclick="chatManager.triggerFileUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                    <button onclick="window.safeTriggerUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     </button>
 
@@ -834,18 +851,18 @@ class ChatManager {
                     <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
                         <input type="text" placeholder="Escribe un mensaje..."
                             id="chat-input-${user.id}"
-                            onfocus="chatManager.handleInputFocus(${user.id})"
-                            onkeypress="if(event.key === 'Enter') { chatManager.sendStagedMessage(${user.id}); } else { chatManager.emitTyping(${user.id}); }"
+                            onfocus="window.safeHandleFocus(${user.id})"
+                            onkeypress="if(event.key === 'Enter') { window.safeSendStagedMessage(${user.id}); } else { window.safeEmitTyping(${user.id}); }"
                             style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
 
                             <!-- Emoji Icon -->
-                            <button onclick="chatManager.toggleEmojiPicker(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                            <button onclick="window.safeToggleEmoji(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
                             </button>
                     </div>
 
                     <!-- Send Icon -->
-                    <button onclick="chatManager.sendStagedMessage(${user.id})"
+                    <button onclick="window.safeSendStagedMessage(${user.id})"
                         style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
@@ -1058,7 +1075,7 @@ class ChatManager {
 
         // UX: Auto-Focus Input
         setTimeout(() => {
-            const tab = document.getElementById(`chat - tab - ${userId} `);
+            const tab = document.getElementById(`chat-tab-${userId}`);
             if (tab) {
                 const input = tab.querySelector('input');
                 if (input) {
@@ -1157,7 +1174,7 @@ class ChatManager {
         }
 
         // 2. Stop Flash
-        const tab = document.getElementById(`chat - tab - ${userId} `);
+        const tab = document.getElementById(`chat-tab-${userId}`);
         if (tab) {
             tab.classList.remove('flash-animation');
         }
@@ -1196,11 +1213,11 @@ class ChatManager {
     // ==========================================
     triggerFileUpload(userId) {
         // Create hidden input dynamically if not exists
-        let input = document.getElementById(`file - input - ${userId} `);
+        let input = document.getElementById(`file-input-${userId}`);
         if (!input) {
             input = document.createElement('input');
             input.type = 'file';
-            input.id = `file - input - ${userId} `;
+            input.id = `file-input-${userId}`;
             input.style.display = 'none';
             // Accept Images and Docs. Enable Multiple!
             input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
@@ -1224,7 +1241,7 @@ class ChatManager {
         if (!file) return;
 
         // Optimistic UI feedback could go here (e.g. spinner)
-        const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
+        const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
         if (btn) btn.style.opacity = '0.5';
 
         try {
@@ -1233,9 +1250,9 @@ class ChatManager {
             formData.append('file', file);
 
             // 1. Upload
-            const res = await fetch(`${this.baseUrl} /chat/upload`, {
+            const res = await fetch(`${API_BASE_URL}/chat/upload`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token} ` },
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
 
@@ -1331,7 +1348,7 @@ class ChatManager {
     }
 
     async sendStagedMessage(userId) {
-        const input = document.getElementById(`chat - input - ${userId} `);
+        const input = document.getElementById(`chat-input-${userId}`);
         if (!input) return;
 
         const text = input.value.trim();
@@ -1903,3 +1920,51 @@ class ChatManager {
 
 // Make globally available
 window.ChatManager = ChatManager;
+// Compatibility override for legacy inline handlers
+if (typeof window.chatManager === 'undefined') {
+    // If instantiated elsewhere, align it.
+    // Ideally script.js does 'window.chatManager = new ChatManager()'
+}
+
+// ==========================================
+// SAFE GLOBAL REFERENCERS (The Fix)
+// ==========================================
+window.safeTriggerUpload = (userId) => {
+    if (window.chatManager) window.chatManager.triggerFileUpload(userId);
+    else console.error('ChatManager instance not found');
+};
+
+window.safeToggleEmoji = (btn, userId) => {
+    if (window.chatManager) window.chatManager.toggleEmojiPicker(btn, userId);
+    else console.error('ChatManager instance not found');
+};
+
+window.safeOpenLightbox = (url, userId) => {
+    if (window.chatManager) window.chatManager.openLightbox(url, userId);
+    else if (window.chatManagerInstance) window.chatManagerInstance.openLightbox(url, userId);
+};
+
+window.safeSendStagedMessage = (userId) => {
+    if (window.chatManager) window.chatManager.sendStagedMessage(userId);
+    else console.error('ChatManager not found for send');
+};
+
+window.safeHandleFocus = (userId) => {
+    if (window.chatManager) window.chatManager.handleInputFocus(userId);
+};
+
+window.safeEmitTyping = (userId) => {
+    if (window.chatManager) window.chatManager.emitTyping(userId);
+};
+
+window.safeMinimize = (userId) => {
+    if (window.chatManager) window.chatManager.toggleMinimize(userId);
+};
+
+window.safeCloseTab = (userId) => {
+    if (window.chatManager) window.chatManager.closeTab(userId);
+};
+
+// Final Aliasing
+window.chatManagerInstance = window.chatManager;
+
