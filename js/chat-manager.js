@@ -1391,8 +1391,8 @@ class ChatManager {
             // Standard Break: 10 mins
             let isTimeBreak = timeDiff > 10 * 60 * 1000;
 
-            // Strict Image Break: 1 minute (prevents accumulation of separate sends)
-            if (isImage && isPrevImage && timeDiff > 60 * 1000) {
+            // Strict Image Break: 2 seconds (prevents accumulation of separate sends)
+            if (isImage && isPrevImage && timeDiff > 2 * 1000) {
                 isTimeBreak = true;
             }
 
@@ -1462,7 +1462,7 @@ class ChatManager {
                 <div style="${gridContainerStyle}">
                     ${imagesHtml}
                 </div>
-                 ${isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
+                 ${isMe && lastMsgInGroup.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
             </div>
             `;
             }
