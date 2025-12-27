@@ -1415,19 +1415,6 @@ class ChatManager {
         max-width: 220px;
             const isImageGroup = firstMsg.fileUrl && firstMsg.fileType === 'image';
 
-            // Calculate showRead for the group (based on the last message in the group)
-            let showRead = false;
-            const lastMsgInGroup = group[group.length - 1];
-            if (lastMsgInGroup.senderId === this.currentUser.id && lastMsgInGroup.isRead) {
-                 const realIdx = sortedMessages.indexOf(lastMsgInGroup);
-                 const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
-                 if (!newerMyMsg) showRead = true;
-            }
-
-            // 1. IMAGE COLLAGE LOGIC
-            if (isImageGroup) {
-                const count = group.length;
-                let gridContainerStyle = `
                 display: grid;
                 gap: 2px;
                 background: transparent;
@@ -1444,7 +1431,7 @@ class ChatManager {
                             style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
                             <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                         </div>
-                 ${ isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : '' }
+                 ${isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
             </div >
                     `;
                 }
@@ -1464,10 +1451,10 @@ class ChatManager {
 
                 // Helper to render Status for Collage
                 const getStatusHtml = (time) => {
-                    const statusText = showRead && isMe && (group.indexOf(group[group.length - 1]) === group.length - 1) ? 'Visto' : `Enviado ${ this.getRelativeTime(new Date(time)) } `;
+                    const statusText = showRead && isMe && (group.indexOf(group[group.length - 1]) === group.length - 1) ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(time))} `;
                     return `
                     < div style = "font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
-                        ${ statusText }
+                        ${statusText}
                         </div >
                     `;
                 };
@@ -1477,7 +1464,7 @@ class ChatManager {
                         <div style="${gridContainerStyle}">
                             ${imagesHtml}
                         </div>
-                 ${ isMe && firstMsg.id === lastMyMsgId ? getStatusHtml(firstMsg.createdAt) : '' }
+                 ${isMe && firstMsg.id === lastMyMsgId ? getStatusHtml(firstMsg.createdAt) : ''}
             </div >
                     `;
             }
@@ -1489,7 +1476,7 @@ class ChatManager {
                 // For standard bubbles, we rely on the group calculation or recalculate per bubble if strictly needed.
                 // However, the original code recalculated it. Let's keep it robust.
                 let msgShowRead = false;
-                 if (isMe && msg.isRead) {
+                if (isMe && msg.isRead) {
                     const realIdx = sortedMessages.indexOf(msg);
                     const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
                     if (!newerMyMsg) msgShowRead = true;
@@ -1527,7 +1514,7 @@ class ChatManager {
                 }
 
                 if (msg.message && msg.message.trim()) {
-                    contentHtml += `< div > ${ msg.message.replace(/\n/g, '<br>') }</div > `;
+                    contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
                 }
 
                 const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1561,19 +1548,19 @@ class ChatManager {
                         statusText = 'Visto';
                         statusColor = '#aaa';
                     } else {
-                        statusText = `Enviado ${ this.getRelativeTime(new Date(msg.createdAt)) } `;
+                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))} `;
                         statusColor = '#666';
                     }
 
                     statusHtml = `
                     < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
-                        ${ statusText }
+                        ${statusText}
             </div >
                     `;
                 }
 
                 return `
-                    ${ timeHeader }
+                    ${timeHeader}
                 <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
                          align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
                          max-width: 85%; 
@@ -1610,10 +1597,10 @@ class ChatManager {
         const diffDays = Math.floor(diffHrs / 24);
 
         if (diffMins < 1) return 'hace un momento';
-        if (diffMins < 60) return `hace ${ diffMins } min`;
-        if (diffHrs < 24) return `hace ${ diffHrs } h`;
+        if (diffMins < 60) return `hace ${diffMins} min`;
+        if (diffHrs < 24) return `hace ${diffHrs} h`;
         if (diffDays === 1) return 'ayer';
-        return `hace ${ diffDays } días`;
+        return `hace ${diffDays} días`;
     }
 
     // Updated send method to support attachments
@@ -1622,11 +1609,11 @@ class ChatManager {
             if (!text && !fileUrl) return;
 
             const token = localStorage.getItem('authToken');
-            const res = await fetch(`${ this.baseUrl }/chat`, {
+            const res = await fetch(`${this.baseUrl}/chat`, {
                 method: 'POST',
-                    headers: {
+                headers: {
                     'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     receiverId,
@@ -1636,213 +1623,213 @@ class ChatManager {
                 })
             });
 
-        if (!res.ok) throw new Error('Failed to send');
+            if (!res.ok) throw new Error('Failed to send');
 
-        const { message } = await res.json();
+            const { message } = await res.json();
 
-        // UI Update is handled by Socket event 'private-message'
-        // But we can append locally for instant feedback if needed
-    } catch(error) {
-        console.error('Send Error:', error);
+            // UI Update is handled by Socket event 'private-message'
+            // But we can append locally for instant feedback if needed
+        } catch (error) {
+            console.error('Send Error:', error);
+        }
     }
-}
 
     // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
     async downloadFile(url, filename) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
 
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
 
-        window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-    } catch (error) {
-        console.error('Download failed:', error);
-        // Fallback
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback
+            window.open(url, '_blank');
+        }
+    }
+
+    // ==========================================
+    // Helper: Standard Download (Reverted to Safe Mode)
+    // Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
+    downloadFileSecure(url, filename) {
+        // Just open the original signed URL. 
+        // If it opens in a new tab (PDF Viewer), user can save from there.
+        // We cannot inject fl_attachment client-side without invalidating the signature.
         window.open(url, '_blank');
     }
-}
 
-// ==========================================
-// Helper: Standard Download (Reverted to Safe Mode)
-// Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
-downloadFileSecure(url, filename) {
-    // Just open the original signed URL. 
-    // If it opens in a new tab (PDF Viewer), user can save from there.
-    // We cannot inject fl_attachment client-side without invalidating the signature.
-    window.open(url, '_blank');
-}
+    // Lightbox Logic (Phase F)
+    // ==========================================
+    // ==========================================
+    // Lightbox Logic (Phase G - Carousel)
+    // ==========================================
+    openLightbox(currentUrl, userId) {
+        // 1. Get all images in conversation
+        let conversation = this.conversations.find(c => c.otherUser.id == userId);
+        // If not found in active list, try to find in messagesPageContainer or fallback
+        // Fallback: Scan DOM if needed, but state is better. 
+        // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
+        // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
+        // Let's use the DOM-rendered images to be 100% sync with what the user sees.
 
-// Lightbox Logic (Phase F)
-// ==========================================
-// ==========================================
-// Lightbox Logic (Phase G - Carousel)
-// ==========================================
-openLightbox(currentUrl, userId) {
-    // 1. Get all images in conversation
-    let conversation = this.conversations.find(c => c.otherUser.id == userId);
-    // If not found in active list, try to find in messagesPageContainer or fallback
-    // Fallback: Scan DOM if needed, but state is better. 
-    // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
-    // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
-    // Let's use the DOM-rendered images to be 100% sync with what the user sees.
+        const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
+        let currentIndex = allImages.indexOf(currentUrl);
+        if (currentIndex === -1) {
+            // Fallback if URL mismatch (e.g. query params)
+            currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
+        }
+        if (currentIndex === -1) {
+            // Just show single if not found in list
+            allImages.push(currentUrl);
+            currentIndex = 0;
+        }
 
-    const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
-    let currentIndex = allImages.indexOf(currentUrl);
-    if (currentIndex === -1) {
-        // Fallback if URL mismatch (e.g. query params)
-        currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
-    }
-    if (currentIndex === -1) {
-        // Just show single if not found in list
-        allImages.push(currentUrl);
-        currentIndex = 0;
-    }
+        let lightbox = document.getElementById('chat-lightbox');
+        if (lightbox) lightbox.remove(); // Re-create to ensure clean state
 
-    let lightbox = document.getElementById('chat-lightbox');
-    if (lightbox) lightbox.remove(); // Re-create to ensure clean state
-
-    lightbox = document.createElement('div');
-    lightbox.id = 'chat-lightbox';
-    lightbox.style.cssText = `
+        lightbox = document.createElement('div');
+        lightbox.id = 'chat-lightbox';
+        lightbox.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 10000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             user-select: none; opacity: 0; transition: opacity 0.2s;
         `;
-    document.body.appendChild(lightbox);
+        document.body.appendChild(lightbox);
 
-    // --- RENDER FUNCTION ---
-    const renderContent = () => {
-        lightbox.innerHTML = '';
+        // --- RENDER FUNCTION ---
+        const renderContent = () => {
+            lightbox.innerHTML = '';
 
-        // Close Button
-        const closeBtn = document.createElement('div');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.style.cssText = `
+            // Close Button
+            const closeBtn = document.createElement('div');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = `
                 position: absolute; top: 10px; right: 20px; color: #fff; font-size: 40px; 
                 cursor: pointer; z-index: 10002; opacity: 0.8;
             `;
-        closeBtn.onclick = () => close();
-        lightbox.appendChild(closeBtn);
+            closeBtn.onclick = () => close();
+            lightbox.appendChild(closeBtn);
 
-        // Container for Main Image + Arrows
-        const mainContainer = document.createElement('div');
-        mainContainer.style.cssText = `
+            // Container for Main Image + Arrows
+            const mainContainer = document.createElement('div');
+            mainContainer.style.cssText = `
                 flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;
             `;
 
-        // Prev Arrow
-        if (allImages.length > 1) {
-            const prevBtn = document.createElement('div');
-            prevBtn.innerHTML = '&#10094;';
-            prevBtn.style.cssText = `
+            // Prev Arrow
+            if (allImages.length > 1) {
+                const prevBtn = document.createElement('div');
+                prevBtn.innerHTML = '&#10094;';
+                prevBtn.style.cssText = `
                     position: absolute; left: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-            prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
-            mainContainer.appendChild(prevBtn);
-        }
+                prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
+                mainContainer.appendChild(prevBtn);
+            }
 
-        // Image
-        const img = document.createElement('img');
-        img.src = allImages[currentIndex];
-        img.style.cssText = `
+            // Image
+            const img = document.createElement('img');
+            img.src = allImages[currentIndex];
+            img.style.cssText = `
                 max-width: 90%; max-height: 80vh; border-radius: 4px; 
                 box-shadow: 0 0 30px rgba(0,0,0,0.5); transition: transform 0.2s;
             `;
-        mainContainer.appendChild(img);
+            mainContainer.appendChild(img);
 
-        // Next Arrow
-        if (allImages.length > 1) {
-            const nextBtn = document.createElement('div');
-            nextBtn.innerHTML = '&#10095;';
-            nextBtn.style.cssText = `
+            // Next Arrow
+            if (allImages.length > 1) {
+                const nextBtn = document.createElement('div');
+                nextBtn.innerHTML = '&#10095;';
+                nextBtn.style.cssText = `
                     position: absolute; right: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-            nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
-            mainContainer.appendChild(nextBtn);
-        }
-        lightbox.appendChild(mainContainer);
+                nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
+                mainContainer.appendChild(nextBtn);
+            }
+            lightbox.appendChild(mainContainer);
 
-        // Thumbnails Strip
-        if (allImages.length > 1) {
-            const strip = document.createElement('div');
-            strip.style.cssText = `
+            // Thumbnails Strip
+            if (allImages.length > 1) {
+                const strip = document.createElement('div');
+                strip.style.cssText = `
                     height: 80px; width: 100%; background: rgba(0,0,0,0.5); 
                     display: flex; align-items: center; justify-content: center; gap: 10px; 
                     overflow-x: auto; padding: 10px; box-sizing: border-box;
                 `;
 
-            allImages.forEach((src, idx) => {
-                const thumb = document.createElement('img');
-                thumb.src = src;
-                const isActive = idx === currentIndex;
-                thumb.style.cssText = `
+                allImages.forEach((src, idx) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = src;
+                    const isActive = idx === currentIndex;
+                    thumb.style.cssText = `
                         height: 50px; width: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; 
                         border: 2px solid ${isActive ? 'var(--accent-purple)' : 'transparent'};
                         opacity: ${isActive ? '1' : '0.6'}; transition: all 0.2s;
                     `;
-                thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
-                strip.appendChild(thumb);
-            });
-            lightbox.appendChild(strip);
-        }
+                    thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
+                    strip.appendChild(thumb);
+                });
+                lightbox.appendChild(strip);
+            }
 
-        // Click BG to close
-        lightbox.onclick = (e) => {
-            if (e.target === lightbox || e.target === mainContainer) close();
+            // Click BG to close
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox || e.target === mainContainer) close();
+            };
         };
-    };
 
-    // --- HELPERS ---
-    const navigate = (dir) => {
-        currentIndex += dir;
-        if (currentIndex < 0) currentIndex = allImages.length - 1;
-        if (currentIndex >= allImages.length) currentIndex = 0;
+        // --- HELPERS ---
+        const navigate = (dir) => {
+            currentIndex += dir;
+            if (currentIndex < 0) currentIndex = allImages.length - 1;
+            if (currentIndex >= allImages.length) currentIndex = 0;
+            renderContent();
+        };
+
+        const close = () => {
+            lightbox.style.opacity = '0';
+            setTimeout(() => lightbox.remove(), 200);
+            document.removeEventListener('keydown', keyHandler);
+        };
+
+        const keyHandler = (e) => {
+            if (e.key === 'Escape') close();
+            if (e.key === 'ArrowLeft') navigate(-1);
+            if (e.key === 'ArrowRight') navigate(1);
+        };
+        document.addEventListener('keydown', keyHandler);
+
+        // Init
         renderContent();
-    };
-
-    const close = () => {
-        lightbox.style.opacity = '0';
-        setTimeout(() => lightbox.remove(), 200);
-        document.removeEventListener('keydown', keyHandler);
-    };
-
-    const keyHandler = (e) => {
-        if (e.key === 'Escape') close();
-        if (e.key === 'ArrowLeft') navigate(-1);
-        if (e.key === 'ArrowRight') navigate(1);
-    };
-    document.addEventListener('keydown', keyHandler);
-
-    // Init
-    renderContent();
-    requestAnimationFrame(() => lightbox.style.opacity = '1');
-}
-
-// ==========================================
-// Emoji Picker Logic (Inline - No Dependencies)
-// ==========================================
-toggleEmojiPicker(triggerBtn, userId) {
-    // Close if open
-    const existing = document.getElementById(`emoji-picker-${userId}`);
-    if (existing) {
-        existing.remove();
-        return;
+        requestAnimationFrame(() => lightbox.style.opacity = '1');
     }
 
-    // Create Picker
-    const picker = document.createElement('div');
-    picker.id = `emoji-picker-${userId}`;
-    picker.style.cssText = `
+    // ==========================================
+    // Emoji Picker Logic (Inline - No Dependencies)
+    // ==========================================
+    toggleEmojiPicker(triggerBtn, userId) {
+        // Close if open
+        const existing = document.getElementById(`emoji-picker-${userId}`);
+        if (existing) {
+            existing.remove();
+            return;
+        }
+
+        // Create Picker
+        const picker = document.createElement('div');
+        picker.id = `emoji-picker-${userId}`;
+        picker.style.cssText = `
             position: absolute;
             bottom: 60px;
             right: 10px;
@@ -1862,54 +1849,54 @@ toggleEmojiPicker(triggerBtn, userId) {
             scrollbar-color: #555 #222;
         `;
 
-    // Webkit Scrollbar style injection (inline)
-    const style = document.createElement('style');
-    style.textContent = `
+        // Webkit Scrollbar style injection (inline)
+        const style = document.createElement('style');
+        style.textContent = `
             #emoji-picker-${userId}::-webkit-scrollbar { width: 6px; }
             #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222; }
             #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
         `;
-    picker.appendChild(style);
+        picker.appendChild(style);
 
-    const emojis = [
-        '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-        '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-        '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-        '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-        '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
-    ];
+        const emojis = [
+            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+            '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
+        ];
 
-    emojis.forEach(emoji => {
-        const span = document.createElement('span');
-        span.textContent = emoji;
-        span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
-        span.onmouseover = () => span.style.background = '#333';
-        span.onmouseout = () => span.style.background = 'transparent';
-        span.onclick = () => {
-            const input = document.getElementById(`chat-input-${userId}`);
-            if (input) {
-                input.value += emoji;
-                input.focus();
+        emojis.forEach(emoji => {
+            const span = document.createElement('span');
+            span.textContent = emoji;
+            span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
+            span.onmouseover = () => span.style.background = '#333';
+            span.onmouseout = () => span.style.background = 'transparent';
+            span.onclick = () => {
+                const input = document.getElementById(`chat-input-${userId}`);
+                if (input) {
+                    input.value += emoji;
+                    input.focus();
+                }
+                // Keep open or close? Usually close
+                // picker.remove(); 
+            };
+            picker.appendChild(span);
+        });
+
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', closeHandler);
             }
-            // Keep open or close? Usually close
-            // picker.remove(); 
         };
-        picker.appendChild(span);
-    });
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
 
-    // Close on click outside
-    const closeHandler = (e) => {
-        if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
-            picker.remove();
-            document.removeEventListener('click', closeHandler);
-        }
-    };
-    setTimeout(() => document.addEventListener('click', closeHandler), 0);
-
-    // Append to footer or body? Footer is safer for positioning
-    triggerBtn.parentElement.parentElement.style.position = 'relative';
-    triggerBtn.parentElement.parentElement.appendChild(picker);
-}
+        // Append to footer or body? Footer is safer for positioning
+        triggerBtn.parentElement.parentElement.style.position = 'relative';
+        triggerBtn.parentElement.parentElement.appendChild(picker);
+    }
 
 }
 
