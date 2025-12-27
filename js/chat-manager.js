@@ -1268,6 +1268,8 @@ class ChatManager {
             const chatInput = document.getElementById(`chat-input-${userId}`);
             if (chatInput) chatInput.focus();
 
+            return { url: data.fileUrl, type: data.fileType, name: file.name };
+
         } catch (error) {
             console.error('Upload Error:', error);
             alert(`Error subiendo archivo: ${error.message} `);
@@ -1402,6 +1404,15 @@ class ChatManager {
             const isMe = firstMsg.senderId === this.currentUser.id;
             const isImageGroup = firstMsg.fileUrl && firstMsg.fileType === 'image';
 
+            // Calculate showRead for the group (based on the last message in the group)
+            let showRead = false;
+            const lastMsgInGroup = group[group.length - 1];
+            if (lastMsgInGroup.senderId === this.currentUser.id && lastMsgInGroup.isRead) {
+                const realIdx = sortedMessages.indexOf(lastMsgInGroup);
+                const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
+                if (!newerMyMsg) showRead = true;
+            }
+
             // 1. IMAGE COLLAGE LOGIC
             if (isImageGroup) {
                 const count = group.length;
@@ -1417,11 +1428,12 @@ class ChatManager {
 
                 if (count === 1) {
                     return `
-            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+            <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                 <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
                     style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
                     <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                 </div>
+                 ${isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
             </div>
             `;
                 }
@@ -1440,10 +1452,11 @@ class ChatManager {
         `).join('');
 
                 return `
-            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+            <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                 <div style="${gridContainerStyle}">
                     ${imagesHtml}
                 </div>
+                 ${isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
             </div>
             `;
             }
@@ -1451,11 +1464,12 @@ class ChatManager {
             // 2. STANDARD TEXT/FILE MESSAGES
             return group.map((msg) => {
                 const isMe = msg.senderId === this.currentUser.id;
-                let showRead = false;
+                // showRead is already calculated for the group, but we might want per-message if needed.
+                let msgShowRead = false;
                 if (isMe && msg.isRead) {
                     const realIdx = sortedMessages.indexOf(msg);
                     const newerMyMsg = sortedMessages.slice(realIdx + 1).some(m => m.senderId === this.currentUser.id);
-                    if (!newerMyMsg) showRead = true;
+                    if (!newerMyMsg) msgShowRead = true;
                 }
 
                 let contentHtml = '';
@@ -1520,7 +1534,7 @@ class ChatManager {
                     let statusText = '';
                     let statusColor = '#666';
 
-                    if (showRead) {
+                    if (msgShowRead) {
                         statusText = 'Visto';
                         statusColor = '#aaa';
                     } else {
