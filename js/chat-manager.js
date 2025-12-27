@@ -411,24 +411,7 @@ class ChatManager {
         if (emojiBtn && window.EmojiButton) {
             this.picker = new EmojiButton({
                 theme: 'dark',
-                // Safe Global Wrappers for Inline HTML
-                window.safeTriggerUpload = (userId) => {
-                    if (window.chatManager) window.chatManager.triggerFileUpload(userId);
-                    else console.error('ChatManager instance not found');
-                };
-
-                window.safeToggleEmoji = (btn, userId) => {
-                    if (window.chatManager) window.chatManager.toggleEmojiPicker(btn, userId);
-                    else console.error('ChatManager instance not found');
-                };
-
-                window.safeOpenLightbox = (url, userId) => {
-                    if (window.chatManager) window.chatManager.openLightbox(url, userId);
-                    else if (window.chatManagerInstance) window.chatManagerInstance.openLightbox(url, userId);
-                };
-
-                // Aliasing for compatibility
-                window.chatManagerInstance = window.chatManager;
+                autoHide: false,
                 position: 'top-end'
             });
             const input = document.getElementById('messageInput');
