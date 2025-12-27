@@ -367,7 +367,7 @@ class ChatManager {
                 <div id="inputArea" style="padding: 1rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); display: none; flex-shrink: 0;">
                     <form id="messageForm" style="display: flex; gap: 0.8rem; align-items: center;">
                         <!-- File Button -->
-                        <input type="file" id="fullPageFileInput" style="display: none;" accept="image/*,application/pdf,.doc,.docx,.zip">
+                        <input type="file" id="fullPageFileInput" style="display: none;" multiple accept="image/*,application/pdf,.doc,.docx,.zip">
                             <button type="button" onclick="document.getElementById('fullPageFileInput').click()"
                                 style="background: transparent; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background 0.2s;"
                                 onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
@@ -1388,7 +1388,13 @@ class ChatManager {
 
             // Time Break Check
             const timeDiff = prevMsg ? (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) : 0;
-            const isTimeBreak = timeDiff > 10 * 60 * 1000; // 10 mins
+            // Standard Break: 10 mins
+            let isTimeBreak = timeDiff > 10 * 60 * 1000;
+
+            // Strict Image Break: 1 minute (prevents accumulation of separate sends)
+            if (isImage && isPrevImage && timeDiff > 60 * 1000) {
+                isTimeBreak = true;
+            }
 
             if (!prevMsg || !isSameSender || (isImage !== isPrevImage) || isTimeBreak) {
                 if (currentGroup.length > 0) groups.push(currentGroup);
@@ -1433,7 +1439,7 @@ class ChatManager {
                     style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
                     <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                 </div>
-                 ${isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
+                 ${isMe && lastMsgInGroup.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
             </div>
             `;
                 }
