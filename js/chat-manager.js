@@ -455,8 +455,7 @@ class ChatManager {
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">${time}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.9rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
-                            ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + lastMsg.message : 'Nuevo chat'}
+                            ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📄 Archivo') : '')) : 'Nuevo chat'}
                         </span>
                         ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 10px;">${conv.unreadCount}</span>` : ''}
                     </div>
@@ -617,6 +616,7 @@ class ChatManager {
             // `sendMiniMessage` does optimistically append? Let's check. 
             // No, we should probably manually append here if we want instant feedback for Full Page.
             const newMsg = {
+                id: 'temp-' + Date.now(),
                 senderId: this.currentUser.id,
                 message: text,
                 fileUrl,
