@@ -1417,11 +1417,12 @@ class ChatManager {
 
                 if (count === 1) {
                     return `
-            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
-                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
+            <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${firstMsg.senderId}')"
                     style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
                     <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                 </div>
+                 ${isMe && firstMsg.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
             </div>
             `;
                 }
@@ -1439,11 +1440,22 @@ class ChatManager {
             </div>
         `).join('');
 
+                // Helper to render Status for Collage
+                const getStatusHtml = (time) => {
+                    const statusText = showRead && isMe && (group.indexOf(group[group.length - 1]) === group.length - 1) ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(time))}`;
+                    return `
+                        <div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
+                            ${statusText}
+                        </div>
+                    `;
+                };
+
                 return `
-            <div style="display: flex; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
+            <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                 <div style="${gridContainerStyle}">
                     ${imagesHtml}
                 </div>
+                 ${isMe && firstMsg.id === lastMyMsgId ? getStatusHtml(firstMsg.createdAt) : ''}
             </div>
             `;
             }
