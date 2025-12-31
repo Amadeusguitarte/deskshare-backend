@@ -818,7 +818,7 @@ class ChatManager {
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red); color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${unreadCount}</span>` : ''}
+                        ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red, #ef4444); color: white; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">${unreadCount}</span>` : ''}
                         <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
                         <span onclick="event.stopPropagation(); window.safeCloseTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
