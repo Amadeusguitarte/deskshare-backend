@@ -827,16 +827,32 @@ class ChatManager {
             <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="window.safeMinimize(${user.id})">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
-                        <div style="display: flex; flex-direction: column;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>
-                                <div class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'}; transition: all 0.3s;"></div>
-                            </div>
-                            <span class="user-status-text" style="font-size: 0.7rem; color: ${statusColor}; line-height: 1; margin-top: 2px; height: 10px;">${statusText}</span>
-                        </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <!-- AVATAR CONTAINER (RELATIVE) -->
+                    <div style="position: relative; width: 32px; height: 32px;">
+                        <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                        
+                        <!-- STATUS DOT (ABSOLUTE) -->
+                        ${user.isOnline ? `
+                        <div style="
+                            position: absolute;
+                            bottom: 0;
+                            right: 0;
+                            width: 10px;
+                            height: 10px;
+                            background: #4ade80;
+                            border-radius: 50%;
+                            border: 2px solid #2a2a2a; /* Matches header dark bg */
+                            box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+                        "></div>
+                        ` : ''}
                     </div>
+
+                    <div style="display: flex; flex-direction: column; justify-content: center;">
+                         <span style="font-size: 0.95rem; font-weight: 600; color: white; line-height: 1;">${user.name || 'Usuario'}</span>
+                         <span class="user-status-text" style="font-size: 0.7rem; color: ${user.isOnline ? '#4ade80' : '#888'}; line-height: 1; margin-top: 3px;">${statusText}</span>
+                    </div>
+                </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
                         ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red, #ef4444); color: white; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">${unreadCount}</span>` : ''}
                         <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
