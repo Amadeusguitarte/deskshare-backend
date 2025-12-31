@@ -1111,25 +1111,34 @@ class ChatManager {
         }
     }
 
-    // Updated scrollToBottom with Multi-Tick Force Scroll
+    // Updated scrollToBottom with Image Load Detection
     scrollToBottom(userId) {
         if (userId && this.minimizedConversations.has(userId)) return;
 
-        const area = userId ? document.getElementById(`msg - area - ${userId} `) : document.getElementById('messagesArea');
+        const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
         if (area) {
-            // 1. Immediate Scroll
-            area.scrollTop = area.scrollHeight;
+            // function to force scroll
+            const force = () => { area.scrollTop = area.scrollHeight; };
+
+            // 1. Immediate
+            force();
             if (area.style.opacity === '0') area.style.opacity = '1';
 
-            // 2. Post-Render Scroll (catches layout shifts)
-            setTimeout(() => {
-                if (area) area.scrollTop = area.scrollHeight;
-            }, 50);
+            // 2. Short delays for layout thrashing
+            setTimeout(force, 50);
+            setTimeout(force, 200);
 
-            // 3. Image Reflow Scroll (catches fast-loading images)
-            setTimeout(() => {
-                if (area) area.scrollTop = area.scrollHeight;
-            }, 300);
+            // 3. LISTEN FOR IMAGES within the area
+            const images = area.querySelectorAll('img');
+            images.forEach(img => {
+                if (!img.complete) {
+                    img.addEventListener('load', force); // Scroll when image finishes
+                    img.addEventListener('error', force); // Scroll even on error
+                }
+            });
+
+            // 4. Safety Audit (1s)
+            setTimeout(force, 1000);
         }
     }
 
