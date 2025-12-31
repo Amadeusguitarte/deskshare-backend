@@ -459,16 +459,33 @@ class ChatManager {
             <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'active' : ''}"
         onclick="chatManager.selectConversation('${user.id}')"
         style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
-            <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+            
+            <!-- AVATAR + STATUS CUTOUT -->
+            <div style="position: relative; width: 48px; height: 48px; flex-shrink: 0;">
+                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                
+                ${user.isOnline ? `
+                <div style="
+                    position: absolute; 
+                    bottom: 0; 
+                    right: 0; 
+                    width: 12px; 
+                    height: 12px; 
+                    background: #4ade80; 
+                    border-radius: 50%; 
+                    border: 2px solid #1a1a1a; 
+                    box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+                "></div>
+                ` : ''}
+            </div>
+
                 <div style="flex: 1; overflow: hidden;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-weight: 600; color: white;">${user.name || 'Usuario'}</span>
-                            <div id="list-status-dot-${user.id}" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; display: ${user.isOnline ? 'block' : 'none'};"></div>
-                        </div>
+                         <span style="font-weight: 600; color: white;">${user.name || 'Usuario'}</span>
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">${time}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">
                             ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📄 Archivo') : '')) : 'Nuevo chat'}
                         </span>
                         ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 10px;">${conv.unreadCount}</span>` : ''}
