@@ -1676,11 +1676,57 @@ class ChatManager {
         return `hace ${diffDays} días`;
     }
 
-    // Updated send method to support attachments
+    // Updated send method to support attachments + Optimistic UI
     async sendMiniMessage(receiverId, text, fileUrl = null, fileType = null) {
         try {
             if (!text && !fileUrl) return;
 
+            // 1. OPTIMISTIC UPDATE (Absolute Immediacy)
+            const tempId = 'temp-' + Date.now();
+            const tempMsg = {
+                id: tempId,
+                senderId: this.currentUser.id,
+                receiverId: receiverId,
+                message: text,
+                fileUrl: fileUrl,
+                fileType: fileType,
+                createdAt: new Date().toISOString(),
+                isRead: false,
+                isTemp: true
+            };
+
+            const conv = this.conversations.find(c => c.otherUser.id == receiverId);
+            if (conv) {
+                if (!conv.messages) conv.messages = [];
+                conv.messages.push(tempMsg);
+
+                // Update Last Message snippet
+                conv.lastMessage = tempMsg;
+
+                // Render Immediately
+                if (window.location.href.includes('messages.html')) {
+                    // Full Page Update
+                    const area = document.getElementById('messagesArea');
+                    if (area) {
+                        area.innerHTML = this.renderMessageHTML(conv.messages, conv.otherUser);
+                        area.scrollTop = area.scrollHeight;
+                    }
+                } else {
+                    // Widget Update
+                    if (this.updateMessagesAreaOnly) {
+                        this.updateMessagesAreaOnly(receiverId);
+                    } else {
+                        // Fallback logic if method missing in this version
+                        const area = document.getElementById(`msg-area-${receiverId}`);
+                        if (area) {
+                            area.innerHTML = this.renderMessageHTML(conv.messages, conv.otherUser);
+                            area.scrollTop = area.scrollHeight;
+                        }
+                    }
+                }
+            }
+
+            // 2. NETWORK REQUEST
             const token = localStorage.getItem('authToken');
             const res = await fetch(`${this.baseUrl}/chat`, {
                 method: 'POST',
@@ -1691,8 +1737,8 @@ class ChatManager {
                 body: JSON.stringify({
                     receiverId,
                     message: text,
-                    fileUrl: fileUrl,  // Phase B
-                    fileType: fileType // Phase B
+                    fileUrl: fileUrl,
+                    fileType: fileType
                 })
             });
 
@@ -1700,10 +1746,24 @@ class ChatManager {
 
             const { message } = await res.json();
 
-            // UI Update is handled by Socket event 'private-message'
-            // But we can append locally for instant feedback if needed
+            // 3. RECONCILE (Replace Temp with Real)
+            if (conv) {
+                const idx = conv.messages.findIndex(m => m.id === tempId);
+                if (idx !== -1) {
+                    conv.messages[idx] = message; // Swap
+                    // Re-render to show "Sent" status (check marks) instead of temp state
+                    if (window.location.href.includes('messages.html')) {
+                        const area = document.getElementById('messagesArea');
+                        if (area) area.innerHTML = this.renderMessageHTML(conv.messages, conv.otherUser);
+                    } else {
+                        if (this.updateMessagesAreaOnly) this.updateMessagesAreaOnly(receiverId);
+                    }
+                }
+            }
+
         } catch (error) {
             console.error('Send Error:', error);
+            // Optional: Mark temp message as failed (red)
         }
     }
 
