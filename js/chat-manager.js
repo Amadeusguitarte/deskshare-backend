@@ -778,18 +778,28 @@ class ChatManager {
         const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
         badges.forEach(el => {
             if (count > 0) {
-                el.style.display = 'flex';
+                // OVERRIDE: Use cssText to forcefully reset styles and apply "Pill" shape
+                el.style.cssText = `
+                    display: flex !important;
+                    position: absolute !important;
+                    top: -4px !important;
+                    right: -4px !important;
+                    background: var(--error-red, #ef4444) !important;
+                    color: white !important;
+                    border: 2px solid white !important;
+                    border-radius: 10px !important;
+                    min-width: 18px !important;
+                    height: 18px !important;
+                    padding: 0 4px !important;
+                    font-size: 10px !important;
+                    font-weight: bold !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    box-sizing: border-box !important;
+                    width: auto !important;
+                    z-index: 100 !important;
+                `;
                 el.innerText = count > 99 ? '99+' : count;
-
-                // PILL SHAPE FIX (Enforce over inline HTML styles)
-                el.style.width = 'auto'; // Reset fixed width
-                el.style.minWidth = '18px';
-                el.style.height = '18px';
-                el.style.borderRadius = '10px';
-                el.style.padding = '0 5px';
-                el.style.justifyContent = 'center';
-                el.style.alignItems = 'center';
-                el.style.boxSizing = 'border-box'; // Ensure padding adds to width
             } else {
                 el.style.display = 'none';
             }
