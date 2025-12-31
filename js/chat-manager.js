@@ -1025,11 +1025,14 @@ class ChatManager {
             msgArea.innerHTML = this.renderMessageHTML(sortedMessages, conv.otherUser);
             // Append Typing Indicator if needed
             if (this.typingUsers.has(userId)) {
+                // Animated Typing Indicator
                 msgArea.innerHTML += `
-                    <div style="display: flex; justify-content: flex-start;">
-                        <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
-                            Escribiendo...
-                        </span>
+                    <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
+                        <div style="background: #333; padding: 12px 16px; border-radius: 18px; border-bottom-left-radius: 4px; display: flex; align-items: center; gap: 4px; width: fit-content;">
+                            <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span>
+                            <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span>
+                            <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both;"></span>
+                        </div>
                     </div>`;
             }
             // Scroll
