@@ -896,7 +896,7 @@ class ChatManager {
 
         return `
                     <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
-                 < !--HEADER -->
+                 <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="window.safeMinimize(${user.id})">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <!-- AVATAR CONTAINER (RELATIVE) -->
@@ -931,7 +931,7 @@ class ChatManager {
                     </div>
                 </div>
                 
-                <!--MESSAGES AREA-- >
+                <!--MESSAGES AREA-->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${this.renderMessageHTML(sortedMessages, user)}
                     
