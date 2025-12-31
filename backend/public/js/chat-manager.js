@@ -878,10 +878,10 @@ class ChatManager {
                     
                     ${this.typingUsers.has(user.id) ? `
                         <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
-                            <div style="background: #333; padding: 12px 16px; border-radius: 18px; border-bottom-left-radius: 4px; display: flex; align-items: center; gap: 4px; width: fit-content;">
-                                <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span>
-                                <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span>
-                                <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both;"></span>
+                            <div style="background: #333; padding: 8px 12px; border-radius: 12px; border-bottom-left-radius: 4px; display: flex; align-items: center; gap: 3px; width: fit-content;">
+                                <span class="typing-dot" style="width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span>
+                                <span class="typing-dot" style="width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span>
+                                <span class="typing-dot" style="width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both;"></span>
                             </div>
                         </div>
                     ` : ''}
@@ -1041,10 +1041,10 @@ class ChatManager {
                 // Animated Typing Indicator
                 msgArea.innerHTML += `
                     <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
-                        <div style="background: #333; padding: 12px 16px; border-radius: 18px; border-bottom-left-radius: 4px; display: flex; align-items: center; gap: 4px; width: fit-content;">
-                            <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span>
-                            <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span>
-                            <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both;"></span>
+                        <div style="background: #333; padding: 8px 12px; border-radius: 12px; border-bottom-left-radius: 4px; display: flex; align-items: center; gap: 3px; width: fit-content;">
+                            <span class="typing-dot" style="width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span>
+                            <span class="typing-dot" style="width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span>
+                            <span class="typing-dot" style="width: 5px; height: 5px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both;"></span>
                         </div>
                     </div>`;
             }
