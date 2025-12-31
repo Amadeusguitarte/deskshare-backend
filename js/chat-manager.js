@@ -213,10 +213,16 @@ class ChatManager {
             // We SKIP re-rendering to prevent killing the input focus.
             if (!wasMerge) {
                 // SURGICAL UPDATE FIX: Prevent destroying input focus
-                const tab = document.getElementById(`chat-tab-${msg.senderId}`);
+                // Identify the correct "Partner" ID used for the Tab
+                const partnerId = (msg.senderId === this.currentUser.id) ? msg.receiverId : msg.senderId;
+
+                const tab = document.getElementById(`chat-tab-${partnerId}`);
                 if (tab) {
-                    this.updateMessagesAreaOnly(msg.senderId);
-                    this.updateUserStatus(msg.senderId, this.conversations.find(c => c.otherUser.id == msg.senderId)?.otherUser?.isOnline);
+                    this.updateMessagesAreaOnly(partnerId);
+                    // Only update online status if it's the partner sending
+                    if (partnerId === msg.senderId) {
+                        this.updateUserStatus(partnerId, this.conversations.find(c => c.otherUser.id == partnerId)?.otherUser?.isOnline);
+                    }
                 } else {
                     this.renderWidgetTabs();
                 }
