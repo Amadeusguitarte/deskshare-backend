@@ -155,9 +155,23 @@ function renderHeaderDropdown(conversations) {
         // Formatting Style: White Theme hover effect
         return `
             <div onclick="event.preventDefault(); document.getElementById('headerMessageDropdown').style.display='none'; if(window.chatManager) window.chatManager.openChat(${user.id}); else window.location.href='messages.html';" style="padding: 12px 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.1s; background: ${isUnread ? '#f0f7ff' : '#ffffff'};" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='${isUnread ? '#f0f7ff' : '#ffffff'}'">
-                <div style="position: relative;">
-                    <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #eee;">
-                    ${user.isOnline ? '<div style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background: #10b981; border: 2px solid #fff; border-radius: 50%;"></div>' : ''}
+                <!-- UPDATED: Facebook Style Cutout for Header Dropdown -->
+                <div style="position: relative; width: 40px; height: 40px;">
+                    <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 1px solid #eee;">
+                    
+                    ${user.isOnline ? `
+                    <div style="
+                        position: absolute;
+                        bottom: 0px;
+                        right: 0px;
+                        width: 12px;
+                        height: 12px;
+                        background: #10b981;
+                        border: 2px solid #ffffff; /* Matches dropdown white background */
+                        border-radius: 50%;
+                        box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
+                    "></div>
+                    ` : ''}
                 </div>
                 <div style="flex: 1; overflow: hidden;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 2px; align-items: center;">
