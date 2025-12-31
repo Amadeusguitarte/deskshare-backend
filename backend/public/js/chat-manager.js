@@ -39,6 +39,17 @@ class ChatManager {
             console.error('Socket.io not loaded');
         }
 
+        // CSS Injection for Typing Animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes typingAnimation {
+                0%, 100% { transform: translateY(0); opacity: 0.6; }
+                50% { transform: translateY(-4px); opacity: 1; }
+            }
+            .typing-dot { display: block; }
+        `;
+        document.head.appendChild(style);
+
         // Determine context
         this.messagesPageContainer = document.getElementById('messagesPageContainer');
         this.widgetContainer = document.getElementById('chatWidgetContainer');
@@ -866,10 +877,12 @@ class ChatManager {
                     ${this.renderMessageHTML(sortedMessages, user)}
                     
                     ${this.typingUsers.has(user.id) ? `
-                        <div style="display: flex; justify-content: flex-start;">
-                            <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
-                                Escribiendo...
-                            </span>
+                        <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
+                            <div style="background: #333; padding: 12px 16px; border-radius: 18px; border-bottom-left-radius: 4px; display: flex; align-items: center; gap: 4px; width: fit-content;">
+                                <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span>
+                                <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span>
+                                <span class="typing-dot" style="width: 8px; height: 8px; background: #888; border-radius: 50%; animation: typingAnimation 1.4s infinite ease-in-out both;"></span>
+                            </div>
                         </div>
                     ` : ''}
                 </div>
