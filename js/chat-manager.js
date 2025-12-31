@@ -1366,22 +1366,27 @@ class ChatManager {
         if (this.isSending) return;
         this.isSending = true;
 
-        // ABSOLUTE IMMEDIACY: Clear and Refocus BEFORE network
-        input.value = '';
-        this.clearStaging(userId);
-        input.focus();
-
         try {
+            // 1. CAPTURE STATE (Before Clearing)
             // Safety check
             if (!this.stagedFiles) this.stagedFiles = new Map();
-
             let staged = this.stagedFiles.get(userId);
+            // Deep copy or reference is fine since we just read.
             if (staged && !Array.isArray(staged)) staged = [staged]; // Safety
 
-            if (!text && (!staged || staged.length === 0)) return; // Nothing to send
+            // 2. CHECK IF ANYTHING TO SEND
+            if (!text && (!staged || staged.length === 0)) {
+                this.isSending = false;
+                return;
+            }
 
+            // 3. CLEAR UI (Absolute Immediacy)
+            input.value = '';
+            this.clearStaging(userId);
+            input.focus();
+
+            // 4. PROCESS UPLOAD (Using captured 'staged')
             // Logic: Send text with FIRST file, then send remaining files
-            // If no files, just send text.
 
             if (staged && staged.length > 0) {
                 // Message 1: Text + File 1
@@ -1395,8 +1400,6 @@ class ChatManager {
                 // Just text
                 await this.sendMiniMessage(userId, text);
             }
-
-            // Cleanup (Moved to top)
 
         } finally {
             this.isSending = false;
