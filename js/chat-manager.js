@@ -13,6 +13,7 @@ class ChatManager {
         this.typingUsers = new Set();
         this.typingTimeouts = {};
         this.stagedFiles = new Map(); // Init here explicitly
+        this.isSending = false; // Lock for double-send prevention
 
         // UI Elements
         this.widgetContainer = null;
@@ -211,7 +212,14 @@ class ChatManager {
             // FIX: If it was a merge (confirmation), the UI is already correct (optimistic).
             // We SKIP re-rendering to prevent killing the input focus.
             if (!wasMerge) {
-                this.renderWidgetTabs();
+                // SURGICAL UPDATE FIX: Prevent destroying input focus
+                const tab = document.getElementById(`chat-tab-${msg.senderId}`);
+                if (tab) {
+                    this.updateMessagesAreaOnly(msg.senderId);
+                    this.updateUserStatus(msg.senderId, this.conversations.find(c => c.otherUser.id == msg.senderId)?.otherUser?.isOnline);
+                } else {
+                    this.renderWidgetTabs();
+                }
 
                 // Add FLASH Class after render
                 if (msg.senderId !== this.currentUser.id) {
@@ -602,31 +610,39 @@ class ChatManager {
             // `sendMiniMessage` (line 1434) DOES support files. 
             // So we call `sendMiniMessage`.
 
-            await this.sendMiniMessage(user.id, text, fileUrl, fileType);
+            if (this.isSending) return;
+            this.isSending = true;
 
-            // Clear Staging
-            stagedFile = null;
-            if (fileInput) fileInput.value = '';
-            if (stagingArea) {
-                stagingArea.innerHTML = '';
-                stagingArea.style.display = 'none';
+            try {
+                await this.sendMiniMessage(user.id, text, fileUrl, fileType);
+
+                // Clear Staging
+                stagedFile = null;
+                if (fileInput) fileInput.value = '';
+                if (stagingArea) {
+                    stagingArea.innerHTML = '';
+                    stagingArea.style.display = 'none';
+                }
+
+                // Optimistic UI
+                const newMsg = {
+                    id: 'temp-' + Date.now(),
+                    senderId: this.currentUser.id,
+                    message: text,
+                    fileUrl,
+                    fileType,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.activeConversation.messages.push(newMsg);
+                this.renderMessages(this.activeConversation.messages); // Re-render full list
+                this.scrollToBottom();
+            } finally {
+                this.isSending = false;
+                // Refocus
+                const msgInput = document.getElementById('messageInput');
+                if (msgInput) msgInput.focus();
             }
-
-            // Optimistic Update manual? `sendMiniMessage` likely emits, but maybe we want instant feedback?
-            // `sendMiniMessage` does optimistically append? Let's check. 
-            // No, we should probably manually append here if we want instant feedback for Full Page.
-            const newMsg = {
-                id: 'temp-' + Date.now(),
-                senderId: this.currentUser.id,
-                message: text,
-                fileUrl,
-                fileType,
-                createdAt: new Date().toISOString()
-            };
-
-            this.activeConversation.messages.push(newMsg);
-            this.renderMessages(this.activeConversation.messages); // Re-render full list
-            this.scrollToBottom();
         };
 
         this.renderMessages(messages);
@@ -1337,33 +1353,45 @@ class ChatManager {
         if (!input) return;
 
         const text = input.value.trim();
-        // Safety check
-        if (!this.stagedFiles) this.stagedFiles = new Map();
 
-        let staged = this.stagedFiles.get(userId);
-        if (staged && !Array.isArray(staged)) staged = [staged]; // Safety
+        // Lock check
+        if (this.isSending) return;
+        this.isSending = true;
 
-        if (!text && (!staged || staged.length === 0)) return; // Nothing to send
+        try {
+            // Safety check
+            if (!this.stagedFiles) this.stagedFiles = new Map();
 
-        // Logic: Send text with FIRST file, then send remaining files
-        // If no files, just send text.
+            let staged = this.stagedFiles.get(userId);
+            if (staged && !Array.isArray(staged)) staged = [staged]; // Safety
 
-        if (staged && staged.length > 0) {
-            // Message 1: Text + File 1
-            await this.sendMiniMessage(userId, text, staged[0].fileUrl, staged[0].fileType);
+            if (!text && (!staged || staged.length === 0)) return; // Nothing to send
 
-            // Remaining files
-            for (let i = 1; i < staged.length; i++) {
-                await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);
+            // Logic: Send text with FIRST file, then send remaining files
+            // If no files, just send text.
+
+            if (staged && staged.length > 0) {
+                // Message 1: Text + File 1
+                await this.sendMiniMessage(userId, text, staged[0].fileUrl, staged[0].fileType);
+
+                // Remaining files
+                for (let i = 1; i < staged.length; i++) {
+                    await this.sendMiniMessage(userId, "", staged[i].fileUrl, staged[i].fileType);
+                }
+            } else {
+                // Just text
+                await this.sendMiniMessage(userId, text);
             }
-        } else {
-            // Just text
-            await this.sendMiniMessage(userId, text);
-        }
 
-        // Cleanup
-        input.value = '';
-        this.clearStaging(userId);
+            // Cleanup
+            input.value = '';
+            this.clearStaging(userId);
+            // refocus
+            input.focus();
+
+        } finally {
+            this.isSending = false;
+        }
     }
 
     // Shared Message Rendering for Full Page & Widget
@@ -1892,6 +1920,37 @@ class ChatManager {
         // Append to footer or body? Footer is safer for positioning
         triggerBtn.parentElement.parentElement.style.position = 'relative';
         triggerBtn.parentElement.parentElement.appendChild(picker);
+    }
+
+    // Surgical Update for Widgets (Does not look at input)
+    updateMessagesAreaOnly(userId) {
+        const msgArea = document.getElementById(`msg-area-${userId}`);
+        const conv = this.conversations.find(c => c.otherUser.id == userId);
+        if (msgArea && conv) {
+            // Sort
+            const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            // Update HTML
+            msgArea.innerHTML = this.renderMessageHTML(sortedMessages, conv.otherUser);
+            // Append Typing Indicator if needed
+            if (this.typingUsers.has(userId)) {
+                msgArea.innerHTML += `
+                    <div style="display: flex; justify-content: flex-start;">
+                        <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
+                            Escribiendo...
+                        </span>
+                    </div>`;
+            }
+            // Scroll
+            this.scrollToBottom(userId);
+        }
+    }
+
+    tryFocusInput(userId) {
+        const input = document.getElementById(`chat-input-${userId}`);
+        if (input) {
+            input.focus();
+            // optional: move cursor to end
+        }
     }
 
 }
