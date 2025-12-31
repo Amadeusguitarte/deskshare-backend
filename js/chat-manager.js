@@ -357,10 +357,6 @@ class ChatManager {
                     <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #222;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                              <h2 style="margin: 0; font-size: 1.8rem; font-weight: 700;">Chats</h2>
-                             <div style="display: flex; gap: 10px;">
-                                 <button style="background: #333; border: none; width: 36px; height: 36px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">⋯</button>
-                                 <button style="background: #333; border: none; width: 36px; height: 36px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
-                             </div>
                         </div>
                         <input type="text" placeholder="Buscar en Messenger" style="background: #2a2a2a; border: none; padding: 0.8rem 1rem 0.8rem 2.5rem; width: 100%; border-radius: 20px; color: white; font-size: 0.95rem; outline: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23999%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2211%22 cy=%2211%22 r=%228%22></circle><line x1=%2221%22 y1=%2221%22 x2=%2216.65%22 y2=%2216.65%22></line></svg>'); background-repeat: no-repeat; background-position: 12px center;">
                         
@@ -482,21 +478,6 @@ class ChatManager {
             
             <div style="position: relative; width: 48px; height: 48px; flex-shrink: 0;">
                 <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                <!-- FB Cutout for Avatar (Small indicator) -->
-                 ${user.isOnline ? `
-                <div style="
-                    position: absolute; 
-                    bottom: 0; 
-                    right: 0; 
-                    width: 14px; 
-                    height: 14px; 
-                    background: #111; 
-                    border-radius: 50%; 
-                    display: flex; align-items: center; justify-content: center;
-                ">
-                     <div style="width: 10px; height: 10px; background: #4ade80; border-radius: 50%;"></div>
-                </div>
-                ` : ''}
             </div>
 
             <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: center;">
@@ -1600,13 +1581,13 @@ class ChatManager {
 
                 if (count === 1) {
                     return `
-                    < div style = "display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+                    <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                         <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
                             style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
                             <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
                         </div>
                  ${isMe && lastMsgInGroup.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
-            </div >
+            </div>
                     `;
                 }
 
@@ -1617,19 +1598,19 @@ class ChatManager {
                 }
 
                 const imagesHtml = group.map((msg) => `
-                    < div onclick = "event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-                style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
+                    <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+                style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
                     <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                 `).join('');
 
                 return `
-                    < div style = "display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+                    <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
                         <div style="${gridContainerStyle}">
                             ${imagesHtml}
                         </div>
                  ${isMe && lastMsgInGroup.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
-            </div >
+            </div>
                     `;
             }
 
@@ -1676,7 +1657,7 @@ class ChatManager {
                 }
 
                 if (msg.message && msg.message.trim()) {
-                    contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
+                    contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
                 }
 
                 const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1715,9 +1696,9 @@ class ChatManager {
                     }
 
                     statusHtml = `
-                    < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
+                    <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
                         ${statusText}
-            </div >
+                    </div>
                     `;
                 }
 
