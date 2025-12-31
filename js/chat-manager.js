@@ -613,35 +613,37 @@ class ChatManager {
             if (this.isSending) return;
             this.isSending = true;
 
+            // ABSOLUTE IMMEDIACY: Clear and Opt-Update BEFORE network
+            input.value = '';
+            // Clear Staging
+            stagedFile = null;
+            if (fileInput) fileInput.value = '';
+            if (stagingArea) {
+                stagingArea.innerHTML = '';
+                stagingArea.style.display = 'none';
+            }
+            // Optimistic UI
+            const newMsg = {
+                id: 'temp-' + Date.now(),
+                senderId: this.currentUser.id,
+                message: text,
+                fileUrl,
+                fileType,
+                createdAt: new Date().toISOString()
+            };
+
+            this.activeConversation.messages.push(newMsg);
+            this.renderMessages(this.activeConversation.messages); // Re-render full list
+            this.scrollToBottom();
+
+            // Refocus Immediately
+            const msgInput = document.getElementById('messageInput');
+            if (msgInput) msgInput.focus();
+
             try {
                 await this.sendMiniMessage(user.id, text, fileUrl, fileType);
-
-                // Clear Staging
-                stagedFile = null;
-                if (fileInput) fileInput.value = '';
-                if (stagingArea) {
-                    stagingArea.innerHTML = '';
-                    stagingArea.style.display = 'none';
-                }
-
-                // Optimistic UI
-                const newMsg = {
-                    id: 'temp-' + Date.now(),
-                    senderId: this.currentUser.id,
-                    message: text,
-                    fileUrl,
-                    fileType,
-                    createdAt: new Date().toISOString()
-                };
-
-                this.activeConversation.messages.push(newMsg);
-                this.renderMessages(this.activeConversation.messages); // Re-render full list
-                this.scrollToBottom();
             } finally {
                 this.isSending = false;
-                // Refocus
-                const msgInput = document.getElementById('messageInput');
-                if (msgInput) msgInput.focus();
             }
         };
 
@@ -1358,6 +1360,11 @@ class ChatManager {
         if (this.isSending) return;
         this.isSending = true;
 
+        // ABSOLUTE IMMEDIACY: Clear and Refocus BEFORE network
+        input.value = '';
+        this.clearStaging(userId);
+        input.focus();
+
         try {
             // Safety check
             if (!this.stagedFiles) this.stagedFiles = new Map();
@@ -1383,11 +1390,7 @@ class ChatManager {
                 await this.sendMiniMessage(userId, text);
             }
 
-            // Cleanup
-            input.value = '';
-            this.clearStaging(userId);
-            // refocus
-            input.focus();
+            // Cleanup (Moved to top)
 
         } finally {
             this.isSending = false;
