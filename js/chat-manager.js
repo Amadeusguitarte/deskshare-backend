@@ -879,7 +879,7 @@ class ChatManager {
 
     renderChatTab(conv) {
         const user = conv.otherUser;
-        const tabId = `chat - tab - ${user.id} `;
+        const tabId = `chat-tab-${user.id}`;
         // Check state to persist minimization
         const isMin = this.minimizedConversations.has(user.id);
         const height = isMin ? '50px' : '400px';
@@ -996,7 +996,7 @@ class ChatManager {
         }
 
         // 2. Direct DOM Manipulation (CSS Transition)
-        const tab = document.getElementById(`chat - tab - ${userId} `);
+        const tab = document.getElementById(`chat-tab-${userId}`);
         if (tab) {
             const newMin = !isMin; // Toggle logic
             tab.style.height = newMin ? '50px' : '400px';
