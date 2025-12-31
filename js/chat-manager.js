@@ -778,8 +778,18 @@ class ChatManager {
         const badges = document.querySelectorAll('#navMsgBadge, #navUnreadBadge');
         badges.forEach(el => {
             if (count > 0) {
+                el.style.display = 'flex';
                 el.innerText = count > 99 ? '99+' : count;
-                el.style.display = 'flex'; // or inline-block depending on css. flex allows centering
+
+                // PILL SHAPE FIX (Enforce over inline HTML styles)
+                el.style.width = 'auto'; // Reset fixed width
+                el.style.minWidth = '18px';
+                el.style.height = '18px';
+                el.style.borderRadius = '10px';
+                el.style.padding = '0 5px';
+                el.style.justifyContent = 'center';
+                el.style.alignItems = 'center';
+                el.style.boxSizing = 'border-box'; // Ensure padding adds to width
             } else {
                 el.style.display = 'none';
             }
