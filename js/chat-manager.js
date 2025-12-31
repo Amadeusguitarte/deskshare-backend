@@ -906,7 +906,7 @@ class ChatManager {
 
                     <!-- Input Container -->
                     <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                        <input type="text" placeholder="Escribe un mensaje..."
+                        <input type="text" placeholder="Escribe un mensaje..." autocomplete="off"
                             id="chat-input-${user.id}"
                             onfocus="window.safeHandleFocus(${user.id})"
                             onkeypress="if(event.key === 'Enter') { window.safeSendStagedMessage(${user.id}); } else { window.safeEmitTyping(${user.id}); }"
