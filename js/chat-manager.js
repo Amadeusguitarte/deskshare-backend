@@ -351,21 +351,34 @@ class ChatManager {
         this.messagesPageContainer.style.overflow = 'hidden';
 
         this.messagesPageContainer.innerHTML = `
-            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: 100%; gap: 1.5rem; padding: 2rem; padding-bottom: 2rem; box-sizing: border-box;">
-                <!--Sidebar -->
-                <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%;">
-                    <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
-                        <h2 style="margin: 0; font-size: 1.5rem;">Mensajes</h2>
-                        <input type="text" placeholder="Buscar..." style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 0.5rem; width: 100%; margin-top: 1rem; border-radius: 8px; color: white;">
+            <div class="chat-layout" style="display: grid; grid-template-columns: 400px 1fr 320px; height: 100%; gap: 0; padding: 0; box-sizing: border-box; background: #000;">
+                <!--Sidebar (Left) -->
+                <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%; border-right: 1px solid #222; background: #111; border-radius: 0;">
+                    <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #222;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                             <h2 style="margin: 0; font-size: 1.8rem; font-weight: 700;">Chats</h2>
+                             <div style="display: flex; gap: 10px;">
+                                 <button style="background: #333; border: none; width: 36px; height: 36px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">⋯</button>
+                                 <button style="background: #333; border: none; width: 36px; height: 36px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
+                             </div>
+                        </div>
+                        <input type="text" placeholder="Buscar en Messenger" style="background: #2a2a2a; border: none; padding: 0.8rem 1rem 0.8rem 2.5rem; width: 100%; border-radius: 20px; color: white; font-size: 0.95rem; outline: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23999%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2211%22 cy=%2211%22 r=%228%22></circle><line x1=%2221%22 y1=%2221%22 x2=%2216.65%22 y2=%2216.65%22></line></svg>'); background-repeat: no-repeat; background-position: 12px center;">
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                            <button style="background: rgba(18, 140, 126, 0.2); color: #2ecc71; border: none; padding: 6px 14px; border-radius: 15px; font-weight: 600; font-size: 0.9rem;">Todos</button>
+                            <button style="background: transparent; color: #aaa; border: none; padding: 6px 14px; border-radius: 15px; font-weight: 600; font-size: 0.9rem; cursor: pointer;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">No leídos</button>
+                             <button style="background: transparent; color: #aaa; border: none; padding: 6px 14px; border-radius: 15px; font-weight: 600; font-size: 0.9rem; cursor: pointer;" onmouseover="this.style.background='#222'" onmouseout="this.style.background='transparent'">Grupos</button>
+                        </div>
                     </div>
-                    <div id="conversationsList" style="flex: 1; overflow-y: auto; padding: 1rem;">
+                    <div id="conversationsList" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
                         <!-- Conversations go here -->
                     </div>
                 </div>
 
-                <!--Chat Area-->
-            <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative;">
-                <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0;">
+                <!--Chat Area (Center) -->
+            <div class="chat-main glass-card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; background: #000; border-radius: 0;">
+                <!-- Header Logic moved to updateHeader -->
+                <div id="chatHeader" style="padding: 1rem; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0; background: #111;">
                     <h3 style="margin: 0; color: var(--text-secondary);">Selecciona una conversación</h3>
                 </div>
 
@@ -415,7 +428,14 @@ class ChatManager {
                     <div id="fullPageStaging" style="display: none; padding-top: 10px;"></div>
                 </div>
             </div>
-            </div >
+
+                <!-- Info Panel (Right) -->
+                <div id="chatInfoPanel" class="glass-card" style="display: flex; flex-direction: column; height: 100%; border-left: 1px solid #222; background: #111; border-radius: 0; padding: 0;">
+                     <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #555;">
+                        <span style="font-size: 0.9rem;">Selecciona un chat para ver información</span>
+                     </div>
+                </div>
+            </div>
             `;
 
         this.renderConversationsList();
@@ -458,23 +478,44 @@ class ChatManager {
             return `
             <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'active' : ''}"
         onclick="chatManager.selectConversation('${user.id}')"
-        style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
-            <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
-                <div style="flex: 1; overflow: hidden;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-weight: 600; color: white;">${user.name || 'Usuario'}</span>
-                            <div id="list-status-dot-${user.id}" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; display: ${user.isOnline ? 'block' : 'none'};"></div>
-                        </div>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">${time}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">
-                            ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📄 Archivo') : '')) : 'Nuevo chat'}
-                        </span>
-                        ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 10px;">${conv.unreadCount}</span>` : ''}
-                    </div>
+        style="display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 2px; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
+            
+            <div style="position: relative; width: 48px; height: 48px; flex-shrink: 0;">
+                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                <!-- FB Cutout for Avatar (Small indicator) -->
+                 ${user.isOnline ? `
+                <div style="
+                    position: absolute; 
+                    bottom: 0; 
+                    right: 0; 
+                    width: 14px; 
+                    height: 14px; 
+                    background: #111; 
+                    border-radius: 50%; 
+                    display: flex; align-items: center; justify-content: center;
+                ">
+                     <div style="width: 10px; height: 10px; background: #4ade80; border-radius: 50%;"></div>
                 </div>
+                ` : ''}
+            </div>
+
+            <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: center;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                     <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; flex: 1;">
+                        <span style="font-weight: 600; color: white; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.name || 'Usuario'}</span>
+                        <!-- Inline Status Dot (Requested "Right Next To Name") -->
+                        ${user.isOnline ? `<div style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; flex-shrink: 0;"></div>` : ''}
+                     </div>
+                     <span style="font-size: 0.75rem; color: #777; white-space: nowrap; margin-left: 6px;">${time}</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                     <span style="font-size: 0.85rem; color: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? '#ddd' : '#888'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;">
+                        ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📄 Archivo') : '')) : 'Nuevo chat'}
+                     </span>
+                     ${conv.unreadCount > 0 ? `<div style="width: 8px; height: 8px; background: #2ecc71; border-radius: 50%;"></div>` : ''}
+                </div>
+            </div>
             </div>
         `;
         }).join('');
@@ -558,6 +599,25 @@ class ChatManager {
                 };
             };
         }
+
+        // Existing logic for full page mode
+        if (this.currentMode === 'full') {
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            // Re-render list to update selection styles
+            this.renderConversationsList();
+
+            // Render Info Panel
+            this.renderChatInfoPanel(user);
+        } else {
+            // Widget mode logic
+            this.renderWidgetTabs();
+            // Open widget if closed
+            const widget = document.getElementById('chatWidgetContainer');
+            if (widget) widget.dataset.listOpen = 'false';
+        }
+
+        // Scroll to bottom
+        this.scrollToBottom();
 
         // FOCUS FIX: Focus input immediately after selection
         setTimeout(() => {
@@ -658,6 +718,35 @@ class ChatManager {
         this.scrollToBottom();
     }
 
+    renderChatInfoPanel(user) {
+        const panel = document.getElementById('chatInfoPanel');
+        if (!panel) return;
+
+        panel.innerHTML = `
+                    < div style = "padding: 2rem 1rem; text-align: center; border-bottom: 1px solid #222;" >
+                <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 1rem;">
+                    <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                     ${user.isOnline ? `
+                    <div style="position: absolute; bottom: 2px; right: 2px; width: 16px; height: 16px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 12px; height: 12px; background: #4ade80; border-radius: 50%;"></div>
+                    </div>` : ''}
+                </div>
+                <h3 style="margin: 0; font-size: 1.2rem; margin-bottom: 0.2rem; color: white;">${user.name}</h3>
+                <span style="color: #777; font-size: 0.85rem;">${user.isOnline ? 'Activo(a) ahora' : 'Desconectado'}</span>
+            </div >
+
+                    <div style="padding: 1rem;">
+                        <!-- Accordion Items (Static Mockup) -->
+                        ${['Información del chat', 'Personalizar chat', 'Multimedia y archivos', 'Privacidad y ayuda'].map(item => `
+                    <div style="padding: 12px 0; border-bottom: 0px solid #222; display: flex; justify-content: space-between; align-items: center; cursor: pointer; color: #ccc; font-weight: 500; font-size: 0.95rem; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#ccc'">
+                        ${item}
+                        <span style="font-size: 1.2rem;">›</span>
+                    </div>
+                `).join('')}
+                    </div>
+                `;
+    }
+
     renderMessages(messages) {
         messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         const area = document.getElementById('messagesArea');
@@ -711,7 +800,7 @@ class ChatManager {
         this.updateGlobalBadge(totalUnread);
 
         const persistentBar = `
-            <div id="chat-global-bar" class="chat-tab" style="width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;">
+                    < div id = "chat-global-bar" class="chat-tab" style = "width: 280px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '400px' : '48px'}; margin-left: 10px;" >
                 <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'400px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
@@ -739,8 +828,8 @@ class ChatManager {
                 <div style="padding: 10px; border-top: 1px solid #333; text-align: center;">
                    <a href="messages.html" style="font-size: 0.8rem; color: var(--accent-purple); text-decoration: none;">Ver todo</a>
                 </div>
-            </div>
-            `;
+            </div >
+                    `;
 
         // 2. Render Active Tabs
         // We render ALL IDs in openConversationIds
@@ -781,24 +870,24 @@ class ChatManager {
             if (count > 0) {
                 // OVERRIDE: Use cssText to forcefully reset styles and apply "Pill" shape
                 el.style.cssText = `
-                    display: flex !important;
-                    position: absolute !important;
-                    top: -4px !important;
-                    right: -4px !important;
-                    background: var(--error-red, #ef4444) !important;
-                    color: white !important;
-                    border: 2px solid white !important;
-                    border-radius: 10px !important;
-                    min-width: 18px !important;
-                    height: 18px !important;
-                    padding: 0 4px !important;
-                    font-size: 10px !important;
-                    font-weight: bold !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    box-sizing: border-box !important;
-                    width: auto !important;
-                    z-index: 100 !important;
+                display: flex!important;
+                position: absolute!important;
+                top: -4px!important;
+                right: -4px!important;
+                background: var(--error - red, #ef4444)!important;
+                color: white!important;
+                border: 2px solid white!important;
+                border - radius: 10px!important;
+                min - width: 18px!important;
+                height: 18px!important;
+                padding: 0 4px!important;
+                font - size: 10px!important;
+                font - weight: bold!important;
+                align - items: center!important;
+                justify - content: center!important;
+                box - sizing: border - box!important;
+                width: auto!important;
+                z - index: 100!important;
                 `;
                 el.innerText = count > 99 ? '99+' : count;
             } else {
@@ -809,7 +898,7 @@ class ChatManager {
 
     renderChatTab(conv) {
         const user = conv.otherUser;
-        const tabId = `chat-tab-${user.id}`;
+        const tabId = `chat - tab - ${user.id} `;
         // Check state to persist minimization
         const isMin = this.minimizedConversations.has(user.id);
         const height = isMin ? '50px' : '400px';
@@ -825,8 +914,8 @@ class ChatManager {
         const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
         return `
-            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
-                 <!--HEADER -->
+                    < div id = "${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style = "width: 300px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;" >
+                 < !--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="window.safeMinimize(${user.id})">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <!-- AVATAR CONTAINER (RELATIVE) -->
@@ -861,7 +950,7 @@ class ChatManager {
                     </div>
                 </div>
                 
-                <!--MESSAGES AREA-->
+                <!--MESSAGES AREA-- >
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
                     ${this.renderMessageHTML(sortedMessages, user)}
                     
@@ -875,45 +964,45 @@ class ChatManager {
                 </div>
                 
                 <!--FOOTER -->
-            <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; flex-direction: column; gap: 8px;">
+                    <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; flex-direction: column; gap: 8px;">
 
-                <!-- STAGING AREA (Preview) -->
-                <div id="chat-staging-${user.id}" style="display: none; padding: 8px; background: #333; border-radius: 8px; margin-bottom: 4px; align-items: center; justify-content: space-between;">
-                    <div id="chat-staging-content-${user.id}" style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                        <!-- Content injected by JS -->
-                    </div>
-                    <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.2em;">&times;</button>
-                </div>
+                        <!-- STAGING AREA (Preview) -->
+                        <div id="chat-staging-${user.id}" style="display: none; padding: 8px; background: #333; border-radius: 8px; margin-bottom: 4px; align-items: center; justify-content: space-between;">
+                            <div id="chat-staging-content-${user.id}" style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                                <!-- Content injected by JS -->
+                            </div>
+                            <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.2em;">&times;</button>
+                        </div>
 
-                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                    <!-- Attach Icon -->
-                    <button onclick="window.safeTriggerUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                    </button>
-
-                    <!-- Input Container -->
-                    <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                        <input type="text" placeholder="Escribe un mensaje..."
-                            id="chat-input-${user.id}"
-                            onfocus="window.safeHandleFocus(${user.id})"
-                            onkeypress="if(event.key === 'Enter') { window.safeSendStagedMessage(${user.id}); } else { window.safeEmitTyping(${user.id}); }"
-                            style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
-
-                            <!-- Emoji Icon -->
-                            <button onclick="window.safeToggleEmoji(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                            <!-- Attach Icon -->
+                            <button onclick="window.safeTriggerUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                             </button>
-                    </div>
 
-                    <!-- Send Icon -->
-                    <button onclick="window.safeSendStagedMessage(${user.id})"
-                        style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    </button>
-                </div>
-            </div>
-            </div>
-            `;
+                            <!-- Input Container -->
+                            <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
+                                <input type="text" placeholder="Escribe un mensaje..."
+                                    id="chat-input-${user.id}"
+                                    onfocus="window.safeHandleFocus(${user.id})"
+                                    onkeypress="if(event.key === 'Enter') { window.safeSendStagedMessage(${user.id}); } else { window.safeEmitTyping(${user.id}); }"
+                                    style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
+
+                                    <!-- Emoji Icon -->
+                                    <button onclick="window.safeToggleEmoji(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                                    </button>
+                            </div>
+
+                            <!-- Send Icon -->
+                            <button onclick="window.safeSendStagedMessage(${user.id})"
+                                style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
+                        </div>
+                    </div>
+            </div >
+                    `;
     }
 
     toggleMinimize(userId) {
@@ -926,7 +1015,7 @@ class ChatManager {
         }
 
         // 2. Direct DOM Manipulation (CSS Transition)
-        const tab = document.getElementById(`chat-tab-${userId}`);
+        const tab = document.getElementById(`chat - tab - ${userId} `);
         if (tab) {
             const newMin = !isMin; // Toggle logic
             tab.style.height = newMin ? '50px' : '400px';
@@ -995,7 +1084,7 @@ class ChatManager {
         // Retry logic to ensure DOM is ready
         let attempts = 0;
         const attemptFocus = () => {
-            const input = document.getElementById(`chat-input-${userId}`);
+            const input = document.getElementById(`chat - input - ${userId} `);
             if (input) {
                 input.focus();
                 input.click(); // Force active
@@ -1016,7 +1105,7 @@ class ChatManager {
 
     // New Helper: Updates ONLY the message list div, leaving Input/Header intact
     updateMessagesAreaOnly(userId) {
-        const msgArea = document.getElementById(`msg-area-${userId}`);
+        const msgArea = document.getElementById(`msg - area - ${userId} `);
         const conv = this.conversations.find(c => c.otherUser.id == userId);
         if (msgArea && conv) {
             // Sort
@@ -1026,11 +1115,11 @@ class ChatManager {
             // Append Typing Indicator if needed
             if (this.typingUsers.has(userId)) {
                 msgArea.innerHTML += `
-                    <div style="display: flex; justify-content: flex-start;">
+                    < div style = "display: flex; justify-content: flex-start;" >
                         <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
                             Escribiendo...
                         </span>
-                    </div>`;
+                    </div > `;
             }
             // Scroll
             this.scrollToBottom(userId);
@@ -1045,7 +1134,7 @@ class ChatManager {
     scrollToBottom(userId) {
         if (userId && this.minimizedConversations.has(userId)) return;
 
-        const area = userId ? document.getElementById(`msg-area-${userId}`) : document.getElementById('messagesArea');
+        const area = userId ? document.getElementById(`msg - area - ${userId} `) : document.getElementById('messagesArea');
         if (area) {
             // 1. Immediate Scroll
             area.scrollTop = area.scrollHeight;
@@ -1119,7 +1208,7 @@ class ChatManager {
 
         // UX: Auto-Focus Input
         setTimeout(() => {
-            const tab = document.getElementById(`chat-tab-${userId}`);
+            const tab = document.getElementById(`chat - tab - ${userId} `);
             if (tab) {
                 const input = tab.querySelector('input');
                 if (input) {
@@ -1152,14 +1241,14 @@ class ChatManager {
         }
 
         // Update UI (Full Page List Item)
-        const listDot = document.getElementById(`list-status-dot-${userId}`);
+        const listDot = document.getElementById(`list - status - dot - ${userId} `);
         if (listDot) {
             listDot.style.display = isOnline ? 'block' : 'none';
         }
 
         // Update UI (Widget Tab) - Rerender just the header if possible or full tab
-        const tabHeader = document.querySelector(`#chat-tab-${userId} .user-status-text`);
-        const statusDot = document.querySelector(`#chat-tab-${userId} .status-dot`);
+        const tabHeader = document.querySelector(`#chat - tab - ${userId} .user - status - text`);
+        const statusDot = document.querySelector(`#chat - tab - ${userId} .status - dot`);
 
         if (tabHeader) {
             tabHeader.textContent = isOnline ? 'En línea' : '';
@@ -1171,7 +1260,7 @@ class ChatManager {
         }
 
         // Update UI (Widget List Item)
-        const widgetListDot = document.querySelector(`#widget-list-item-${userId} .list-status-dot`);
+        const widgetListDot = document.querySelector(`#widget - list - item - ${userId} .list - status - dot`);
         if (widgetListDot) {
             widgetListDot.style.display = isOnline ? 'block' : 'none';
         }
@@ -1218,7 +1307,7 @@ class ChatManager {
         }
 
         // 2. Stop Flash
-        const tab = document.getElementById(`chat-tab-${userId}`);
+        const tab = document.getElementById(`chat - tab - ${userId} `);
         if (tab) {
             tab.classList.remove('flash-animation');
         }
@@ -1257,11 +1346,11 @@ class ChatManager {
     // ==========================================
     triggerFileUpload(userId) {
         // Create hidden input dynamically if not exists
-        let input = document.getElementById(`file-input-${userId}`);
+        let input = document.getElementById(`file - input - ${userId} `);
         if (!input) {
             input = document.createElement('input');
             input.type = 'file';
-            input.id = `file-input-${userId}`;
+            input.id = `file - input - ${userId} `;
             input.style.display = 'none';
             // Accept Images and Docs. Enable Multiple!
             input.accept = 'image/*,.pdf,.doc,.docx,.zip,.txt';
@@ -1285,7 +1374,7 @@ class ChatManager {
         if (!file) return;
 
         // Optimistic UI feedback could go here (e.g. spinner)
-        const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
+        const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
         if (btn) btn.style.opacity = '0.5';
 
         try {
@@ -1294,9 +1383,9 @@ class ChatManager {
             formData.append('file', file);
 
             // 1. Upload
-            const res = await fetch(`${API_BASE_URL}/chat/upload`, {
+            const res = await fetch(`${API_BASE_URL} /chat/upload`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: { 'Authorization': `Bearer ${token} ` },
                 body: formData
             });
 
@@ -1326,7 +1415,7 @@ class ChatManager {
             this.renderStagingArea(userId);
 
             // Focus input
-            const chatInput = document.getElementById(`chat-input-${userId}`);
+            const chatInput = document.getElementById(`chat - input - ${userId} `);
             if (chatInput) chatInput.focus();
 
             return { url: data.fileUrl, type: data.fileType, name: file.name };
@@ -1340,8 +1429,8 @@ class ChatManager {
     }
 
     renderStagingArea(userId) {
-        const stagingArea = document.getElementById(`chat-staging-${userId}`);
-        const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
+        const stagingArea = document.getElementById(`chat - staging - ${userId} `);
+        const stagingContent = document.getElementById(`chat - staging - content - ${userId} `);
         const files = this.stagedFiles.get(userId) || [];
 
         if (!files.length) {
@@ -1360,18 +1449,18 @@ class ChatManager {
 
                 let innerHTML = '';
                 if (file.fileType === 'image') {
-                    innerHTML = `<img src="${file.fileUrl}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;">`;
+                    innerHTML = `< img src = "${file.fileUrl}" style = "height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #555;" > `;
                 } else {
                     innerHTML = `
-            <div style="height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;">
+                    < div style = "height: 60px; width: 60px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #555;" >
                             📄
-                        </div>`;
+                        </div > `;
                 }
 
                 // Add Close Button (X)
                 innerHTML += `
-            <div onclick="chatManager.removeStagedFile(${userId}, ${index})" style="position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">&times;</div>
-                `;
+                    < div onclick = "chatManager.removeStagedFile(${userId}, ${index})" style = "position: absolute; top: -6px; right: -6px; background: #333; border: 1px solid #555; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);" >& times;</div >
+                        `;
 
                 thumb.innerHTML = innerHTML;
                 stagingContent.appendChild(thumb);
@@ -1394,7 +1483,7 @@ class ChatManager {
     }
 
     async sendStagedMessage(userId) {
-        const input = document.getElementById(`chat-input-${userId}`);
+        const input = document.getElementById(`chat - input - ${userId} `);
         if (!input) return;
 
         const text = input.value.trim();
@@ -1500,25 +1589,25 @@ class ChatManager {
             if (isImageGroup) {
                 const count = group.length;
                 let gridContainerStyle = `
-        display: grid;
-        gap: 2px;
-        background: transparent;
-        border-radius: 18px;
-        overflow: hidden;
-        width: 100%;
-        max-width: 220px;
-        `;
+                display: grid;
+                gap: 2px;
+                background: transparent;
+                border - radius: 18px;
+                overflow: hidden;
+                width: 100 %;
+                max - width: 220px;
+                `;
 
                 if (count === 1) {
                     return `
-            <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
-                <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
-                    style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
-                    <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
-                </div>
+                    < div style = "display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+                        <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${group[0].fileUrl}', '${user.id}')"
+                            style="cursor: zoom-in; position: relative; max-width: 200px; width: 80%;">
+                            <img src="${group[0].fileUrl}" alt="Imagen" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%; object-fit: cover;">
+                        </div>
                  ${isMe && lastMsgInGroup.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
-            </div>
-            `;
+            </div >
+                    `;
                 }
 
                 if (count === 2) {
@@ -1528,20 +1617,20 @@ class ChatManager {
                 }
 
                 const imagesHtml = group.map((msg) => `
-            <div onclick="event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
-        style="cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;">
-            <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
-            </div>
-        `).join('');
+                    < div onclick = "event.stopPropagation(); window.chatManagerInstance.openLightbox('${msg.fileUrl}', '${user.id}')"
+                style = "cursor: pointer; position: relative; overflow: hidden; height: 100%; width: 100%; min-height: 70px; aspect-ratio: 1/1;" >
+                    <img src="${msg.fileUrl}" alt="Imagen" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                `).join('');
 
                 return `
-            <div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;">
-                <div style="${gridContainerStyle}">
-                    ${imagesHtml}
-                </div>
+                    < div style = "display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 4px;" >
+                        <div style="${gridContainerStyle}">
+                            ${imagesHtml}
+                        </div>
                  ${isMe && lastMsgInGroup.id === lastMyMsgId ? `<div style="font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">${showRead ? 'Visto' : `Enviado ${this.getRelativeTime(new Date(firstMsg.createdAt))}`}</div>` : ''}
-            </div>
-            `;
+            </div >
+                    `;
             }
 
             // 2. STANDARD TEXT/FILE MESSAGES
@@ -1560,34 +1649,34 @@ class ChatManager {
                 if (msg.fileUrl && msg.fileType !== 'image') {
                     const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
                     contentHtml += `
-            <div style="margin-bottom: 6px;">
-                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
+                    < div style = "margin-bottom: 6px;" >
+                        <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
                                 border-radius: 18px; text-decoration: none; color: white; 
                                 border: 1px solid rgba(255,255,255,0.05); 
                                 max-width: 220px; transition: background 0.2s;
                             ">
-                    <div style="
+                            <div style="
                                     background: rgba(255,255,255,0.1); width: 40px; height: 40px; 
                                     border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
                                 ">
-                        <span style="font-size: 1.2em;">📄</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
-                        <span style="
+                                <span style="font-size: 1.2em;">📄</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                                <span style="
                                         font-size: 0.85em; font-weight: 600; 
                                         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
                                         display: block; width: 100%;
                                     ">${cleanName}</span>
-                    </div>
-                </div>
-            </div>
-            `;
+                            </div>
+                        </div>
+            </div >
+                    `;
                 }
 
                 if (msg.message && msg.message.trim()) {
-                    contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                    contentHtml += `< div > ${msg.message.replace(/\n/g, '<br>')}</div > `;
                 }
 
                 const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
@@ -1604,12 +1693,12 @@ class ChatManager {
                 let timeHeader = '';
                 if (group.indexOf(msg) === 0 && showTimeHeader) {
                     timeHeader = `
-            <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
-                <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
-                    ${timeStr}
-                </span>
-            </div>
-            `;
+                    < div style = "width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;" >
+                        <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
+                            ${timeStr}
+                        </span>
+            </div >
+                    `;
                 }
 
                 let statusHtml = '';
@@ -1621,20 +1710,20 @@ class ChatManager {
                         statusText = 'Visto';
                         statusColor = '#aaa';
                     } else {
-                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))}`;
+                        statusText = `Enviado ${this.getRelativeTime(new Date(msg.createdAt))} `;
                         statusColor = '#666';
                     }
 
                     statusHtml = `
-            <div style="font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;">
-                ${statusText}
-            </div>
-            `;
+                    < div style = "font-size: 0.7rem; color: ${statusColor}; margin-top: 2px; text-align: right; width: 100%; margin-right: 2px;" >
+                        ${statusText}
+            </div >
+                    `;
                 }
 
                 return `
                     ${timeHeader}
-        <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
+                <div class="message-bubble ${isMe ? 'me' : 'them'}" style="
                          align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
                          max-width: 85%; 
                          margin-bottom: 2px; 
@@ -1642,7 +1731,7 @@ class ChatManager {
                          flex-direction: column; 
                          align-items: ${isMe ? 'flex-end' : 'flex-start'};
                     ">
-            <div style="
+                    <div style="
                              background: ${bubbleBg}; 
                              padding: ${bubblePad}; 
                              border-radius: 18px; 
@@ -1653,11 +1742,11 @@ class ChatManager {
                              word-break: break-word;
                              min-width: 60px;
                         ">
-                ${contentHtml}
-            </div>
-            ${statusHtml}
-        </div>
-        `;
+                        ${contentHtml}
+                    </div>
+                    ${statusHtml}
+                </div>
+                `;
             }).join('');
         }).join('');
     }
