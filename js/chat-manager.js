@@ -1364,7 +1364,7 @@ class ChatManager {
         if (!file) return;
 
         // Optimistic UI feedback could go here (e.g. spinner)
-        const btn = document.querySelector(`#chat - tab - ${userId} .chat - footer button`);
+        const btn = document.querySelector(`#chat-tab-${userId} .chat-footer button`);
         if (btn) btn.style.opacity = '0.5';
 
         try {
@@ -1405,7 +1405,7 @@ class ChatManager {
             this.renderStagingArea(userId);
 
             // Focus input
-            const chatInput = document.getElementById(`chat - input - ${userId} `);
+            const chatInput = document.getElementById(`chat-input-${userId}`);
             if (chatInput) chatInput.focus();
 
             return { url: data.fileUrl, type: data.fileType, name: file.name };
@@ -1419,8 +1419,8 @@ class ChatManager {
     }
 
     renderStagingArea(userId) {
-        const stagingArea = document.getElementById(`chat - staging - ${userId} `);
-        const stagingContent = document.getElementById(`chat - staging - content - ${userId} `);
+        const stagingArea = document.getElementById(`chat-staging-${userId}`);
+        const stagingContent = document.getElementById(`chat-staging-content-${userId}`);
         const files = this.stagedFiles.get(userId) || [];
 
         if (!files.length) {
@@ -1473,7 +1473,7 @@ class ChatManager {
     }
 
     async sendStagedMessage(userId) {
-        const input = document.getElementById(`chat - input - ${userId} `);
+        const input = document.getElementById(`chat-input-${userId}`);
         if (!input) return;
 
         const text = input.value.trim();
