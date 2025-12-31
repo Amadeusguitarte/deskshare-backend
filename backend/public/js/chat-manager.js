@@ -1674,11 +1674,11 @@ class ChatManager {
                 let timeHeader = '';
                 if (group.indexOf(msg) === 0 && showTimeHeader) {
                     timeHeader = `
-                    < div style = "width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;" >
+                    <div style="width: 100%; text-align: center; margin: 12px 0 4px 0; opacity: 0.6;">
                         <span style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #ccc;">
                             ${timeStr}
                         </span>
-            </div >
+            </div>
                     `;
                 }
 
