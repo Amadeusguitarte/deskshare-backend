@@ -1715,6 +1715,30 @@ class ChatManager {
         }).join('');
     }
 
+    downloadFileSecure(url, filename) {
+        // Force Cloudinary download
+        if (url && url.includes('cloudinary.com') && url.includes('/upload/') && !url.includes('fl_attachment')) {
+            url = url.replace('/upload/', '/upload/fl_attachment/');
+        }
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename || 'documento';
+        link.target = '_blank'; // Fallback
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    openLightbox(url, userId) {
+        // Simple fallback lightbox
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+        overlay.innerHTML = `<img src="${url}" style="max-width:90%;max-height:90%;border-radius:8px;box-shadow:0 0 20px rgba(0,0,0,0.5);">`;
+        overlay.onclick = () => document.body.removeChild(overlay);
+        document.body.appendChild(overlay);
+    }
+
     getRelativeTime(date) {
         const now = new Date();
         const diffMs = now - date;
