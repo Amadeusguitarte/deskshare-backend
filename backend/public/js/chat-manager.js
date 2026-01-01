@@ -1170,6 +1170,12 @@ class ChatManager {
             conv.otherUser.isOnline = isOnline;
         }
 
+        // FIX: Force Re-render of lists
+        this.renderWidgetTabs();
+        if (this.messagesPageContainer && !window.location.href.includes('remote-access.html')) {
+            this.renderConversationsList();
+        }
+
         // Update UI (Full Page)
         if (this.messagesPageContainer && this.activeConversation && this.activeConversation.otherUser.id == userId) {
             const headerStatus = document.querySelector('#chatHeader .header-status-text');
