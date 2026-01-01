@@ -486,24 +486,26 @@ class ChatManager {
                     border: 2px solid #1a1a1a; /* Dark border to separate from avatar */
                     box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
                 "></div>` : ''}
-                <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-                    <!-- Row 1: Name, Time & Badge -->
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: baseline; gap: 8px; overflow: hidden; flex: 1;">
-                            <span style="font-weight: 600; color: white; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">${user.name || 'Usuario'}</span>
-                            <span style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap;">${time}</span>
-                        </div>
-                        ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); color: white; font-size: 0.75rem; font-weight: bold; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; margin-left: 8px; flex-shrink: 0;">${conv.unreadCount}</span>` : ''}
+            </div>
+
+            <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                <!-- Row 1: Name, Time & Badge -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: baseline; gap: 8px; overflow: hidden; flex: 1;">
+                        <span style="font-weight: 600; color: white; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">${user.name || 'Usuario'}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap;">${time}</span>
                     </div>
-                    
-                    <!-- Row 2: Message Preview -->
-                    <div style="display: flex; justify-content: flex-start; align-items: center;">
-                        <span style="font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
-                            ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📄 Archivo') : '')) : 'Nuevo chat'}
-                        </span>
-                    </div>
+                    ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); color: white; font-size: 0.75rem; font-weight: bold; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; margin-left: 8px; flex-shrink: 0;">${conv.unreadCount}</span>` : ''}
+                </div>
+                
+                <!-- Row 2: Message Preview -->
+                <div style="display: flex; justify-content: flex-start; align-items: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
+                        ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📄 Archivo') : '')) : 'Nuevo chat'}
+                    </span>
                 </div>
             </div>
+        </div>
         `;
         }).join('');
     }
