@@ -1715,19 +1715,34 @@ class ChatManager {
         }).join('');
     }
 
-    downloadFileSecure(url, filename) {
-        // Force Cloudinary download
-        if (url && url.includes('cloudinary.com') && url.includes('/upload/') && !url.includes('fl_attachment')) {
-            url = url.replace('/upload/', '/upload/fl_attachment/');
-        }
+    async downloadFileSecure(url, filename) {
+        try {
+            // Strategy 1: Fetch as Blob (True Download)
+            console.log('Attempting direct download:', url);
+            const response = await fetch(url, { mode: 'cors' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename || 'documento';
-        link.target = '_blank'; // Fallback
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename || 'documento';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
+
+        } catch (e) {
+            console.warn('Blob download failed, trying server-side flag:', e);
+            // Strategy 2: Cloudinary fl_attachment (Fallback)
+            let finalUrl = url;
+            if (url && url.includes('cloudinary.com') && url.includes('/upload/') && !url.includes('fl_attachment')) {
+                finalUrl = url.replace('/upload/', '/upload/fl_attachment/');
+            }
+            window.open(finalUrl, '_blank');
+        }
     }
 
     openLightbox(url, userId) {
