@@ -1721,7 +1721,7 @@ class ChatManager {
             const token = localStorage.getItem('authToken');
 
             // Call our Backend Proxy
-            const proxyUrl = `${API_BASE_URL}/chat/proxy-download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
+            const proxyUrl = `${this.baseUrl}/chat/proxy-download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
 
             const response = await fetch(proxyUrl, {
                 headers: { 'Authorization': `Bearer ${token}` }
