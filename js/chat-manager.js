@@ -1717,10 +1717,17 @@ class ChatManager {
 
     async downloadFileSecure(url, filename) {
         try {
-            // Strategy 1: Fetch as Blob (True Download)
-            console.log('Attempting direct download:', url);
-            const response = await fetch(url, { mode: 'cors' });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            console.log('Using Proxy Download:', url);
+            const token = localStorage.getItem('authToken');
+
+            // Call our Backend Proxy
+            const proxyUrl = `${API_BASE_URL}/chat/proxy-download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
+
+            const response = await fetch(proxyUrl, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
 
             const blob = await response.blob();
             const blobUrl = window.URL.createObjectURL(blob);
@@ -1735,13 +1742,8 @@ class ChatManager {
             setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
 
         } catch (e) {
-            console.warn('Blob download failed, trying server-side flag:', e);
-            // Strategy 2: Cloudinary fl_attachment (Fallback)
-            let finalUrl = url;
-            if (url && url.includes('cloudinary.com') && url.includes('/upload/') && !url.includes('fl_attachment')) {
-                finalUrl = url.replace('/upload/', '/upload/fl_attachment/');
-            }
-            window.open(finalUrl, '_blank');
+            console.warn('Proxy download failed, fallback to direct open:', e);
+            window.open(url, '_blank');
         }
     }
 
