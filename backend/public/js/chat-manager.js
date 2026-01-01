@@ -362,7 +362,7 @@ class ChatManager {
         this.messagesPageContainer.style.overflow = 'hidden';
 
         this.messagesPageContainer.innerHTML = `
-            <div class="chat-layout" style="display: grid; grid-template-columns: 350px 1fr; height: 100%; gap: 1.5rem; padding: 2rem; padding-bottom: 2rem; box-sizing: border-box;">
+            <div class="chat-layout" style="display: grid; grid-template-columns: 400px 1fr; height: 100%; gap: 1.5rem; padding: 2rem; padding-bottom: 2rem; box-sizing: border-box;">
                 <!--Sidebar -->
                 <div class="chat-sidebar glass-card" style="display: flex; flex-direction: column; height: 100%;">
                     <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border);">
@@ -469,21 +469,38 @@ class ChatManager {
             return `
             <div class="conversation-item ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'active' : ''}"
         onclick="chatManager.selectConversation('${user.id}')"
-        style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 0.5rem; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
-            <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
-                <div style="flex: 1; overflow: hidden;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-weight: 600; color: white;">${user.name || 'Usuario'}</span>
-                            <div id="list-status-dot-${user.id}" style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 5px #4ade80; display: ${user.isOnline ? 'block' : 'none'};"></div>
-                        </div>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">${time}</span>
-                    </div>
+        style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; cursor: pointer; transition: background 0.2s; margin-bottom: 6px; background: ${this.activeConversation && this.activeConversation.otherUser.id == user.id ? 'rgba(255,255,255,0.1)' : 'transparent'};">
+            
+            <!-- Avatar with Status Dot (Facebook Style) -->
+            <div style="position: relative; width: 48px; height: 48px; flex-shrink: 0;">
+                <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                ${user.isOnline ? `
+                <div style="
+                    position: absolute;
+                    bottom: 2px;
+                    right: 2px;
+                    width: 10px;
+                    height: 10px;
+                    background: #4ade80;
+                    border-radius: 50%;
+                    border: 2px solid #1a1a1a; /* Dark border to separate from avatar */
+                    box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+                "></div>` : ''}
+            </div>
+
+                <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <!-- Row 1: Name & Time -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">
+                        <span style="font-weight: 600; color: white; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;">${user.name || 'Usuario'}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap;">${time}</span>
+                    </div>
+                    
+                    <!-- Row 2: Message & Badge -->
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
                             ${lastMsg ? (lastMsg.senderId === this.currentUser.id ? 'Tú: ' : '') + (lastMsg.message || (lastMsg.fileUrl ? (lastMsg.fileType === 'image' ? '📷 Foto' : '📄 Archivo') : '')) : 'Nuevo chat'}
                         </span>
-                        ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 10px;">${conv.unreadCount}</span>` : ''}
+                        ${conv.unreadCount > 0 ? `<span style="background: var(--accent-purple); color: white; font-size: 0.75rem; font-weight: bold; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; margin-left: 8px;">${conv.unreadCount}</span>` : ''}
                     </div>
                 </div>
             </div>
