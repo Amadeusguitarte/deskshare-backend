@@ -203,4 +203,34 @@ router.post('/', auth, async (req, res, next) => {
     }
 });
 
+// ========================================
+// GET /api/chat/proxy-download
+// Proxy file download to bypass CORS/Auth restrictions
+// ========================================
+router.get('/proxy-download', auth, async (req, res) => {
+    const { url, name } = req.query;
+    if (!url) return res.status(400).send('Missing url');
+
+    // Security: Only allow Cloudinary URLs
+    if (!url.includes('cloudinary.com')) {
+        return res.status(403).send('Only Cloudinary URLs allowed');
+    }
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
+
+        const contentType = response.headers.get('content-type');
+        res.setHeader('Content-Type', contentType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${name || 'download'}"`);
+
+        const arrayBuffer = await response.arrayBuffer();
+        res.send(Buffer.from(arrayBuffer));
+
+    } catch (error) {
+        console.error('Download Proxy Error:', error);
+        res.status(500).send('Download failed');
+    }
+});
+
 module.exports = router;
