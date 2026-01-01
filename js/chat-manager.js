@@ -522,10 +522,7 @@ class ChatManager {
         this.socket.emit('mark-read', { senderId: this.currentUser.id, receiverId: userId });
         this.renderConversationsList();
 
-        const messages = await this.loadHistory(userId);
-        this.activeConversation.messages = messages;
-
-        // Update Header
+        // 1. INSTANT RENDER (Header + Local Cache)
         const user = conv.otherUser;
         const header = document.getElementById('chatHeader');
         header.innerHTML = `
@@ -545,6 +542,21 @@ class ChatManager {
                 <button class="btn btn-secondary" style="padding: 0.5rem;" onclick="window.location.href='marketplace.html'">Explorar PC</button>
             </div>
         `;
+
+        // Render Local Messages Immediately
+        this.renderMessages(conv.messages || []);
+        this.scrollToBottom();
+
+        // 2. BACKGROUND FETCH (Sync)
+        this.loadHistory(userId).then(messages => {
+            this.activeConversation.messages = messages;
+
+            // Only re-render if we are still on the same chat
+            if (this.activeConversation.otherUser.id == userId) {
+                this.renderMessages(messages);
+                this.scrollToBottom();
+            }
+        });
 
         document.getElementById('inputArea').style.display = 'block';
 
