@@ -479,8 +479,8 @@ class ChatManager {
                     position: absolute;
                     bottom: 2px;
                     right: 2px;
-                    width: 10px;
-                    height: 10px;
+                    width: 12px;
+                    height: 12px;
                     background: #4ade80;
                     border-radius: 50%;
                     border: 2px solid #1a1a1a; /* Dark border to separate from avatar */
@@ -489,9 +489,9 @@ class ChatManager {
             </div>
 
                 <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-                    <!-- Row 1: Name & Time -->
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600; color: white; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;">${user.name || 'Usuario'}</span>
+                    <!-- Row 1: Name & Time (Left Aligned with gap) -->
+                    <div style="display: flex; justify-content: flex-start; align-items: baseline; gap: 8px;">
+                        <span style="font-weight: 600; color: white; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%;">${user.name || 'Usuario'}</span>
                         <span style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap;">${time}</span>
                     </div>
                     
