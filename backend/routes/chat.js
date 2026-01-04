@@ -49,8 +49,29 @@ router.get('/document-proxy', auth, async (req, res) => {
 
         console.log('Bridge Fetching:', signedUrl);
 
-        // 2. Fetch Content from Cloudinary
-        const response = await fetch(signedUrl);
+        // 2. Smart Retry Strategy (Decoded vs Encoded)
+        // Some files need decoded ID (standard), others need raw encoded ID (spaces vs %20)
+        console.log(`Bridge: Resolving ${publicId} (Raw: ${pathPart})`);
+
+        const tryFetch = async (pid) => {
+            const sUrl = cloudinary.utils.url(pid, {
+                resource_type: isRaw ? 'raw' : 'image',
+                type: 'upload',
+                sign_url: true,
+                secure: true
+            });
+            return fetch(sUrl);
+        };
+
+        // Attempt 1: Standard (Decoded)
+        let response = await tryFetch(publicId);
+
+        // Attempt 2: Fallback (Encoded) - if different and first failed
+        if (!response.ok && pathPart !== publicId) {
+            console.warn(`Bridge Attempt 1 failed (${response.status}). Retrying with Raw Path...`);
+            response = await tryFetch(pathPart);
+        }
+
         if (!response.ok) throw new Error(`Cloudinary Error: ${response.status} ${response.statusText}`);
 
         // 3. Set Headers for Client
