@@ -1717,7 +1717,8 @@ class ChatManager {
         }).join('');
     }
 
-    async downloadFileSecure(url, filename) {
+    async downloadFileSecureV2(url, filename) {
+        alert(`DEBUG: Intentando descargar V2\nURL: ${url}`);
         try {
             console.log('Using Proxy Download:', url);
             const token = localStorage.getItem('authToken');
