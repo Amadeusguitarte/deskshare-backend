@@ -101,23 +101,33 @@ router.get('/proxy-download', auth, async (req, res) => {
         const publicId = decodeURIComponent(pathPart);
         const isRaw = url.includes('/raw/');
 
-        // Sanitize Filename for 'attachment' flag
-        // Spaces in flags can break signatures. Replace with safe chars.
+        // Sanitize Filename for 'attachment' header
         const safeName = (name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
 
         console.log('Proxy Signing:', { original: url, publicId, isRaw, safeName });
 
-        // Generate Signed URL with Attachment Flag
+        // Generate Signed URL (Pure access, NO attachment flag needed for proxying)
         const signedUrl = cloudinary.utils.url(publicId, {
             resource_type: isRaw ? 'raw' : 'image',
             type: 'upload',
-            sign_url: true, // IMPORTANT: Generates signature
-            flags: `attachment:${safeName}`, // Forces download header
+            sign_url: true,
             secure: true
         });
 
-        // Redirect user to the fresh signed URL
-        res.redirect(signedUrl);
+        console.log('Proxy Fetching Source:', signedUrl);
+
+        // Fetch file server-side (Bypasses Browser/CORS/Cloudinary-Redirect limitations)
+        const response = await fetch(signedUrl);
+        if (!response.ok) throw new Error(`Cloudinary fetch failed: ${response.statusText}`);
+
+        // Set Headers to force download
+        const contentType = response.headers.get('content-type');
+        res.setHeader('Content-Type', contentType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+
+        // Stream content to client
+        const arrayBuffer = await response.arrayBuffer();
+        res.send(Buffer.from(arrayBuffer));
 
     } catch (error) {
         console.error('Download Proxy Error:', error);
