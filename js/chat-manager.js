@@ -1718,8 +1718,12 @@ class ChatManager {
     }
 
     async downloadFileSecureV2(url, filename) {
-        alert(`DEBUG: Intentando descargar V2\nURL: ${url}`);
         try {
+            // Robust Base URL derivation (Fallback to Production if instance missing)
+            let apiBase = this.baseUrl;
+            if (!apiBase || apiBase.includes('undefined')) {
+                apiBase = 'https://deskshare-backend-production.up.railway.app/api';
+            }
             console.log('Using Proxy Download:', url);
             const token = localStorage.getItem('authToken');
 
