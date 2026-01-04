@@ -136,6 +136,46 @@ router.get('/proxy-download', auth, async (req, res) => {
 });
 
 // ========================================
+// GET /api/chat/sign-url
+// Generates a signed URL for client-side usage (Viewer/Download)
+router.get('/sign-url', auth, async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'Missing url' });
+
+    try {
+        const parts = url.split('/upload/');
+        if (parts.length < 2) throw new Error('Invalid Cloudinary URL');
+
+        // Extract version and path
+        let pathPart = parts[1];
+        // Remove version prefix if present (e.g. v1761234/)
+        pathPart = pathPart.replace(/^v\d+\//, '');
+
+        // Decode to get the real public ID (including spaces)
+        const publicId = decodeURIComponent(pathPart);
+        const isRaw = url.includes('/raw/');
+
+        // Generate Signed URL
+        // Note: For raw files, we do NOT strip extension. For images we usually do, but SDK handles identity.
+        // We use 'sign_url: true' to get a tokenized URL valid for access.
+        const signedUrl = cloudinary.utils.url(publicId, {
+            resource_type: isRaw ? 'raw' : 'image',
+            type: 'upload',
+            sign_url: true,
+            secure: true,
+            // Force attachment? No, user wants to VIEW.
+            // But we can add a flag for "download mode" if needed later.
+        });
+
+        res.json({ signedUrl });
+
+    } catch (error) {
+        console.error('Sign URL Error:', error);
+        res.status(500).json({ error: 'Failed to sign URL' });
+    }
+});
+
+// ========================================
 // GET /api/chat/:computerId
 // Get messages for a specific computer
 // ========================================

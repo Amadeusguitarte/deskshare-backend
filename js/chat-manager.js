@@ -1853,194 +1853,259 @@ class ChatManager {
         }
     }
 
-    // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
-    async downloadFile(url, filename) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = blobUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-
-            window.URL.revokeObjectURL(blobUrl);
-            document.body.removeChild(a);
-        } catch (error) {
-            console.error('Download failed:', error);
-            // Fallback
-            window.open(url, '_blank');
-        }
+}
     }
 
-
-
-    // Lightbox Logic (Phase F)
     // ==========================================
+    // DOCUMENT VIEWER (New Feature Request)
     // ==========================================
-    // Lightbox Logic (Phase G - Carousel)
-    // ==========================================
-    openLightbox(currentUrl, userId) {
-        // 1. Get all images in conversation
-        let conversation = this.conversations.find(c => c.otherUser.id == userId);
-        // If not found in active list, try to find in messagesPageContainer or fallback
-        // Fallback: Scan DOM if needed, but state is better. 
-        // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
-        // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
-        // Let's use the DOM-rendered images to be 100% sync with what the user sees.
+    async openDocumentViewer(originalUrl, filename) {
+    // 1. Show Loading State
+    const loading = document.createElement('div');
+    loading.id = 'doc-viewer-loading';
+    loading.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;color:white;font-family:Inter,sans-serif;';
+    loading.innerHTML = '<div class="spinner"></div><span style="margin-left:10px">Preparando documento...</span>';
+    document.body.appendChild(loading);
 
-        const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
-        let currentIndex = allImages.indexOf(currentUrl);
-        if (currentIndex === -1) {
-            // Fallback if URL mismatch (e.g. query params)
-            currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
-        }
-        if (currentIndex === -1) {
-            // Just show single if not found in list
-            allImages.push(currentUrl);
-            currentIndex = 0;
+    try {
+        // 2. Get Signed URL from Backend
+        const token = localStorage.getItem('authToken');
+        // Robust Base URL derivation
+        let apiBase = this.baseUrl;
+        if (!apiBase || apiBase.includes('undefined')) {
+            apiBase = 'https://deskshare-backend-production.up.railway.app/api';
         }
 
-        let lightbox = document.getElementById('chat-lightbox');
-        if (lightbox) lightbox.remove(); // Re-create to ensure clean state
+        const res = await fetch(`${apiBase}/chat/sign-url?url=${encodeURIComponent(originalUrl)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-        lightbox = document.createElement('div');
-        lightbox.id = 'chat-lightbox';
-        lightbox.style.cssText = `
+        if (!res.ok) throw new Error('No se pudo obtener acceso seguro al archivo');
+        const data = await res.json();
+        const secureUrl = data.signedUrl;
+
+        // 3. Create Modal
+        this.renderViewerModal(secureUrl, filename, originalUrl);
+
+    } catch (e) {
+        console.error('Viewer Error:', e);
+        alert(`Error al abrir documento: ${e.message}`);
+    } finally {
+        if (loading) document.body.removeChild(loading);
+    }
+}
+
+renderViewerModal(url, filename, originalUrl) {
+    const isPdf = originalUrl.toLowerCase().includes('.pdf');
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(originalUrl);
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;';
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'height:60px;background:#1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #333;';
+    header.innerHTML = `
+            <span style="color:white;font-weight:600;font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">${filename}</span>
+            <div style="display:flex;gap:15px;">
+                <a href="${url}" target="_blank" download="${filename}" style="background:#6c5ce7;color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;display:flex;align-items:center;gap:6px;">
+                    Download ⬇
+                </a>
+                <button id="close-viewer" style="background:transparent;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;">&times;</button>
+            </div>
+        `;
+
+    // Content
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1;position:relative;overflow:hidden;display:flex;justify-content:center;align-items:center;';
+
+    if (isPdf) {
+        // PDF Viewer (Browser Native)
+        content.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>`;
+    } else if (isImage) {
+        content.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+    } else {
+        // Fallback for other docs (using Google Viewer as proxy for the SIGNED url might fail if google can't reach it, but worth a shot, otherwise Direct Download Prompt)
+        content.innerHTML = `
+                <div style="text-align:center;color:white;">
+                    <p>Vista previa no disponible para este tipo de archivo.</p>
+                    <a href="${url}" target="_blank" style="color:#6c5ce7;">Descargar Archivo</a>
+                </div>
+            `;
+    }
+
+    overlay.appendChild(header);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    // Events
+    overlay.querySelector('#close-viewer').onclick = () => document.body.removeChild(overlay);
+}
+
+
+
+// Lightbox Logic (Phase F)
+// ==========================================
+// ==========================================
+// Lightbox Logic (Phase G - Carousel)
+// ==========================================
+openLightbox(currentUrl, userId) {
+    // 1. Get all images in conversation
+    let conversation = this.conversations.find(c => c.otherUser.id == userId);
+    // If not found in active list, try to find in messagesPageContainer or fallback
+    // Fallback: Scan DOM if needed, but state is better. 
+    // If "conversation" object isn't fully sync'd, we might relying on what's tracked.
+    // Assuming 'this.conversations' is up to date or we can filter from 'messages' in UI?
+    // Let's use the DOM-rendered images to be 100% sync with what the user sees.
+
+    const allImages = Array.from(document.querySelectorAll(`#msg-area-${userId} img[alt="Imagen"]`)).map(img => img.src);
+    let currentIndex = allImages.indexOf(currentUrl);
+    if (currentIndex === -1) {
+        // Fallback if URL mismatch (e.g. query params)
+        currentIndex = allImages.findIndex(src => src.includes(currentUrl) || currentUrl.includes(src));
+    }
+    if (currentIndex === -1) {
+        // Just show single if not found in list
+        allImages.push(currentUrl);
+        currentIndex = 0;
+    }
+
+    let lightbox = document.getElementById('chat-lightbox');
+    if (lightbox) lightbox.remove(); // Re-create to ensure clean state
+
+    lightbox = document.createElement('div');
+    lightbox.id = 'chat-lightbox';
+    lightbox.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 10000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             user-select: none; opacity: 0; transition: opacity 0.2s;
         `;
-        document.body.appendChild(lightbox);
+    document.body.appendChild(lightbox);
 
-        // --- RENDER FUNCTION ---
-        const renderContent = () => {
-            lightbox.innerHTML = '';
+    // --- RENDER FUNCTION ---
+    const renderContent = () => {
+        lightbox.innerHTML = '';
 
-            // Close Button
-            const closeBtn = document.createElement('div');
-            closeBtn.innerHTML = '&times;';
-            closeBtn.style.cssText = `
+        // Close Button
+        const closeBtn = document.createElement('div');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cssText = `
                 position: absolute; top: 10px; right: 20px; color: #fff; font-size: 40px; 
                 cursor: pointer; z-index: 10002; opacity: 0.8;
             `;
-            closeBtn.onclick = () => close();
-            lightbox.appendChild(closeBtn);
+        closeBtn.onclick = () => close();
+        lightbox.appendChild(closeBtn);
 
-            // Container for Main Image + Arrows
-            const mainContainer = document.createElement('div');
-            mainContainer.style.cssText = `
+        // Container for Main Image + Arrows
+        const mainContainer = document.createElement('div');
+        mainContainer.style.cssText = `
                 flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;
             `;
 
-            // Prev Arrow
-            if (allImages.length > 1) {
-                const prevBtn = document.createElement('div');
-                prevBtn.innerHTML = '&#10094;';
-                prevBtn.style.cssText = `
+        // Prev Arrow
+        if (allImages.length > 1) {
+            const prevBtn = document.createElement('div');
+            prevBtn.innerHTML = '&#10094;';
+            prevBtn.style.cssText = `
                     position: absolute; left: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-                prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
-                mainContainer.appendChild(prevBtn);
-            }
+            prevBtn.onclick = (e) => { e.stopPropagation(); navigate(-1); };
+            mainContainer.appendChild(prevBtn);
+        }
 
-            // Image
-            const img = document.createElement('img');
-            img.src = allImages[currentIndex];
-            img.style.cssText = `
+        // Image
+        const img = document.createElement('img');
+        img.src = allImages[currentIndex];
+        img.style.cssText = `
                 max-width: 90%; max-height: 80vh; border-radius: 4px; 
                 box-shadow: 0 0 30px rgba(0,0,0,0.5); transition: transform 0.2s;
             `;
-            mainContainer.appendChild(img);
+        mainContainer.appendChild(img);
 
-            // Next Arrow
-            if (allImages.length > 1) {
-                const nextBtn = document.createElement('div');
-                nextBtn.innerHTML = '&#10095;';
-                nextBtn.style.cssText = `
+        // Next Arrow
+        if (allImages.length > 1) {
+            const nextBtn = document.createElement('div');
+            nextBtn.innerHTML = '&#10095;';
+            nextBtn.style.cssText = `
                     position: absolute; right: 20px; color: white; font-size: 50px; cursor: pointer; z-index: 10001; opacity: 0.7;
                 `;
-                nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
-                mainContainer.appendChild(nextBtn);
-            }
-            lightbox.appendChild(mainContainer);
+            nextBtn.onclick = (e) => { e.stopPropagation(); navigate(1); };
+            mainContainer.appendChild(nextBtn);
+        }
+        lightbox.appendChild(mainContainer);
 
-            // Thumbnails Strip
-            if (allImages.length > 1) {
-                const strip = document.createElement('div');
-                strip.style.cssText = `
+        // Thumbnails Strip
+        if (allImages.length > 1) {
+            const strip = document.createElement('div');
+            strip.style.cssText = `
                     height: 80px; width: 100%; background: rgba(0,0,0,0.5); 
                     display: flex; align-items: center; justify-content: center; gap: 10px; 
                     overflow-x: auto; padding: 10px; box-sizing: border-box;
                 `;
 
-                allImages.forEach((src, idx) => {
-                    const thumb = document.createElement('img');
-                    thumb.src = src;
-                    const isActive = idx === currentIndex;
-                    thumb.style.cssText = `
+            allImages.forEach((src, idx) => {
+                const thumb = document.createElement('img');
+                thumb.src = src;
+                const isActive = idx === currentIndex;
+                thumb.style.cssText = `
                         height: 50px; width: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; 
                         border: 2px solid ${isActive ? 'var(--accent-purple)' : 'transparent'};
                         opacity: ${isActive ? '1' : '0.6'}; transition: all 0.2s;
                     `;
-                    thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
-                    strip.appendChild(thumb);
-                });
-                lightbox.appendChild(strip);
-            }
-
-            // Click BG to close
-            lightbox.onclick = (e) => {
-                if (e.target === lightbox || e.target === mainContainer) close();
-            };
-        };
-
-        // --- HELPERS ---
-        const navigate = (dir) => {
-            currentIndex += dir;
-            if (currentIndex < 0) currentIndex = allImages.length - 1;
-            if (currentIndex >= allImages.length) currentIndex = 0;
-            renderContent();
-        };
-
-        const close = () => {
-            lightbox.style.opacity = '0';
-            setTimeout(() => lightbox.remove(), 200);
-            document.removeEventListener('keydown', keyHandler);
-        };
-
-        const keyHandler = (e) => {
-            if (e.key === 'Escape') close();
-            if (e.key === 'ArrowLeft') navigate(-1);
-            if (e.key === 'ArrowRight') navigate(1);
-        };
-        document.addEventListener('keydown', keyHandler);
-
-        // Init
-        renderContent();
-        requestAnimationFrame(() => lightbox.style.opacity = '1');
-    }
-
-    // ==========================================
-    // Emoji Picker Logic (Inline - No Dependencies)
-    // ==========================================
-    toggleEmojiPicker(triggerBtn, userId) {
-        // Close if open
-        const existing = document.getElementById(`emoji-picker-${userId}`);
-        if (existing) {
-            existing.remove();
-            return;
+                thumb.onclick = (e) => { e.stopPropagation(); currentIndex = idx; renderContent(); };
+                strip.appendChild(thumb);
+            });
+            lightbox.appendChild(strip);
         }
 
-        // Create Picker
-        const picker = document.createElement('div');
-        picker.id = `emoji-picker-${userId}`;
-        picker.style.cssText = `
+        // Click BG to close
+        lightbox.onclick = (e) => {
+            if (e.target === lightbox || e.target === mainContainer) close();
+        };
+    };
+
+    // --- HELPERS ---
+    const navigate = (dir) => {
+        currentIndex += dir;
+        if (currentIndex < 0) currentIndex = allImages.length - 1;
+        if (currentIndex >= allImages.length) currentIndex = 0;
+        renderContent();
+    };
+
+    const close = () => {
+        lightbox.style.opacity = '0';
+        setTimeout(() => lightbox.remove(), 200);
+        document.removeEventListener('keydown', keyHandler);
+    };
+
+    const keyHandler = (e) => {
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft') navigate(-1);
+        if (e.key === 'ArrowRight') navigate(1);
+    };
+    document.addEventListener('keydown', keyHandler);
+
+    // Init
+    renderContent();
+    requestAnimationFrame(() => lightbox.style.opacity = '1');
+}
+
+// ==========================================
+// Emoji Picker Logic (Inline - No Dependencies)
+// ==========================================
+toggleEmojiPicker(triggerBtn, userId) {
+    // Close if open
+    const existing = document.getElementById(`emoji-picker-${userId}`);
+    if (existing) {
+        existing.remove();
+        return;
+    }
+
+    // Create Picker
+    const picker = document.createElement('div');
+    picker.id = `emoji-picker-${userId}`;
+    picker.style.cssText = `
             position: absolute;
             bottom: 60px;
             right: 10px;
@@ -2060,85 +2125,85 @@ class ChatManager {
             scrollbar-color: #555 #222;
         `;
 
-        // Webkit Scrollbar style injection (inline)
-        const style = document.createElement('style');
-        style.textContent = `
+    // Webkit Scrollbar style injection (inline)
+    const style = document.createElement('style');
+    style.textContent = `
             #emoji-picker-${userId}::-webkit-scrollbar { width: 6px; }
             #emoji-picker-${userId}::-webkit-scrollbar-track { background: #222; }
             #emoji-picker-${userId}::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
         `;
-        picker.appendChild(style);
+    picker.appendChild(style);
 
-        const emojis = [
-            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-            '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
-        ];
+    const emojis = [
+        '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+        '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+        '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+        '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+        '👍', '👎', '👋', '🙌', '👏', '🤝', '🙏', '💪', '❤️', '💔'
+    ];
 
-        emojis.forEach(emoji => {
-            const span = document.createElement('span');
-            span.textContent = emoji;
-            span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
-            span.onmouseover = () => span.style.background = '#333';
-            span.onmouseout = () => span.style.background = 'transparent';
-            span.onclick = () => {
-                const input = document.getElementById(`chat-input-${userId}`);
-                if (input) {
-                    input.value += emoji;
-                    input.focus();
-                }
-                // Keep open or close? Usually close
-                // picker.remove(); 
-            };
-            picker.appendChild(span);
-        });
-
-        // Close on click outside
-        const closeHandler = (e) => {
-            if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
-                picker.remove();
-                document.removeEventListener('click', closeHandler);
+    emojis.forEach(emoji => {
+        const span = document.createElement('span');
+        span.textContent = emoji;
+        span.style.cssText = 'cursor: pointer; font-size: 1.2rem; padding: 2px; text-align: center;';
+        span.onmouseover = () => span.style.background = '#333';
+        span.onmouseout = () => span.style.background = 'transparent';
+        span.onclick = () => {
+            const input = document.getElementById(`chat-input-${userId}`);
+            if (input) {
+                input.value += emoji;
+                input.focus();
             }
+            // Keep open or close? Usually close
+            // picker.remove(); 
         };
-        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+        picker.appendChild(span);
+    });
 
-        // Append to footer or body? Footer is safer for positioning
-        triggerBtn.parentElement.parentElement.style.position = 'relative';
-        triggerBtn.parentElement.parentElement.appendChild(picker);
-    }
+    // Close on click outside
+    const closeHandler = (e) => {
+        if (!picker.contains(e.target) && e.target !== triggerBtn && !triggerBtn.contains(e.target)) {
+            picker.remove();
+            document.removeEventListener('click', closeHandler);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler), 0);
 
-    // Surgical Update for Widgets (Does not look at input)
-    updateMessagesAreaOnly(userId) {
-        const msgArea = document.getElementById(`msg-area-${userId}`);
-        const conv = this.conversations.find(c => c.otherUser.id == userId);
-        if (msgArea && conv) {
-            // Sort
-            const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            // Update HTML
-            msgArea.innerHTML = this.renderMessageHTML(sortedMessages, conv.otherUser);
-            // Append Typing Indicator if needed
-            if (this.typingUsers.has(userId)) {
-                msgArea.innerHTML += `
+    // Append to footer or body? Footer is safer for positioning
+    triggerBtn.parentElement.parentElement.style.position = 'relative';
+    triggerBtn.parentElement.parentElement.appendChild(picker);
+}
+
+// Surgical Update for Widgets (Does not look at input)
+updateMessagesAreaOnly(userId) {
+    const msgArea = document.getElementById(`msg-area-${userId}`);
+    const conv = this.conversations.find(c => c.otherUser.id == userId);
+    if (msgArea && conv) {
+        // Sort
+        const sortedMessages = (conv.messages || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        // Update HTML
+        msgArea.innerHTML = this.renderMessageHTML(sortedMessages, conv.otherUser);
+        // Append Typing Indicator if needed
+        if (this.typingUsers.has(userId)) {
+            msgArea.innerHTML += `
                     <div style="display: flex; justify-content: flex-start;">
                         <span style="background: #333; color: #888; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-style: italic;">
                             Escribiendo...
                         </span>
                     </div>`;
-            }
-            // Scroll
-            this.scrollToBottom(userId);
         }
+        // Scroll
+        this.scrollToBottom(userId);
     }
+}
 
-    tryFocusInput(userId) {
-        const input = document.getElementById(`chat-input-${userId}`);
-        if (input) {
-            input.focus();
-            // optional: move cursor to end
-        }
+tryFocusInput(userId) {
+    const input = document.getElementById(`chat-input-${userId}`);
+    if (input) {
+        input.focus();
+        // optional: move cursor to end
     }
+}
 
 }
 
