@@ -44,9 +44,11 @@ router.get('/document-proxy', auth, async (req, res) => {
             pathPart = pathPart.replace(/^v\d+\//, '');
         }
 
-        // 2. Resolve Public ID
-        const publicIdDecoded = decodeURIComponent(pathPart);
-        const publicIdEncoded = pathPart;
+        // 2. Resolve Public ID Variants
+        const publicIdDecoded = decodeURIComponent(pathPart); // "my file.pdf"
+        const publicIdEncoded = pathPart;                     // "my%20file.pdf"
+        const publicIdSanitized = publicIdDecoded.replace(/ /g, '_'); // "my_file.pdf" (Cloudinary default sanitization)
+
         const isRaw = url.includes('/raw/');
 
         console.log(`Bridge: Resolving ${publicIdDecoded} (Ver: ${version})`);
@@ -69,10 +71,16 @@ router.get('/document-proxy', auth, async (req, res) => {
         // Attempt 1: Standard (Decoded)
         let response = await tryFetch(publicIdDecoded);
 
-        // Attempt 2: Fallback (Encoded) - if different and first failed
+        // Attempt 2: Fallback (Encoded)
         if (!response.ok && publicIdDecoded !== publicIdEncoded) {
-            console.warn(`Bridge Attempt 1 failed (${response.status}). Retrying with Raw Path...`);
+            console.warn(`Bridge Attempt 1 failed (${response.status}). Retrying with Encoded ID...`);
             response = await tryFetch(publicIdEncoded);
+        }
+
+        // Attempt 3: Fallback (Sanitized / Underscores)
+        if (!response.ok && publicIdDecoded !== publicIdSanitized) {
+            console.warn(`Bridge Attempt 2 failed (${response.status}). Retrying with Sanitized ID (${publicIdSanitized})...`);
+            response = await tryFetch(publicIdSanitized);
         }
 
         if (!response.ok) {
@@ -178,7 +186,7 @@ router.get('/proxy-download', auth, async (req, res) => {
 
         // DECODE Public ID (Cloudinary expects "my file.pdf", not "my%20file.pdf" for signing)
         const publicId = decodeURIComponent(pathPart);
-        const isRaw = url.includes('/raw/');
+        const isRaw = url.includes('/raw/'); // Should be true for key docs
 
         // Sanitize Filename for 'attachment' header
         const safeName = (name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
