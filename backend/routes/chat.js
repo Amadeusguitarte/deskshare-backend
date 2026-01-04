@@ -10,6 +10,13 @@ const auth = require('../middleware/auth');
 const uploadChat = require('../middleware/uploadChat'); // Phase A: Import
 const cloudinary = require('cloudinary').v2;
 
+// Configure Cloudinary explicitly to ensure utils.url has access to secrets for signing
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 const prisma = new PrismaClient();
 
 // ========================================
