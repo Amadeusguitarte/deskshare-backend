@@ -1616,7 +1616,7 @@ class ChatManager {
                     const safeName = decodeURIComponent(displayName).replace(/'/g, "\\'");
                     contentHtml += `
             <div style="margin-bottom: 6px;">
-                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${safeName}')" style="
+                <div onclick="window.chatManagerInstance.downloadFileSecureV2('${msg.fileUrl}', '${safeName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
                                 border-radius: 18px; text-decoration: none; color: white; 
