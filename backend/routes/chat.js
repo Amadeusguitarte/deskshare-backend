@@ -20,6 +20,62 @@ cloudinary.config({
 const prisma = new PrismaClient();
 
 // ========================================
+// GET /api/chat/document-proxy
+// THE BRIDGE: Server-side proxy for viewing/downloading files.
+// Bypasses browser-side signature issues by fetching content server-to-server.
+// DEFINED AT TOP to avoid interception by dynamic routes like /:id
+router.get('/document-proxy', auth, async (req, res) => {
+    const { url, download } = req.query;
+    if (!url) return res.status(400).send('Missing url');
+
+    try {
+        const parts = url.split('/upload/');
+        if (parts.length < 2) throw new Error('Invalid Cloudinary URL');
+
+        let pathPart = parts[1];
+        // Remove version if present
+        pathPart = pathPart.replace(/^v\d+\//, '');
+
+        const publicId = decodeURIComponent(pathPart);
+        const isRaw = url.includes('/raw/');
+
+        // 1. Generate Signed URL (Server-side)
+        const signedUrl = cloudinary.utils.url(publicId, {
+            resource_type: isRaw ? 'raw' : 'image',
+            type: 'upload',
+            sign_url: true,
+            secure: true
+        });
+
+        console.log('Bridge Fetching:', signedUrl);
+
+        // 2. Fetch Content from Cloudinary
+        const response = await fetch(signedUrl);
+        if (!response.ok) throw new Error(`Cloudinary Error: ${response.status} ${response.statusText}`);
+
+        // 3. Set Headers for Client
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        const disposition = download === 'true' ? 'attachment' : 'inline';
+
+        // Extract filename from URL or use default
+        let filename = publicId.split('/').pop() || 'document';
+        // Ensure safe filename for header
+        const safeFilename = filename.replace(/"/g, '');
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `${disposition}; filename="${safeFilename}"`);
+
+        // 4. Stream to Client
+        const arrayBuffer = await response.arrayBuffer();
+        res.send(Buffer.from(arrayBuffer));
+
+    } catch (error) {
+        console.error('Bridge Proxy Error:', error);
+        res.status(500).send('Error loading document via bridge');
+    }
+});
+
+// ========================================
 // GET /api/chat/conversations
 // Get all conversations for current user
 // ========================================
