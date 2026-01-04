@@ -94,14 +94,18 @@ router.get('/proxy-download', auth, async (req, res) => {
         const publicId = decodeURIComponent(pathPart);
         const isRaw = url.includes('/raw/');
 
-        console.log('Proxy Signing:', { original: url, publicId, isRaw });
+        // Sanitize Filename for 'attachment' flag
+        // Spaces in flags can break signatures. Replace with safe chars.
+        const safeName = (name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_');
+
+        console.log('Proxy Signing:', { original: url, publicId, isRaw, safeName });
 
         // Generate Signed URL with Attachment Flag
         const signedUrl = cloudinary.utils.url(publicId, {
             resource_type: isRaw ? 'raw' : 'image',
             type: 'upload',
             sign_url: true, // IMPORTANT: Generates signature
-            flags: `attachment:${name || 'download'}`, // Forces download header
+            flags: `attachment:${safeName}`, // Forces download header
             secure: true
         });
 
