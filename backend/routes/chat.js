@@ -90,8 +90,11 @@ router.get('/proxy-download', auth, async (req, res) => {
             pathPart = pathPart.replace(/^v\d+\//, '');
         }
 
-        const publicId = pathPart;
+        // DECODE Public ID (Cloudinary expects "my file.pdf", not "my%20file.pdf" for signing)
+        const publicId = decodeURIComponent(pathPart);
         const isRaw = url.includes('/raw/');
+
+        console.log('Proxy Signing:', { original: url, publicId, isRaw });
 
         // Generate Signed URL with Attachment Flag
         const signedUrl = cloudinary.utils.url(publicId, {
