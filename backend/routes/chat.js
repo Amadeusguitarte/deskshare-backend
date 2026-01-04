@@ -92,7 +92,7 @@ router.get('/document-proxy', auth, async (req, res) => {
 
     } catch (error) {
         console.error('Bridge Proxy Error:', error);
-        res.status(500).send('Error loading document via bridge');
+        res.status(500).send(`Error loading document via bridge: ${error.message} (Try: ${url})`);
     }
 });
 
