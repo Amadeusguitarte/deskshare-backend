@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const auth = require('../middleware/auth');
+
 const uploadChat = require('../middleware/uploadChat'); // Phase A: Import
 const cloudinary = require('cloudinary').v2;
 
