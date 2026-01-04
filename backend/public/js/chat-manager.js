@@ -1616,7 +1616,7 @@ class ChatManager {
                     const safeName = decodeURIComponent(displayName).replace(/'/g, "\\'");
                     contentHtml += `
             <div style="margin-bottom: 6px;">
-                <div onclick="window.chatManagerInstance.downloadFileSecureV2('${msg.fileUrl}', '${safeName}')" style="
+                <div onclick="window.chatManagerInstance.openDocumentViewer('${msg.fileUrl}', '${safeName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
                                 border-radius: 18px; text-decoration: none; color: white; 
@@ -1853,28 +1853,92 @@ class ChatManager {
         }
     }
 
-    // Helper: Force Download via Blob (Bypass Cloudinary 401 on transformed raw files)
-    async downloadFile(url, filename) {
+
+
+    // ==========================================
+    // DOCUMENT VIEWER (New Feature Request)
+    // ==========================================
+    async openDocumentViewer(originalUrl, filename) {
+        // 1. Show Loading State
+        const loading = document.createElement('div');
+        loading.id = 'doc-viewer-loading';
+        loading.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;color:white;font-family:Inter,sans-serif;';
+        loading.innerHTML = '<div class="spinner"></div><span style="margin-left:10px">Preparando documento...</span>';
+        document.body.appendChild(loading);
+
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
+            // 2. Get Signed URL from Backend
+            const token = localStorage.getItem('authToken');
+            // Robust Base URL derivation
+            let apiBase = this.baseUrl;
+            if (!apiBase || apiBase.includes('undefined')) {
+                apiBase = 'https://deskshare-backend-production.up.railway.app/api';
+            }
 
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = blobUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
+            const res = await fetch(`${apiBase}/chat/sign-url?url=${encodeURIComponent(originalUrl)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-            window.URL.revokeObjectURL(blobUrl);
-            document.body.removeChild(a);
-        } catch (error) {
-            console.error('Download failed:', error);
-            // Fallback
-            window.open(url, '_blank');
+            if (!res.ok) throw new Error('No se pudo obtener acceso seguro al archivo');
+            const data = await res.json();
+            const secureUrl = data.signedUrl;
+
+            // 3. Create Modal
+            this.renderViewerModal(secureUrl, filename, originalUrl);
+
+        } catch (e) {
+            console.error('Viewer Error:', e);
+            alert(`Error al abrir documento: ${e.message}`);
+        } finally {
+            if (loading) document.body.removeChild(loading);
         }
+    }
+
+    renderViewerModal(url, filename, originalUrl) {
+        const isPdf = originalUrl.toLowerCase().includes('.pdf');
+        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(originalUrl);
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;';
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = 'height:60px;background:#1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #333;';
+        header.innerHTML = `
+            <span style="color:white;font-weight:600;font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">${filename}</span>
+            <div style="display:flex;gap:15px;">
+                <a href="${url}" target="_blank" download="${filename}" style="background:#6c5ce7;color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;display:flex;align-items:center;gap:6px;">
+                    Download ⬇
+                </a>
+                <button id="close-viewer" style="background:transparent;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;">&times;</button>
+            </div>
+        `;
+
+        // Content
+        const content = document.createElement('div');
+        content.style.cssText = 'flex:1;position:relative;overflow:hidden;display:flex;justify-content:center;align-items:center;';
+
+        if (isPdf) {
+            // PDF Viewer (Browser Native)
+            content.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>`;
+        } else if (isImage) {
+            content.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+        } else {
+            // Fallback for other docs (using Google Viewer as proxy for the SIGNED url might fail if google can't reach it, but worth a shot, otherwise Direct Download Prompt)
+            content.innerHTML = `
+                <div style="text-align:center;color:white;">
+                    <p>Vista previa no disponible para este tipo de archivo.</p>
+                    <a href="${url}" target="_blank" style="color:#6c5ce7;">Descargar Archivo</a>
+                </div>
+            `;
+        }
+
+        overlay.appendChild(header);
+        overlay.appendChild(content);
+        document.body.appendChild(overlay);
+
+        // Events
+        overlay.querySelector('#close-viewer').onclick = () => document.body.removeChild(overlay);
     }
 
 
