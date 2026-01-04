@@ -1872,15 +1872,7 @@ class ChatManager {
         }
     }
 
-    // ==========================================
-    // Helper: Standard Download (Reverted to Safe Mode)
-    // Complex fetch/injection approaches caused 401s due to Signature Mismatches on Cloudinary
-    downloadFileSecure(url, filename) {
-        // Just open the original signed URL. 
-        // If it opens in a new tab (PDF Viewer), user can save from there.
-        // We cannot inject fl_attachment client-side without invalidating the signature.
-        window.open(url, '_blank');
-    }
+
 
     // Lightbox Logic (Phase F)
     // ==========================================
