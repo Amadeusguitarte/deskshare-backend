@@ -1863,11 +1863,10 @@ class ChatManager {
         const loading = document.createElement('div');
         loading.id = 'doc-viewer-loading';
         loading.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;color:white;font-family:Inter,sans-serif;';
-        loading.innerHTML = '<div class="spinner"></div><span style="margin-left:10px">Preparando documento...</span>';
+        loading.innerHTML = '<div class="spinner"></div><span style="margin-left:10px">Conectando vía Puente Seguro...</span>';
         document.body.appendChild(loading);
 
         try {
-            // 2. Get Signed URL from Backend
             const token = localStorage.getItem('authToken');
             // Robust Base URL derivation
             let apiBase = this.baseUrl;
@@ -1875,20 +1874,15 @@ class ChatManager {
                 apiBase = 'https://deskshare-backend-production.up.railway.app/api';
             }
 
-            const res = await fetch(`${apiBase}/chat/sign-url?url=${encodeURIComponent(originalUrl)}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            // 2. Construct Proxy URL directly (The Bridge)
+            const proxyUrl = `${apiBase}/chat/document-proxy?url=${encodeURIComponent(originalUrl)}&token=${token}`;
 
-            if (!res.ok) throw new Error('No se pudo obtener acceso seguro al archivo');
-            const data = await res.json();
-            const secureUrl = data.signedUrl;
-
-            // 3. Create Modal
-            this.renderViewerModal(secureUrl, filename, originalUrl);
+            // 3. Create Modal using the Proxy URL as source
+            this.renderViewerModal(proxyUrl, filename, originalUrl);
 
         } catch (e) {
             console.error('Viewer Error:', e);
-            alert(`Error al abrir documento: ${e.message}`);
+            alert(`Error de conexión: ${e.message}`);
         } finally {
             if (loading) document.body.removeChild(loading);
         }
@@ -1904,10 +1898,13 @@ class ChatManager {
         // Header
         const header = document.createElement('div');
         header.style.cssText = 'height:60px;background:#1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #333;';
+        // Download Link points to Proxy with download=true
+        const downloadUrl = `${url}&download=true`;
+
         header.innerHTML = `
             <span style="color:white;font-weight:600;font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">${filename}</span>
             <div style="display:flex;gap:15px;">
-                <a href="${url}" target="_blank" download="${filename}" style="background:#6c5ce7;color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;display:flex;align-items:center;gap:6px;">
+                <a href="${downloadUrl}" target="_blank" style="background:#6c5ce7;color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;display:flex;align-items:center;gap:6px;">
                     Download ⬇
                 </a>
                 <button id="close-viewer" style="background:transparent;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;">&times;</button>
