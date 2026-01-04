@@ -1720,26 +1720,11 @@ class ChatManager {
             console.log('Using Proxy Download:', url);
             const token = localStorage.getItem('authToken');
 
-            // Call our Backend Proxy
-            const proxyUrl = `${this.baseUrl}/chat/proxy-download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
+            // Construct Proxy URL with Token
+            const proxyUrl = `${this.baseUrl}/chat/proxy-download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}&token=${token}`;
 
-            const response = await fetch(proxyUrl, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
-
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = filename || 'documento';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
+            // Native Navigation triggers download
+            window.location.href = proxyUrl;
 
         } catch (e) {
             console.warn('Proxy download failed, fallback to direct open:', e);

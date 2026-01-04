@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-
+const auth = require('../middleware/auth');
 const uploadChat = require('../middleware/uploadChat'); // Phase A: Import
 const cloudinary = require('cloudinary').v2;
 
@@ -81,19 +81,33 @@ router.get('/proxy-download', auth, async (req, res) => {
     }
 
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
+        // Extract Public ID
+        const parts = url.split('/upload/');
+        if (parts.length < 2) throw new Error('Invalid Cloudinary URL structure');
 
-        const contentType = response.headers.get('content-type');
-        res.setHeader('Content-Type', contentType || 'application/octet-stream');
-        res.setHeader('Content-Disposition', `attachment; filename="${name || 'download'}"`);
+        let pathPart = parts[1];
+        if (pathPart.match(/^v\d+\//)) {
+            pathPart = pathPart.replace(/^v\d+\//, '');
+        }
 
-        const arrayBuffer = await response.arrayBuffer();
-        res.send(Buffer.from(arrayBuffer));
+        const publicId = pathPart;
+        const isRaw = url.includes('/raw/');
+
+        // Generate Signed URL with Attachment Flag
+        const signedUrl = cloudinary.utils.url(publicId, {
+            resource_type: isRaw ? 'raw' : 'image',
+            type: 'upload',
+            sign_url: true, // IMPORTANT: Generates signature
+            flags: `attachment:${name || 'download'}`, // Forces download header
+            secure: true
+        });
+
+        // Redirect user to the fresh signed URL
+        res.redirect(signedUrl);
 
     } catch (error) {
         console.error('Download Proxy Error:', error);
-        res.status(500).send('Download failed');
+        res.status(500).send('Download linking failed');
     }
 });
 
@@ -232,36 +246,6 @@ router.post('/', auth, async (req, res, next) => {
         res.status(201).json({ message: newMessage });
     } catch (error) {
         next(error);
-    }
-});
-
-// ========================================
-// GET /api/chat/proxy-download
-// Proxy file download to bypass CORS/Auth restrictions
-// ========================================
-router.get('/proxy-download', auth, async (req, res) => {
-    const { url, name } = req.query;
-    if (!url) return res.status(400).send('Missing url');
-
-    // Security: Only allow Cloudinary URLs
-    if (!url.includes('cloudinary.com')) {
-        return res.status(403).send('Only Cloudinary URLs allowed');
-    }
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
-
-        const contentType = response.headers.get('content-type');
-        res.setHeader('Content-Type', contentType || 'application/octet-stream');
-        res.setHeader('Content-Disposition', `attachment; filename="${name || 'download'}"`);
-
-        const arrayBuffer = await response.arrayBuffer();
-        res.send(Buffer.from(arrayBuffer));
-
-    } catch (error) {
-        console.error('Download Proxy Error:', error);
-        res.status(500).send('Download failed');
     }
 });
 
