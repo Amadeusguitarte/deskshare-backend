@@ -33,60 +33,62 @@ router.get('/document-proxy', auth, async (req, res) => {
         if (parts.length < 2) throw new Error('Invalid Cloudinary URL');
 
         let pathPart = parts[1];
-        // Remove version if present
-        pathPart = pathPart.replace(/^v\d+\//, '');
 
-        const publicId = decodeURIComponent(pathPart);
+        // 1. EXTRACT VERSION (Critical for correct signature)
+        // Cloudinary raw/private files REQUIRE the version to be part of the signature base string.
+        let version = null;
+        const versionMatch = pathPart.match(/^(v\d+)\//);
+        if (versionMatch) {
+            version = versionMatch[1]; // e.g. "v1767544466"
+            // Remove version from pathPart for public_id extraction
+            pathPart = pathPart.replace(/^v\d+\//, '');
+        }
+
+        // 2. Resolve Public ID
+        const publicIdDecoded = decodeURIComponent(pathPart);
+        const publicIdEncoded = pathPart;
         const isRaw = url.includes('/raw/');
 
-        // 1. Generate Signed URL (Server-side)
-        const signedUrl = cloudinary.utils.url(publicId, {
-            resource_type: isRaw ? 'raw' : 'image',
-            type: 'upload',
-            sign_url: true,
-            secure: true
-        });
+        console.log(`Bridge: Resolving ${publicIdDecoded} (Ver: ${version})`);
 
-        console.log('Bridge Fetching:', signedUrl);
-
-        // 2. Smart Retry Strategy (Decoded vs Encoded)
-        // Some files need decoded ID (standard), others need raw encoded ID (spaces vs %20)
-        console.log(`Bridge: Resolving ${publicId} (Raw: ${pathPart})`);
-
+        // Helper to generate and fetch
         const tryFetch = async (pid) => {
-            const sUrl = cloudinary.utils.url(pid, {
+            const config = {
                 resource_type: isRaw ? 'raw' : 'image',
                 type: 'upload',
                 sign_url: true,
                 secure: true
-            });
+            };
+            // Explicitly pass version so sdk constructs the correct URL structure for signing
+            if (version) config.version = version;
+
+            const sUrl = cloudinary.utils.url(pid, config);
             return fetch(sUrl);
         };
 
         // Attempt 1: Standard (Decoded)
-        let response = await tryFetch(publicId);
+        let response = await tryFetch(publicIdDecoded);
 
         // Attempt 2: Fallback (Encoded) - if different and first failed
-        if (!response.ok && pathPart !== publicId) {
+        if (!response.ok && publicIdDecoded !== publicIdEncoded) {
             console.warn(`Bridge Attempt 1 failed (${response.status}). Retrying with Raw Path...`);
-            response = await tryFetch(pathPart);
+            response = await tryFetch(publicIdEncoded);
         }
 
-        if (!response.ok) throw new Error(`Cloudinary Error: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+            throw new Error(`Cloudinary Error: ${response.status} ${response.statusText}`);
+        }
 
-        // 3. Set Headers for Client
+        // 3. Set Headers and Stream
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
         const disposition = download === 'true' ? 'attachment' : 'inline';
 
-        // Extract filename from URL or use default
-        let filename = publicId.split('/').pop() || 'document';
-        // Ensure safe filename for header
+        let filename = publicIdDecoded.split('/').pop() || 'document';
         const safeFilename = filename.replace(/"/g, '');
 
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', `${disposition}; filename="${safeFilename}"`);
 
-        // 4. Stream to Client
         const arrayBuffer = await response.arrayBuffer();
         res.send(Buffer.from(arrayBuffer));
 
@@ -215,6 +217,7 @@ router.get('/proxy-download', auth, async (req, res) => {
 // ========================================
 // GET /api/chat/sign-url
 // Generates a signed URL for client-side usage (Viewer/Download)
+// ========================================
 router.get('/sign-url', auth, async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).json({ error: 'Missing url' });
@@ -233,15 +236,11 @@ router.get('/sign-url', auth, async (req, res) => {
         const isRaw = url.includes('/raw/');
 
         // Generate Signed URL
-        // Note: For raw files, we do NOT strip extension. For images we usually do, but SDK handles identity.
-        // We use 'sign_url: true' to get a tokenized URL valid for access.
         const signedUrl = cloudinary.utils.url(publicId, {
             resource_type: isRaw ? 'raw' : 'image',
             type: 'upload',
             sign_url: true,
             secure: true,
-            // Force attachment? No, user wants to VIEW.
-            // But we can add a flag for "download mode" if needed later.
         });
 
         res.json({ signedUrl });
