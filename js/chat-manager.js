@@ -1611,10 +1611,12 @@ class ChatManager {
                 let contentHtml = '';
                 // File (Non-Image)
                 if (msg.fileUrl && msg.fileType !== 'image') {
-                    const cleanName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
+                    const displayName = msg.fileUrl.split('/').pop().split('?')[0].replace(/^\d+-/, '') || 'Documento';
+                    // Escape quotes for the onclick function call
+                    const safeName = decodeURIComponent(displayName).replace(/'/g, "\\'");
                     contentHtml += `
             <div style="margin-bottom: 6px;">
-                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${cleanName}')" style="
+                <div onclick="window.chatManagerInstance.downloadFileSecure('${msg.fileUrl}', '${safeName}')" style="
                                 display: flex; align-items: center; gap: 12px; cursor: pointer;
                                 background: #242526; padding: 10px 14px; 
                                 border-radius: 18px; text-decoration: none; color: white; 
@@ -1632,7 +1634,7 @@ class ChatManager {
                                         font-size: 0.85em; font-weight: 600; 
                                         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
                                         display: block; width: 100%;
-                                    ">${cleanName}</span>
+                                    ">${displayName}</span>
                     </div>
                 </div>
             </div>
@@ -1727,8 +1729,8 @@ class ChatManager {
             window.location.href = proxyUrl;
 
         } catch (e) {
-            console.warn('Proxy download failed, fallback to direct open:', e);
-            window.open(url, '_blank');
+            console.error('Download initiation failed:', e);
+            alert(`Error al iniciar descarga: ${e.message}`);
         }
     }
 
