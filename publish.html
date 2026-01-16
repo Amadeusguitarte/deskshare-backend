@@ -246,6 +246,21 @@
                     <small style="color: var(--text-secondary);">Lista los programas principales que vienen
                         incluidos</small>
                 </div>
+
+                <!-- ADDED: Parsec Integration -->
+                <div class="form-group"
+                    style="background: rgba(138, 43, 226, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary-purple);">
+                    <label for="parsecPeerId"
+                        style="color: var(--primary-purple); display: flex; align-items: center; gap: 8px;">
+                        <span>🚀 Parsec Peer ID (Para Conexión Remota)</span>
+                    </label>
+                    <input type="text" id="parsecPeerId" placeholder="Ej: 1234567"
+                        title="Encuéntralo en Parsec > Computers > Share">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                        Este es el ID que usará el cliente para conectarse. <a href="https://parsec.app" target="_blank"
+                            style="color: #aaa; text-decoration: underline;">¿Dónde lo encuentro?</a>
+                    </p>
+                </div>
             </div>
 
             <!-- Pricing -->
@@ -412,6 +427,10 @@
                 formData.append('ram', parseInt(document.getElementById('computerRAM').value));
                 formData.append('storage', parseInt(document.getElementById('computerStorage').value));
                 formData.append('pricePerHour', parseFloat(document.getElementById('computerPrice').value));
+
+                // ADDED: Parsec ID
+                const parsecId = document.getElementById('parsecPeerId').value;
+                if (parsecId) formData.append('parsecPeerId', parsecId);
 
                 // Add images
                 selectedFiles.forEach((file) => {

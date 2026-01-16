@@ -55,8 +55,10 @@ model Computer {
   rdpPort       Int?     @default(3389) @map("rdp_port")
   vncPort       Int?     @map("vnc_port")
   accessPassword String? @map("access_password") // Encrypted
-  accessMethod  String?  @default("rdp") @map("access_method") // rdp, vnc, chrome-remote
-  remoteId      String?  @map("remote_id") // For Chrome Remote Desktop or similar
+  accessMethod  String?  @default("rdp") @map("access_method") // rdp, vnc, chrome-remote, parsec
+  remoteId      String?  @map("remote_id") // For Chrome Remote Desktop
+  parsecPeerId  String?  @map("parsec_peer_id") // For Parsec Native App Strategy
+  
   
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")

@@ -215,7 +215,8 @@ router.post(
         body('accessMethod').optional().isIn(['rdp', 'vnc', 'chrome-remote']),
         body('rdpHost').optional(),
         body('rdpPort').optional().isInt(),
-        body('remoteId').optional()
+        body('remoteId').optional(),
+        body('parsecPeerId').optional() // ADDED: Validation
     ],
     async (req, res, next) => {
         try {
@@ -241,6 +242,7 @@ router.post(
                 rdpHost: req.body.rdpHost,
                 rdpPort: req.body.rdpPort ? parseInt(req.body.rdpPort) : 3389,
                 remoteId: req.body.remoteId,
+                parsecPeerId: req.body.parsecPeerId, // ADDED: Parsec Integration
                 isApproved: false  // Requires admin approval
             };
 
@@ -312,6 +314,7 @@ router.put('/:id', auth, async (req, res, next) => {
                 storage: req.body.storage,
                 os: req.body.os,
                 internetSpeed: req.body.internetSpeed,
+                parsecPeerId: req.body.parsecPeerId, // ADDED: Allow updates
                 status: req.body.status
             }
         });

@@ -114,7 +114,8 @@ router.post('/:id/start', auth, async (req, res, next) => {
                         rdpHost: true,
                         rdpPort: true,
                         accessMethod: true,
-                        remoteId: true
+                        remoteId: true,
+                        parsecPeerId: true // ADDED: Parsec Integration
                     }
                 }
             }

@@ -178,11 +178,30 @@ async function startRemoteSession(bookingId) {
             method: 'POST'
         });
 
-        // Redirect to remote access page
+        const computer = response.booking.computer || {};
+
+        // === PARSEC INTEGRATION ===
+        if (computer.parsecPeerId) {
+            const deepLink = `parsec://peer_id=${computer.parsecPeerId}`;
+            console.log('🚀 Launching Parsec Deep Link:', deepLink);
+
+            // 1. Try to open Native App
+            window.location.href = deepLink;
+
+            // 2. Redirect to "Session Active" page (with instructions in case deep link fails)
+            // We pass the ID in the URL for the guide page to display (useful for manual copy-paste)
+            setTimeout(() => {
+                window.location.href = `remote-access.html?bookingId=${bookingId}&mode=parsec&peerId=${encodeURIComponent(computer.parsecPeerId)}`;
+            }, 1000);
+            return;
+        }
+
+        // Standard Web Viewer (Guacamole/NoVNC)
         window.location.href = `remote-access.html?bookingId=${bookingId}`;
 
     } catch (error) {
         alert('Error al iniciar sesión: ' + error.message);
+        console.error(error);
     }
 }
 
