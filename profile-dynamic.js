@@ -28,11 +28,174 @@ function getComputerImage(computer) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadMyComputers();
+    // Initial Load
+    // Check URL hash for tab
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'rentals') {
+        switchTab('rentals');
+    } else {
+        loadMyComputers();
+    }
 });
 
+// Tab Switching Logic
+window.switchTab = function (tabName) {
+    // 1. Update Navigation State
+    document.querySelectorAll('.profile-nav-link').forEach(link => {
+        if (link.onclick.toString().includes(tabName)) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+
+    // 2. Hide all content areas
+    // Assuming UI structure: A main container where we inject content, 
+    // OR separate existing divs.
+    // Based on profile.html, we have a list of Nav Links but the Content Area logic was vague.
+    // Let's assume we repurposed the main content area or use specific IDs if they existed.
+    // Since profile.html structure was: Sidebar | Main Content -> ComputersTab
+    // We will dynamically INJECT the chosen tab's content into the main area to be safe.
+
+    const container = document.querySelector('#computersTab'); // We will reuse this container or parent
+    if (!container) return;
+
+    // Clear current content
+    // container.innerHTML = '<div style="text-align:center; padding: 2rem;">Cargando...</div>'; 
+
+    if (tabName === 'computers') {
+        document.getElementById('computersTab').style.display = 'block';
+        if (document.getElementById('rentalsTab')) document.getElementById('rentalsTab').style.display = 'none';
+        loadMyComputers();
+    } else if (tabName === 'rentals') {
+        document.getElementById('computersTab').style.display = 'none';
+
+        // Create Rentals Tab if not exists
+        let rentalsTab = document.getElementById('rentalsTab');
+        if (!rentalsTab) {
+            rentalsTab = document.createElement('div');
+            rentalsTab.id = 'rentalsTab';
+            rentalsTab.className = 'tab-content';
+            container.parentNode.appendChild(rentalsTab);
+        }
+        rentalsTab.style.display = 'block';
+        loadMyRentals();
+    } else {
+        alert('Sección en construcción');
+    }
+}
+
+async function loadMyRentals() {
+    const container = document.getElementById('rentalsTab');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Mis Alquileres</h2>
+        </div>
+        <div class="grid grid-2" id="myRentalsGrid">
+            <div style="grid-column: 1 / -1; text-align: center; color: #888;">Cargando historial...</div>
+        </div>
+    `;
+
+    try {
+        if (!currentUser) return;
+        const authToken = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/bookings/my-bookings`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load bookings');
+
+        const data = await response.json();
+        const bookings = data.bookings || [];
+
+        const grid = document.getElementById('myRentalsGrid');
+
+        if (bookings.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">🎟️</div>
+                    <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem;">No tienes alquileres activos</h3>
+                    <a href="marketplace.html" class="btn btn-primary">Explorar Computadoras</a>
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = bookings.map(booking => {
+            const computer = booking.computer;
+            const isRenter = booking.renterId === currentUser.id;
+
+            // Status Logic
+            let statusBadge = '';
+            let actionBtn = '';
+
+            if (booking.status === 'active') {
+                statusBadge = `<span style="background: var(--success-green); color: black; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem;">🟢 ACTIVO</span>`;
+
+                // === PARSEC BUTTON LOGIC ===
+                // Only show "Connect" if I am the Renter
+                if (isRenter) {
+                    if (computer.parsecPeerId) {
+                        actionBtn = `
+                            <a href="parsec://peer_id=${computer.parsecPeerId}" class="btn btn-primary" style="width: 100%; text-align: center; margin-top: 10px;">
+                                🚀 Conectar (Parsec)
+                            </a>
+                        `;
+                    } else {
+                        actionBtn = `
+                            <a href="remote-access.html?bookingId=${booking.id}" class="btn btn-secondary" style="width: 100%; text-align: center; margin-top: 10px;">
+                                🖥️ Conectar (Web)
+                            </a>
+                        `;
+                    }
+                }
+            } else if (booking.status === 'completed') {
+                statusBadge = `<span style="background: #444; color: #aaa; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">🏁 FINALIZADO</span>`;
+                actionBtn = `<button class="btn btn-secondary" disabled style="width: 100%; opacity: 0.5; margin-top: 10px;">Expirado</button>`;
+            } else {
+                statusBadge = `<span style="background: var(--warning-yellow); color: black; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">⏳ PENDIENTE</span>`;
+            }
+
+            const { url: imageUrl } = getComputerImage(computer);
+
+            return `
+            <div class="glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="height: 140px; background: #222;">
+                    <img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="padding: 1.25rem; flex: 1; display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                        <h4 style="margin: 0; color: white; font-size: 1.1rem;">${computer.name}</h4>
+                        ${statusBadge}
+                    </div>
+                    
+                    <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 1rem;">
+                        ${isRenter ? 'Alquilado por ti' : 'Alquilado a ' + booking.renter.name}
+                    </p>
+
+                    <div style="margin-top: auto;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #888; margin-bottom: 10px;">
+                            <span>Precio: $${booking.priceAgreed}/hr</span>
+                            <span>${new Date(booking.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        ${actionBtn}
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Error loading rentals:', error);
+        container.innerHTML = `<div style="color: var(--error-red); text-align: center;">Error al cargar historial.</div>`;
+    }
+}
+
 async function loadMyComputers() {
-    const container = document.querySelector('#computersTab .grid');
+    const container = document.querySelector('#computersTab .grid'); // Fix selector to match profile.html structure
+
     if (!container) return;
 
     try {

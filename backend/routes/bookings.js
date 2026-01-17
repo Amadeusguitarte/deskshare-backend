@@ -86,6 +86,17 @@ router.post('/:id/start', auth, async (req, res, next) => {
             return res.status(403).json({ error: 'Not authorized' });
         }
 
+        // === ACCESS CONTROL CHECK (Added) ===
+        // If it's a paid/controlled session, Host must grant access first
+        // We only enforce this if the computer has a Parsec ID (Remote Access)
+        if (booking.computer.parsecPeerId && !booking.isAccessGranted) {
+            return res.status(403).json({
+                error: 'Access Not Granted Yet',
+                code: 'WAITING_FOR_HOST',
+                message: 'El anfitrión aún no ha entregado el acceso. Por favor, pídeselo por el chat.'
+            });
+        }
+
         // Generate access token (simple JWT for this session)
         const jwt = require('jsonwebtoken');
         const accessToken = jwt.sign(
@@ -126,6 +137,104 @@ router.post('/:id/start', auth, async (req, res, next) => {
             booking: updated,
             accessToken
         });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
+// POST /api/bookings/:id/grant
+// Host manually grants access (The "Give Key" Button)
+// ========================================
+router.post('/:id/grant', auth, async (req, res, next) => {
+    try {
+        const bookingId = parseInt(req.params.id);
+
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { computer: true }
+        });
+
+        if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+        // Verify Host matches
+        if (booking.computer.userId !== req.user.userId) {
+            return res.status(403).json({ error: 'Only the Host can grant access' });
+        }
+
+        // Update DB
+        const updated = await prisma.booking.update({
+            where: { id: bookingId },
+            data: { isAccessGranted: true }
+        });
+
+        // OPTIONAL: Auto-Send Chat Message
+        // We inject a message confirming access so the Renter sees it immediately
+        await prisma.message.create({
+            data: {
+                senderId: req.user.userId,
+                receiverId: booking.renterId,
+                computerId: booking.computerId,
+                message: '🔑 ACCESO CONCEDIDO: Ya puedes conectarte desde el botón en tu perfil.',
+                isRead: false
+            }
+        });
+
+        res.json({ success: true, message: 'Access granted successfully' });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
+// POST /api/bookings/manual-share (NEW)
+// Ad-Hoc Access Grant (No Payment Flow)
+// ========================================
+router.post('/manual-share', auth, async (req, res, next) => {
+    try {
+        const { computerId, renterId } = req.body;
+
+        // 1. Verify Ownership
+        const computer = await prisma.computer.findUnique({
+            where: { id: parseInt(computerId) }
+        });
+        if (!computer || computer.userId !== req.user.userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+        if (!computer.parsecPeerId) {
+            return res.status(400).json({ error: 'This computer does not have a Parsec ID configured.' });
+        }
+
+        // 2. Create "Free Trial" / Manual Booking
+        const booking = await prisma.booking.create({
+            data: {
+                computerId: parseInt(computerId),
+                renterId: parseInt(renterId),
+                priceAgreed: 0,
+                status: 'active',
+                startTime: new Date(),
+                isAccessGranted: true, // Auto-grant since it's manual
+                paymentStatus: 'manual_grant'
+            }
+        });
+
+        // 3. Inject Chat Message with Deep Link
+        const connectLink = `parsec://peer_id=${computer.parsecPeerId}`;
+        const msgContent = `🔑 **LLAVE DE ACCESO ENVIADA**\n\nEl anfitrión te ha invitado a conectarte a **${computer.name}**.\n\n<button class="btn btn-primary" onclick="window.location.href='${connectLink}'" style="padding: 6px 12px; font-size: 0.9rem; margin-top: 8px;">🚀 Conectar Ahora</button>`;
+
+        await prisma.message.create({
+            data: {
+                senderId: req.user.userId,
+                receiverId: parseInt(renterId),
+                computerId: parseInt(computerId),
+                message: msgContent,
+                isRead: false
+            }
+        });
+
+        res.json({ success: true, booking });
+
     } catch (error) {
         next(error);
     }

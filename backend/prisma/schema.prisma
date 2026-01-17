@@ -102,6 +102,7 @@ model Booking {
   // Remote Access
   guacamoleConnectionId String? @map("guacamole_connection_id")
   accessToken           String? @map("access_token") @db.Text
+  isAccessGranted       Boolean @default(false) @map("is_access_granted") // Manual Host Control
   
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")

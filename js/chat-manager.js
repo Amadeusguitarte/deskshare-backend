@@ -408,8 +408,14 @@ class ChatManager {
 
                                     <!-- Emoji Button -->
                                     <button type="button" id="fullPageEmojiBtn"
-                                        style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
+                                        style="position: absolute; right: 40px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
                                         😊
+                                    </button>
+
+                                    <!-- Share Key Button -->
+                                    <button type="button" onclick="window.chatManagerInstance.openShareModal(window.chatManagerInstance.activeConversation.otherUser.id)"
+                                        style="position: absolute; right: 8px; background: transparent; border: none; color: #fbbf24; cursor: pointer; opacity: 0.9; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;" title="Compartir Llave">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                                     </button>
                             </div>
 
@@ -897,11 +903,18 @@ class ChatManager {
                     </div>
                 </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
+                        <!-- GRANT ACCESS CONTAINER -->
+                        <div id="grant-btn-container-${user.id}"></div>
+                        
                         ${unreadCount > 0 ? `<span class="unread-badge" style="background: var(--error-red, #ef4444); color: white; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">${unreadCount}</span>` : ''}
                         <span class="minimize-icon" style="color: #aaa; font-size: 1.4rem; font-weight: 400; line-height: 0.6; padding-bottom: 4px;" title="Minimizar">${minIcon}</span>
                         <span onclick="event.stopPropagation(); window.safeCloseTab(${user.id})" style="color: #aaa; font-size: 1.2rem; line-height: 1;" title="Cerrar">×</span>
                     </div>
                 </div>
+                <script>
+                    // Self-Executing Check for Grant Button
+                    setTimeout(() => { if(window.chatManagerInstance) window.chatManagerInstance.injectGrantButton('${user.id}'); }, 500);
+                </script>
                 
                 <!--MESSAGES AREA-->
                 <div id="msg-area-${user.id}" class="mini-messages-area" style="flex: 1; overflow-y: auto; padding: 12px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
@@ -949,6 +962,12 @@ class ChatManager {
                             </button>
                     </div>
 
+                    <!-- Share Key Icon -->
+                    <button onclick="window.chatManagerInstance.openShareModal(${user.id})"
+                        style="background: none; border: none; cursor: pointer; color: #fbbf24; padding: 4px; display: flex; align-items: center;" title="Compartir Llave de Acceso">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                    </button>
+
                     <!-- Send Icon -->
                     <button onclick="window.safeSendStagedMessage(${user.id})"
                         style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
@@ -960,6 +979,108 @@ class ChatManager {
             `;
     }
 
+    // ==========================================
+    // MANUAL SHARE FLOW (Ad-Hoc)
+    // ==========================================
+    async openShareModal(userId) {
+        // 1. Fetch My Computers
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`${API_BASE_URL}/computers/my`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            const computers = data.computers || [];
+
+            // Filter for computers with Parsec ID
+            const validComputers = computers.filter(c => c.parsecPeerId);
+
+            if (validComputers.length === 0) {
+                alert('No tienes computadoras con Parsec configurado para compartir.');
+                return;
+            }
+
+            // 2. Render Modal
+            // Check if modal exists, else create
+            let modal = document.getElementById('share-key-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'share-key-modal';
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s;';
+                document.body.appendChild(modal);
+            }
+
+            const listHtml = validComputers.map(c => `
+                <div onclick="chatManagerInstance.shareAccess(${c.id}, ${userId})" 
+                    style="padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${c.images[0]?.imageUrl || 'assets/default-pc.png'}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">
+                        <div>
+                            <div style="font-weight: 600; color: white;">${c.name}</div>
+                            <div style="font-size: 0.8rem; color: #888;">ID: ...${c.parsecPeerId.slice(-4)}</div>
+                        </div>
+                    </div>
+                    <span style="color: #fbbf24;">➜</span>
+                </div>
+            `).join('');
+
+            modal.innerHTML = `
+                <div style="background: #1a1a1a; padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; border: 1px solid var(--glass-border); box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: translateY(20px); transition: transform 0.3s;">
+                    <h3 style="margin-top: 0; color: white;">Compartir Llave de Acceso 🔑</h3>
+                    <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 20px;">Selecciona la computadora que quieres prestar a este usuario:</p>
+                    <div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
+                        ${listHtml}
+                    </div>
+                    <button onclick="document.getElementById('share-key-modal').style.opacity='0'; setTimeout(()=>document.getElementById('share-key-modal').remove(), 300);" 
+                        style="width: 100%; margin-top: 20px; padding: 10px; background: transparent; border: 1px solid #444; color: #888; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                </div>
+            `;
+
+            // Open Animation
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.querySelector('div').style.transform = 'translateY(0)';
+            }, 10);
+
+        } catch (e) {
+            console.error(e);
+            alert('Error al cargar tus computadoras');
+        }
+    }
+
+    async shareAccess(computerId, userId) {
+        // Close Modal
+        const modal = document.getElementById('share-key-modal');
+        if (modal) modal.remove();
+
+        if (!confirm('¿Seguro que quieres enviar el acceso ahora?')) return;
+
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`${API_BASE_URL}/bookings/manual-share`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ computerId, renterId: userId })
+            });
+
+            if (res.ok) {
+                // Optimistic UI Feedack?
+                // The backend injects the message, so we just wait for the socket event or refresh.
+                // But let's show a toast.
+                alert('✅ Llave enviada correctamente!');
+            } else {
+                const err = await res.json();
+                alert('Error: ' + (err.error || 'Server error'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error de conexión');
+        }
+    }
     toggleMinimize(userId) {
         // 1. Update State
         const isMin = this.minimizedConversations.has(userId);
@@ -1444,6 +1565,79 @@ class ChatManager {
     clearStaging(userId) {
         this.stagedFiles.delete(userId);
         this.renderStagingArea(userId); // Update UI after clearing
+    }
+
+    // ==========================================
+    // PARSEC ACCESS CONTROL (Host Grant)
+    // ==========================================
+    async checkPendingGrant(otherUserId) {
+        try {
+            const token = localStorage.getItem('authToken');
+            // Fetch all my bookings (MVP approach - reliable)
+            const res = await fetch(`${API_BASE_URL}/bookings/my-bookings`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            const bookings = data.bookings || [];
+
+            // Find a booking where:
+            // 1. I am the HOST (computer.userId === me)
+            // 2. The Other User is the RENTER
+            // 3. Status is ACTIVE (Paid)
+            // 4. Access is NOT yet granted
+            // 5. Computer has Parsec ID
+            const pendingBooking = bookings.find(b =>
+                b.computer.userId === this.currentUser.id &&
+                b.renter.id == otherUserId &&
+                b.status === 'active' &&
+                b.computer.parsecPeerId &&
+                !b.isAccessGranted
+            );
+
+            return pendingBooking;
+        } catch (e) {
+            console.error('Error checking pending grant:', e);
+            return null;
+        }
+    }
+
+    async grantAccess(bookingId, userId) {
+        if (!confirm('¿Confirmas que estás listo para dar acceso remoto a este usuario?')) return;
+
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`${API_BASE_URL}/bookings/${bookingId}/grant`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                alert('✅ Acceso concedido correctamente.');
+                // Update UI: Hide button
+                const btnContainer = document.getElementById(`grant-btn-container-${userId}`);
+                if (btnContainer) btnContainer.innerHTML = '<span style="color:#4ade80; font-size:0.8rem;">✓ Acceso Enviado</span>';
+            } else {
+                alert('Error al conceder acceso.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error de red');
+        }
+    }
+
+    async injectGrantButton(userId) {
+        const container = document.getElementById(`grant-btn-container-${userId}`);
+        if (!container) return;
+
+        const booking = await this.checkPendingGrant(userId);
+        if (booking) {
+            container.innerHTML = `
+                <button onclick="chatManager.grantAccess(${booking.id}, ${userId})" 
+                    style="background: var(--gradient-primary); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);">
+                    🔑 Dar Acceso
+                </button>
+            `;
+        }
     }
 
     async sendStagedMessage(userId) {
