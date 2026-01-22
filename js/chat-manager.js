@@ -855,6 +855,41 @@ class ChatManager {
         });
     }
 
+    handleChatInput(el, userId) {
+        // Auto-Resize
+        el.style.height = 'auto'; // Reset to recalculate
+        const newHeight = Math.min(el.scrollHeight, 120); // Cap at 120px
+        el.style.height = newHeight + 'px';
+
+        // Toggle Icons
+        const hasText = el.value.trim().length > 0;
+        const actions = document.getElementById(`chat-left-actions-${userId}`);
+        const plusBtn = document.getElementById(`chat-plus-btn-${userId}`);
+
+        if (actions && plusBtn) {
+            if (hasText) {
+                actions.style.display = 'none';
+                plusBtn.style.display = 'flex';
+            } else {
+                actions.style.display = 'flex';
+                plusBtn.style.display = 'none';
+            }
+        }
+
+        // Emit Typing
+        if (window.safeEmitTyping) window.safeEmitTyping(userId);
+    }
+
+    toggleChatActions(userId) {
+        const actions = document.getElementById(`chat-left-actions-${userId}`);
+        const plusBtn = document.getElementById(`chat-plus-btn-${userId}`);
+        // Simple toggle back to show actions if user clicks +
+        if (actions.style.display === 'none') {
+            actions.style.display = 'flex';
+            plusBtn.style.display = 'none';
+        }
+    }
+
     renderChatTab(conv) {
         const user = conv.otherUser;
         const tabId = `chat-tab-${user.id}`;
@@ -942,35 +977,47 @@ class ChatManager {
                     <button onclick="chatManager.clearStaging(${user.id})" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.2em;">&times;</button>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                    <!-- Attach Icon -->
-                    <button onclick="window.safeTriggerUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                <div style="display: flex; align-items: flex-end; gap: 8px; width: 100%;">
+                    
+                    <!-- PLUS BTN (Hidden by default) -->
+                    <button id="chat-plus-btn-${user.id}" onclick="window.chatManagerInstance.toggleChatActions(${user.id})" 
+                        style="display:none; background: #333; border: none; cursor: pointer; color: var(--accent-purple); padding: 8px; border-radius: 50%; width: 32px; height: 32px; align-items: center; justify-content: center; margin-bottom: 4px; flex-shrink: 0;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     </button>
 
-                    <!-- Share Key Icon (Moved Left) -->
-                     <button onclick="window.chatManagerInstance.openShareModal(${user.id})"
-                        style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;" title="Compartir Llave de Acceso">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-                    </button>
+                    <!-- LEFT ACTIONS CONTAINER -->
+                    <div id="chat-left-actions-${user.id}" style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;"> 
+                        <!-- Attach Icon -->
+                        <button onclick="window.safeTriggerUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                        </button>
+
+                        <!-- Share Key Icon -->
+                        <button onclick="window.chatManagerInstance.openShareModal(${user.id})"
+                            style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;" title="Compartir Llave de Acceso">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                        </button>
+                    </div>
 
                     <!-- Input Container -->
                     <div style="flex-grow: 1; position: relative; display: flex; align-items: center;">
-                        <input type="text" placeholder="Escribe un mensaje..." autocomplete="off"
+                        <textarea placeholder="Aa" 
                             id="chat-input-${user.id}"
+                            rows="1"
                             onfocus="window.safeHandleFocus(${user.id})"
-                            onkeypress="if(event.key === 'Enter') { window.safeSendStagedMessage(${user.id}); } else { window.safeEmitTyping(${user.id}); }"
-                            style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #444; border-radius: 20px; outline: none; font-size: 0.9rem; background: #333; color: white; transition: border-color 0.2s;">
+                            oninput="window.chatManagerInstance.handleChatInput(this, ${user.id})"
+                            onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); window.safeSendStagedMessage(${user.id}); }"
+                            style="width: 100%; padding: 8px 36px 8px 12px; border: 1px solid #444; border-radius: 18px; outline: none; font-size: 0.95rem; background: #333; color: white; transition: border-color 0.2s; resize: none; overflow-y: auto; max-height: 120px; line-height: 1.4; font-family: 'Inter', sans-serif;"></textarea>
 
                             <!-- Emoji Icon -->
-                            <button onclick="window.safeToggleEmoji(this, ${user.id})" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
+                            <button onclick="window.safeToggleEmoji(this, ${user.id})" style="position: absolute; right: 8px; bottom: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
                             </button>
                     </div>
 
-                    <!-- Send Icon -->
+                    <!-- Send Icon (Hidden normally, usually shown? Facebook shows 'Like' if empty, Send if text. User didn't ask for Like button. Keep Send button always or logic? Let's keep always for now, matching consistent style) -->
                     <button onclick="window.safeSendStagedMessage(${user.id})"
-                        style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;">
+                        style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center; margin-bottom: 4px;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
                 </div>
