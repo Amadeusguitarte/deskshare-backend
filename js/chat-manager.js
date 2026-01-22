@@ -57,6 +57,20 @@ class ChatManager {
         // Load data
         await this.loadConversations();
 
+        // Global Click Listener for Menus
+        document.addEventListener('click', (e) => {
+            if (!this.openConversationIds) return;
+            this.openConversationIds.forEach(userId => {
+                const menu = document.getElementById(`chat-more-menu-${userId}`);
+                const btn = document.getElementById(`chat-plus-btn-${userId}`);
+                if (menu && menu.style.display !== 'none' && btn) {
+                    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                        this.toggleChatActions(userId);
+                    }
+                }
+            });
+        });
+
         // Check Online Status (Now that we have users)
         if (this.socket && this.conversations.length > 0) {
             const ids = this.conversations.map(c => c.otherUser.id);
@@ -767,8 +781,8 @@ class ChatManager {
         this.updateGlobalBadge(totalUnread);
 
         const persistentBar = `
-            <div id="chat-global-bar" class="chat-tab" style="width: 340px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '520px' : '48px'}; margin-left: 10px;">
-                <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'520px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+            <div id="chat-global-bar" class="chat-tab" style="width: 340px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '495px' : '48px'}; margin-left: 10px;">
+                <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'495px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
                         ${totalUnread > 0 ? `<span style="background:var(--error-red); color:white; font-size:0.7rem; padding: 2px 6px; border-radius:10px;">${totalUnread}</span>` : ''}
@@ -829,6 +843,15 @@ class ChatManager {
                     try {
                         input.setSelectionRange(focusedCursorStart, focusedCursorEnd);
                     } catch (e) {/* ignore */ }
+
+                    // FIX: Re-trigger auto-resize logic so it doesn't collapse
+                    if (input.tagName === 'TEXTAREA') {
+                        const userId = focusedTabId.replace('chat-tab-', '');
+                        // We need the numeric ID. If ID is chat-tab-123, userId is 123.
+                        // Ensure we pass the right ID. 
+                        // The id is e.g. 'chat-tab-5'. replace 'chat-tab-' gives '5'.
+                        this.handleChatInput(input, userId);
+                    }
                 }
             }
         }
@@ -899,12 +922,24 @@ class ChatManager {
     }
 
     toggleChatActions(userId) {
-        const actions = document.getElementById(`chat-left-actions-${userId}`);
+        const menu = document.getElementById(`chat-more-menu-${userId}`);
         const plusBtn = document.getElementById(`chat-plus-btn-${userId}`);
-        // Simple toggle back to show actions if user clicks +
-        if (actions.style.display === 'none') {
-            actions.style.display = 'flex';
-            plusBtn.style.display = 'none';
+
+        if (menu && plusBtn) {
+            const isClosed = menu.style.display === 'none';
+            if (isClosed) {
+                // OPEN
+                menu.style.display = 'flex';
+                // Change to X
+                plusBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                plusBtn.style.color = '#fff';
+            } else {
+                // CLOSE
+                menu.style.display = 'none';
+                // Change to +
+                plusBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+                plusBtn.style.color = 'var(--accent-purple)';
+            }
         }
     }
 
@@ -913,7 +948,7 @@ class ChatManager {
         const tabId = `chat-tab-${user.id}`;
         // Check state to persist minimization
         const isMin = this.minimizedConversations.has(user.id);
-        const height = isMin ? '50px' : '520px';
+        const height = isMin ? '50px' : '495px';
         const borderRadius = isMin ? '8px' : '8px 8px 0 0';
         const minIcon = isMin ? '' : '−';
 
@@ -985,7 +1020,23 @@ class ChatManager {
                 </div>
                 
                 <!--FOOTER -->
-            <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; flex-direction: column; gap: 8px;">
+            <div class="chat-footer" style="padding: 12px; border-top: 1px solid #333; background: #222; display: flex; flex-direction: column; gap: 8px; position: relative;">
+
+                <!-- POPUP MENU (Hidden by default) -->
+                <div id="chat-more-menu-${user.id}" style="display: none; position: absolute; bottom: 60px; left: 10px; background: #2a2a2a; border: 1px solid #444; border-radius: 12px; flex-direction: column; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; min-width: 180px;">
+                    <button onclick="window.safeTriggerUpload(${user.id}); window.chatManagerInstance.toggleChatActions(${user.id});" 
+                        style="background: transparent; border: none; padding: 12px 16px; width: 100%; text-align: left; color: white; cursor: pointer; display: flex; align-items: center; gap: 10px; font-family: 'Outfit', sans-serif; font-size: 0.9rem; transition: background 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-purple);"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                        Adjuntar archivo
+                    </button>
+                    <button onclick="window.chatManagerInstance.openShareModal(${user.id}); window.chatManagerInstance.toggleChatActions(${user.id});" 
+                        style="background: transparent; border: none; padding: 12px 16px; width: 100%; text-align: left; color: white; cursor: pointer; display: flex; align-items: center; gap: 10px; font-family: 'Outfit', sans-serif; font-size: 0.9rem; transition: background 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #fbbf24;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                        Compartir llave
+                    </button>
+                </div>
 
                 <!-- STAGING AREA (Preview) -->
                 <div id="chat-staging-${user.id}" style="display: none; padding: 8px; background: #333; border-radius: 8px; margin-bottom: 4px; align-items: center; justify-content: space-between;">
