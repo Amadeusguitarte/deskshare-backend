@@ -759,8 +759,8 @@ class ChatManager {
         this.updateGlobalBadge(totalUnread);
 
         const persistentBar = `
-            <div id="chat-global-bar" class="chat-tab" style="width: 320px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '455px' : '48px'}; margin-left: 10px;">
-                <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'455px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+            <div id="chat-global-bar" class="chat-tab" style="width: 340px; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; transition: height 0.3s; height: ${isListOpen ? '520px' : '48px'}; margin-left: 10px;">
+                <div onclick="const p = this.parentElement; const open = p.style.height!=='48px'; p.style.height=open?'48px':'520px'; document.getElementById('chatWidgetContainer').dataset.listOpen=!open;" style="padding: 12px; background: #222; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight: 600; color: white;">Mensajes</span>
                         ${totalUnread > 0 ? `<span style="background:var(--error-red); color:white; font-size:0.7rem; padding: 2px 6px; border-radius:10px;">${totalUnread}</span>` : ''}
@@ -860,7 +860,7 @@ class ChatManager {
         const tabId = `chat-tab-${user.id}`;
         // Check state to persist minimization
         const isMin = this.minimizedConversations.has(user.id);
-        const height = isMin ? '50px' : '455px';
+        const height = isMin ? '50px' : '520px';
         const borderRadius = isMin ? '8px' : '8px 8px 0 0';
         const minIcon = isMin ? '' : '−';
 
@@ -873,7 +873,7 @@ class ChatManager {
         const statusColor = user.isOnline ? '#4ade80' : 'transparent';
 
         return `
-            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 340px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
+            <div id="${tabId}" class="chat-tab expanded ${unreadCount > 0 ? 'flash-animation' : ''}" style="width: 360px; height: ${height}; background: #1a1a1a; border: 1px solid var(--glass-border); border-bottom: none; border-radius: ${borderRadius}; display: flex; flex-direction: column; overflow: hidden; pointer-events: auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: 'Outfit', sans-serif; margin-right: 10px; transition: height 0.3s ease, border-radius 0.3s ease;">
                  <!--HEADER -->
                 <div style="padding: 10px 12px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; height: 50px; box-sizing: border-box;" onclick="window.safeMinimize(${user.id})">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -944,8 +944,14 @@ class ChatManager {
 
                 <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
                     <!-- Attach Icon -->
-                    <button onclick="window.safeTriggerUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: #888; padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
+                    <button onclick="window.safeTriggerUpload(${user.id})" style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center; transition: color 0.2s;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
+
+                    <!-- Share Key Icon (Moved Left) -->
+                     <button onclick="window.chatManagerInstance.openShareModal(${user.id})"
+                        style="background: none; border: none; cursor: pointer; color: var(--accent-purple); padding: 4px; display: flex; align-items: center;" title="Compartir Llave de Acceso">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                     </button>
 
                     <!-- Input Container -->
@@ -961,12 +967,6 @@ class ChatManager {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
                             </button>
                     </div>
-
-                    <!-- Share Key Icon -->
-                    <button onclick="window.chatManagerInstance.openShareModal(${user.id})"
-                        style="background: none; border: none; cursor: pointer; color: #fbbf24; padding: 4px; display: flex; align-items: center;" title="Compartir Llave de Acceso">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-                    </button>
 
                     <!-- Send Icon -->
                     <button onclick="window.safeSendStagedMessage(${user.id})"
