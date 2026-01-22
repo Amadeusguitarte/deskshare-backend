@@ -744,10 +744,18 @@ class ChatManager {
 
         // FOCUS PROTECTION: Capture which input is focused before we destroy the DOM
         let focusedTabId = null;
-        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
-            const tabEl = document.activeElement.closest('.chat-tab');
+        let focusedCursorStart = 0;
+        let focusedCursorEnd = 0;
+        let focusedValue = '';
+        const activeEl = document.activeElement;
+
+        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+            const tabEl = activeEl.closest('.chat-tab');
             if (tabEl && tabEl.id.startsWith('chat-tab-')) {
                 focusedTabId = tabEl.id;
+                focusedCursorStart = activeEl.selectionStart;
+                focusedCursorEnd = activeEl.selectionEnd;
+                focusedValue = activeEl.value; // Capture transient text
             }
         }
 
@@ -807,10 +815,20 @@ class ChatManager {
         if (focusedTabId) {
             const newTab = document.getElementById(focusedTabId);
             if (newTab) {
-                const input = newTab.querySelector('input');
+                const input = newTab.querySelector('textarea') || newTab.querySelector('input');
                 if (input) {
+                    // Restore transient text if it was untracked (e.g. typing)
+                    // Only restore IF the re-render hasn't already populated it with something else (e.g. from state)
+                    // But typing is localstate, so we prioritize the captured value if it exists.
+                    if (focusedValue) {
+                        input.value = focusedValue;
+                    }
+
                     input.focus();
-                    // Optional: Restore cursor to end if needed, but usually empty after send.
+                    // Restore Cursor Position
+                    try {
+                        input.setSelectionRange(focusedCursorStart, focusedCursorEnd);
+                    } catch (e) {/* ignore */ }
                 }
             }
         }
@@ -1007,7 +1025,7 @@ class ChatManager {
                             onfocus="window.safeHandleFocus(${user.id})"
                             oninput="window.chatManagerInstance.handleChatInput(this, ${user.id})"
                             onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); window.safeSendStagedMessage(${user.id}); }"
-                            style="width: 100%; padding: 8px 36px 8px 12px; border: 1px solid #444; border-radius: 18px; outline: none; font-size: 0.95rem; background: #333; color: white; transition: border-color 0.2s; resize: none; overflow-y: auto; max-height: 120px; line-height: 1.4; font-family: 'Inter', sans-serif;"></textarea>
+                            style="width: 100%; padding: 8px 36px 8px 12px; border: 1px solid #444; border-radius: 18px; outline: none; font-size: 0.95rem; background: #333; color: white; transition: border-color 0.2s; resize: none; overflow-y: hidden; max-height: 200px; line-height: 1.4; font-family: 'Inter', sans-serif;"></textarea>
 
                             <!-- Emoji Icon -->
                             <button onclick="window.safeToggleEmoji(this, ${user.id})" style="position: absolute; right: 8px; bottom: 8px; background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center;">
