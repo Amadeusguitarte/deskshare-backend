@@ -319,11 +319,11 @@
                 ? 'http://localhost:3000'
                 : 'https://deskshare-backend-production.up.railway.app';
 
-            // Add cache busting (V3: Protocol Fix)
-            const exeUrl = `${backendUrl}/downloads/DeskShareLauncher_v3.exe`;
+            // Add cache busting (V4: Registry & Stability Fix)
+            const exeUrl = `${backendUrl}/downloads/DeskShareLauncher_v4.exe`;
 
             statusText.innerHTML = `
-                Iniciando descarga (v3.0 - Protocol Fix)...<br>
+                Iniciando descarga (v4.0 - STABLE)...<br>
                 <a href="${exeUrl}" style="color: #10b981; text-decoration: underline;">Click aquí si no descarga automáticamente.</a>
             `;
 
