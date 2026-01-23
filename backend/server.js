@@ -116,9 +116,6 @@ app.use('/api/tunnels', tunnelRoutes);
 app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
 
 // Server Entry Point (v180 RESTORED - GOLDEN STATE)(Project Root)
-const path = require('path');
-// PRIMARY: Serve local public assets (for reliable Railway deployment)
-app.use(express.static(path.join(__dirname, 'public')));
 // FALLBACK: Serve root (for existing monorepo structure)
 app.use(express.static(path.join(__dirname, '../')));
 
