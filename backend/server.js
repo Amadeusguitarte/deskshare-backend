@@ -9,6 +9,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 
 // Import routes
@@ -75,6 +76,9 @@ app.use(cors({
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files (Downloads, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
