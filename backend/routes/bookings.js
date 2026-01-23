@@ -111,15 +111,36 @@ router.post('/:id/start', auth, async (req, res, next) => {
 
         // === GUACAMOLE INTEGRATION ===
         const { encryptConnection } = require('../utils/guacamole-crypto');
+        const tunnelManager = require('../utils/TunnelManager'); // Import Manager
         let guacamoleToken = null;
 
-        // Only generate if we have host/port (Basic check)
-        if (booking.computer.rdpHost) {
+        // Dynamic Tunnel Logic (DeskShare Launcher)
+        let rdpHost = booking.computer.rdpHost;
+        let rdpPort = booking.computer.rdpPort || 3389;
+
+        // If computer has an active Cloudflare Tunnel, bridge it!
+        if (booking.computer.tunnelStatus === 'online' && booking.computer.tunnelUrl) {
+            try {
+                console.log(`[Session] Bridging tunnel for ${booking.computer.name}...`);
+                const localPort = await tunnelManager.bridgeTunnel(booking.computer.tunnelUrl, booking.id);
+
+                // Override connection params to point to local bridge
+                rdpHost = 'localhost';
+                rdpPort = localPort;
+                console.log(`[Session] Tunnel bridged to localhost:${localPort}`);
+            } catch (err) {
+                console.error('[Session] Failed to bridge tunnel:', err);
+                // Fallback to original execution (might fail if behind NAT)
+            }
+        }
+
+        // Only generate if we have host/port
+        if (rdpHost) {
             const connectionParams = {
                 type: booking.computer.accessMethod || 'rdp',
                 settings: {
-                    hostname: booking.computer.rdpHost,
-                    port: booking.computer.rdpPort || 3389,
+                    hostname: rdpHost,
+                    port: rdpPort,
                     password: booking.computer.accessPassword || '', // TODO: Decrypt if stored encrypted
                     'ignore-cert': 'true',
                     security: 'any',
@@ -146,7 +167,9 @@ router.post('/:id/start', auth, async (req, res, next) => {
                         rdpPort: true,
                         accessMethod: true,
                         remoteId: true,
-                        parsecPeerId: true // ADDED: Parsec Integration
+                        parsecPeerId: true, // ADDED: Parsec Integration
+                        tunnelUrl: true,    // ADDED: Dynamic Tunnel
+                        tunnelStatus: true  // ADDED: Dynamic Tunnel
                     }
                 }
             }
@@ -317,6 +340,10 @@ router.post('/:id/end', auth, async (req, res, next) => {
         const durationMs = endTime - booking.startTime;
         const durationHours = durationMs / (1000 * 60 * 60);
         const totalPrice = durationHours * parseFloat(booking.priceAgreed);
+
+        // Stop any active tunnel bridge for this booking
+        const tunnelManager = require('../utils/TunnelManager');
+        tunnelManager.stopBridge(bookingId);
 
         // Update booking
         const updated = await prisma.booking.update({
