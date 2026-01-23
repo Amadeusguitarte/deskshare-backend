@@ -230,15 +230,21 @@
                 Instala el launcher para compartir tu PC de forma segura sin configuraciones complicadas.
             </p>
 
-            <a href="https://github.com/Amadeusguitarte/deskshare-launcher/releases/latest/download/DeskShareLauncher.exe"
-                class="download-btn" id="downloadBtn">
+            <button class="download-btn" id="downloadBtn" onclick="downloadLauncher()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 Descargar para Windows
-            </a>
+            </button>
+
+            <div id="download-status"
+                style="margin-top: 16px; padding: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; display: none;">
+                <div style="color: #10b981; font-weight: 600; margin-bottom: 8px;">📦 Preparando descarga...</div>
+                <div style="color: #a0a0a0; font-size: 0.9rem;" id="status-text">El ejecutable se está generando. Por
+                    favor espera.</div>
+            </div>
 
             <div class="steps">
                 <h3>Cómo funciona:</h3>
@@ -289,6 +295,24 @@
             document.querySelector('.subtitle').innerHTML =
                 '<strong style="color: #f97316;">El launcher no está instalado.</strong><br>' +
                 'Descárgalo para poder compartir tu PC.';
+        }
+
+        async function downloadLauncher() {
+            const statusDiv = document.getElementById('download-status');
+            const statusText = document.getElementById('status-text');
+            statusDiv.style.display = 'block';
+
+            // For now, show instructions since exe isn't built yet
+            statusText.innerHTML = `
+                <strong>El launcher aún no está empaquetado como .exe</strong><br><br>
+                Por ahora, puedes ejecutarlo manualmente:<br>
+                1. Abre PowerShell en la carpeta <code>agent</code><br>
+                2. Ejecuta: <code>npm install && npm start -- --computerId X --token Y</code><br><br>
+                <em>Pronto estará disponible el instalador automático.</em>
+            `;
+
+            // TODO: When exe is ready, use this:
+            // window.location.href = 'https://your-cdn.com/DeskShareLauncher.exe';
         }
     </script>
 </body>

@@ -1300,13 +1300,43 @@ class ChatManager {
         document.getElementById('launch-btn').onclick = async () => {
             // Try to launch via custom protocol
             const protocolUrl = 'deskshare://start?computerId=' + computerId + '&token=' + token;
-            window.location.href = protocolUrl;
 
-            self.showToast('Abriendo DeskShare Launcher...', 'info');
-            launcherModal.remove();
+            // Use a hidden iframe to attempt protocol launch
+            // If launcher isn't installed, nothing happens and we redirect after timeout
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
 
-            // Poll for tunnel to come online
+            let launched = false;
+
+            // Track if page loses focus (means app launched)
+            const handleBlur = () => {
+                launched = true;
+            };
+            window.addEventListener('blur', handleBlur);
+
+            // Try to launch
+            iframe.src = protocolUrl;
+
+            // Wait to see if launcher opens
             setTimeout(() => {
+                window.removeEventListener('blur', handleBlur);
+                iframe.remove();
+
+                if (!launched) {
+                    // Protocol failed - launcher not installed
+                    launcherModal.remove();
+                    self.showToast('Launcher no instalado. Redirigiendo a descarga...', 'warning');
+                    setTimeout(() => {
+                        window.location.href = 'download-launcher.html?from=protocol';
+                    }, 1500);
+                    return;
+                }
+
+                // Launcher opened, poll for connection
+                self.showToast('Launcher abierto. Esperando conexión...', 'info');
+                launcherModal.remove();
+
                 let attempts = 0;
                 const pollInterval = setInterval(async () => {
                     attempts++;
@@ -1324,7 +1354,7 @@ class ChatManager {
                         }
                     } catch (e) { }
                 }, 2000);
-            }, 2000);
+            }, 2500);
         };
 
         document.getElementById('download-btn').onclick = () => {
