@@ -244,24 +244,21 @@ router.post('/manual-share', auth, async (req, res, next) => {
             }
         });
 
-        // 3. Inject Chat Message with Appropriate Link
-        let connectLink = '';
-        let buttonText = 'Conectar';
+        // 3. Inject Chat Message with Access Info
+        // Use a special JSON format that frontend will parse and render as a proper action card
+        const accessData = {
+            type: 'ACCESS_GRANT',
+            computerName: computer.name,
+            computerId: computer.id,
+            bookingId: booking.id,
+            connectionType: computer.rdpHost ? 'guacamole' : 'parsec',
+            // For Parsec: direct protocol link
+            // For Guacamole: booking ID (frontend will build the remote-access.html URL)
+            parsecPeerId: computer.parsecPeerId || null
+        };
 
-        if (computer.rdpHost) {
-            // Web Link (Guacamole)
-            // Use absolute URL to be safe, or relative if on same domain
-            // We need to point to the frontend remote-access page
-            const frontendUrl = process.env.FRONTEND_URL || 'https://deskshare.netlify.app';
-            connectLink = `${frontendUrl}/remote-access.html?bookingId=${booking.id}`;
-            buttonText = '🌐 Conectar (Web)';
-        } else {
-            // Parsec Link
-            connectLink = `parsec://peer_id=${computer.parsecPeerId}`;
-            buttonText = '🚀 Conectar (App)';
-        }
-
-        const msgContent = `🔑 **LLAVE DE ACCESO ENVIADA**\n\nEl anfitrión te ha invitado a conectarte a **${computer.name}**.\n\n<button class="btn btn-primary" onclick="window.location.href='${connectLink}'" style="padding: 6px 12px; font-size: 0.9rem; margin-top: 8px;">${buttonText}</button>`;
+        // Store as JSON string with special prefix so frontend knows to render it specially
+        const msgContent = `[ACCESS_GRANT]${JSON.stringify(accessData)}`;
 
         const newMessage = await prisma.message.create({
             data: {

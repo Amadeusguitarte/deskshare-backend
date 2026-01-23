@@ -2050,7 +2050,55 @@ class ChatManager {
                 }
 
                 if (msg.message && msg.message.trim()) {
-                    contentHtml += `<div>${msg.message.replace(/\n/g, '<br>')}</div>`;
+                    // Check for special ACCESS_GRANT message format
+                    if (msg.message.startsWith('[ACCESS_GRANT]')) {
+                        try {
+                            const jsonData = msg.message.replace('[ACCESS_GRANT]', '');
+                            const accessData = JSON.parse(jsonData);
+
+                            // Render as beautiful access card
+                            const isGuacamole = accessData.connectionType === 'guacamole';
+                            const buttonIcon = isGuacamole ? '🌐' : '🚀';
+                            const buttonText = isGuacamole ? 'Conectar (Web)' : 'Conectar (App)';
+                            const connectionMethod = isGuacamole ? 'Escritorio Remoto Web' : 'Parsec App';
+
+                            // Build the action based on connection type
+                            let buttonAction = '';
+                            if (isGuacamole) {
+                                buttonAction = `window.location.href='remote-access.html?bookingId=${accessData.bookingId}'`;
+                            } else {
+                                buttonAction = `window.location.href='parsec://peer_id=${accessData.parsecPeerId}'`;
+                            }
+
+                            contentHtml += `
+                                <div style="background: linear-gradient(135deg, rgba(102,126,234,0.15) 0%, rgba(118,75,162,0.15) 100%); border: 1px solid rgba(102,126,234,0.3); border-radius: 12px; padding: 16px; max-width: 260px;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                        <span style="font-size: 1.3rem;">🔑</span>
+                                        <span style="font-weight: 600; color: #fff; font-size: 0.95rem;">Llave de Acceso</span>
+                                    </div>
+                                    <div style="color: #ccc; font-size: 0.85rem; margin-bottom: 12px;">
+                                        Conectar a <strong style="color: white;">${accessData.computerName}</strong>
+                                        <br><span style="opacity: 0.7; font-size: 0.8rem;">${connectionMethod}</span>
+                                    </div>
+                                    <button onclick="${buttonAction}" 
+                                        style="width: 100%; padding: 10px 16px; border: none; border-radius: 8px; 
+                                               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                               color: white; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+                                               display: flex; align-items: center; justify-content: center; gap: 8px;
+                                               box-shadow: 0 4px 15px rgba(102,126,234,0.3); transition: transform 0.2s, box-shadow 0.2s;"
+                                        onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(102,126,234,0.4)';"
+                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102,126,234,0.3)';">
+                                        <span>${buttonIcon}</span> ${buttonText}
+                                    </button>
+                                </div>
+                            `;
+                        } catch (e) {
+                            console.error('Failed to parse ACCESS_GRANT message:', e);
+                            contentHtml += `<div>${msg.message.replace(/\\n/g, '<br>')}</div>`;
+                        }
+                    } else {
+                        contentHtml += `<div>${msg.message.replace(/\\n/g, '<br>')}</div>`;
+                    }
                 }
 
                 const isStandAlone = msg.fileUrl && (!msg.message || !msg.message.trim());
