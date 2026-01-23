@@ -16,13 +16,91 @@ const axios = require('axios');
 const os = require('os');
 
 // Configuration
-const CONFIG_PATH = path.join(os.homedir(), '.deskshare-launcher.json');
+const APP_NAME = 'DeskShareLauncher';
+const INSTALL_DIR = path.join(os.homedir(), 'AppData', 'Local', 'DeskShare');
+const INSTALL_PATH = path.join(INSTALL_DIR, 'DeskShareLauncher.exe');
+const CONFIG_PATH = path.join(INSTALL_DIR, 'config.json');
 const BACKEND_URL = process.env.DESKSHARE_BACKEND || 'https://deskshare-backend-production.up.railway.app';
 const HEARTBEAT_INTERVAL = 60000; // 1 minute
 
 let config = {};
 let cloudflaredProcess = null;
 let tunnelUrl = null;
+
+// ============================================
+// Self-Installation & Protocol Registration
+// ============================================
+
+async function ensureInstalled() {
+    // Create install directory
+    if (!fs.existsSync(INSTALL_DIR)) {
+        fs.mkdirSync(INSTALL_DIR, { recursive: true });
+        console.log('[Install] Creando directorio:', INSTALL_DIR);
+    }
+
+    // Get current exe path
+    const currentExe = process.execPath;
+
+    // Check if we're already running from install location
+    if (currentExe.toLowerCase() === INSTALL_PATH.toLowerCase()) {
+        console.log('[Install] Ya instalado ✓');
+        return true;
+    }
+
+    // Check if this is a pkg-bundled exe (not node.exe)
+    if (!currentExe.includes('node.exe')) {
+        console.log('[Install] Instalando DeskShare Launcher...');
+
+        try {
+            // Copy exe to install location
+            fs.copyFileSync(currentExe, INSTALL_PATH);
+            console.log('[Install] Copiado a:', INSTALL_PATH);
+
+            // Register protocol handler
+            await registerProtocol();
+
+            console.log('[Install] ¡Instalación completa! ✓');
+            console.log('[Install] Ahora puedes usar DeskShare desde la web.');
+
+        } catch (e) {
+            console.error('[Install] Error:', e.message);
+        }
+    }
+
+    return true;
+}
+
+async function registerProtocol() {
+    return new Promise((resolve, reject) => {
+        console.log('[Protocol] Registrando deskshare://...');
+
+        // PowerShell command to register protocol handler in registry
+        const regCommands = `
+            $protocolPath = 'HKCU:\\Software\\Classes\\deskshare'
+            
+            # Create protocol key
+            New-Item -Path $protocolPath -Force | Out-Null
+            Set-ItemProperty -Path $protocolPath -Name '(Default)' -Value 'URL:DeskShare Protocol'
+            Set-ItemProperty -Path $protocolPath -Name 'URL Protocol' -Value ''
+            
+            # Create shell/open/command
+            New-Item -Path "$protocolPath\\shell\\open\\command" -Force | Out-Null
+            Set-ItemProperty -Path "$protocolPath\\shell\\open\\command" -Name '(Default)' -Value '"\\"${INSTALL_PATH.replace(/\\/g, '\\\\')}"\\" \\"%1\\"'
+            
+            Write-Output 'Protocol registered'
+        `;
+
+        exec(`powershell -ExecutionPolicy Bypass -Command "${regCommands}"`, { shell: true }, (error, stdout, stderr) => {
+            if (error) {
+                console.error('[Protocol] Error:', error.message);
+                reject(error);
+            } else {
+                console.log('[Protocol] Registrado ✓');
+                resolve(true);
+            }
+        });
+    });
+}
 
 // ============================================
 // Configuration Management
@@ -317,6 +395,9 @@ async function main() {
     console.log('║     Enabling Remote Access...            ║');
     console.log('╚═══════════════════════════════════════════╝');
     console.log('');
+
+    // Step 0: Ensure installed & protocol registered (first run only)
+    await ensureInstalled();
 
     // Load saved config
     loadConfig();
