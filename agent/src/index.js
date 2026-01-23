@@ -72,31 +72,56 @@ async function ensureInstalled() {
 
 async function registerProtocol() {
     return new Promise((resolve, reject) => {
-        console.log('[Protocol] Registrando deskshare://...');
+        log('Registrando protocolo deskshare://...', 'info');
 
-        // PowerShell command to register protocol handler in registry
-        const regCommands = `
-            $protocolPath = 'HKCU:\\Software\\Classes\\deskshare'
+        // Escape path for PowerShell (double backslashes not needed if passing as arg, but needed for registry string)
+        // actually for Start-Process -ArgumentList we need to be careful.
+        // Let's use a simpler approach: create the registry keys directly via separate commands or a cleaner script block.
+
+        const exePath = INSTALL_PATH.replace(/"/g, '`"'); // Escape quotes for PS
+
+        // We use a properly escaped string for the command value
+        // value should be: "C:\Path\To\Exe" "%1"
+        const commandValue = `\\"${exePath}\\" \\"%1\\"`;
+
+        const psScript = `
+            $ErrorActionPreference = 'Stop'
+            $path = 'HKCU:\\Software\\Classes\\deskshare'
             
-            # Create protocol key
-            New-Item -Path $protocolPath -Force | Out-Null
-            Set-ItemProperty -Path $protocolPath -Name '(Default)' -Value 'URL:DeskShare Protocol'
-            Set-ItemProperty -Path $protocolPath -Name 'URL Protocol' -Value ''
+            # Force create/overwrite
+            New-Item -Path $path -Force | Out-Null
+            Set-ItemProperty -Path $path -Name '(Default)' -Value 'URL:DeskShare Protocol'
+            Set-ItemProperty -Path $path -Name 'URL Protocol' -Value ''
             
-            # Create shell/open/command
-            New-Item -Path "$protocolPath\\shell\\open\\command" -Force | Out-Null
-            Set-ItemProperty -Path "$protocolPath\\shell\\open\\command" -Name '(Default)' -Value '"\\"${INSTALL_PATH.replace(/\\/g, '\\\\')}"\\" \\"%1\\"'
+            $cmdPath = "$path\\shell\\open\\command"
+            New-Item -Path $cmdPath -Force | Out-Null
             
-            Write-Output 'Protocol registered'
+            # Important: Use literal quotes for the registry value
+            $val = '${commandValue}'
+            Set-ItemProperty -Path $cmdPath -Name '(Default)' -Value $val
+            
+            Write-Output "Success"
         `;
 
-        exec(`powershell -ExecutionPolicy Bypass -Command "${regCommands}"`, { shell: true }, (error, stdout, stderr) => {
-            if (error) {
-                console.error('[Protocol] Error:', error.message);
-                reject(error);
-            } else {
-                console.log('[Protocol] Registrado ✓');
+        const child = spawn('powershell', [
+            '-ExecutionPolicy', 'Bypass',
+            '-Command', psScript
+        ]);
+
+        let output = '';
+        let error = '';
+
+        child.stdout.on('data', (data) => output += data.toString());
+        child.stderr.on('data', (data) => error += data.toString());
+
+        child.on('close', (code) => {
+            if (code === 0) {
+                log('Protocolo registrado correctamente en el registro.', 'success');
                 resolve(true);
+            } else {
+                log(`Error al registrar protocolo (Code ${code}): ${error}`, 'error');
+                // Don't reject, just log error. Maybe permission issue?
+                resolve(false);
             }
         });
     });

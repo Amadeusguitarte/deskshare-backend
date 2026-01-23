@@ -1324,12 +1324,17 @@ class ChatManager {
                 iframe.remove();
 
                 if (!launched) {
-                    // Protocol failed - launcher not installed
-                    launcherModal.remove();
-                    self.showToast('Launcher no instalado. Redirigiendo a descarga...', 'warning');
-                    setTimeout(() => {
-                        window.location.href = 'download-launcher.html?from=protocol';
-                    }, 1500);
+                    // Protocol detection failed (no blur event)
+                    // Don't auto-redirect, just warn and show link
+                    self.showToast('No se detectó el inicio. Si no tienes el Launcher, descárgalo.', 'warning');
+
+                    // Update button text to encourage download if it failed
+                    const dlBtn = document.getElementById('download-btn');
+                    if (dlBtn) {
+                        dlBtn.style.borderColor = '#f97316';
+                        dlBtn.style.color = '#f97316';
+                        dlBtn.innerText = '⚠️ Click aquí para descargar Launcher';
+                    }
                     return;
                 }
 
