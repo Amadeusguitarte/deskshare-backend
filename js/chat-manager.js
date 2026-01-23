@@ -930,15 +930,17 @@ class ChatManager {
             if (isClosed) {
                 // OPEN
                 menu.style.display = 'flex';
-                // Change to X
-                plusBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-                plusBtn.style.color = '#fff';
+                // Animate to X (Rotate 45deg)
+                plusBtn.style.transform = 'rotate(45deg)';
+                plusBtn.style.color = '#fff'; // Optional: White when active
+                plusBtn.style.background = '#444'; // Optional: Highlight bg
             } else {
                 // CLOSE
                 menu.style.display = 'none';
-                // Change to +
-                plusBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+                // Rotate back to +
+                plusBtn.style.transform = 'rotate(0deg)';
                 plusBtn.style.color = 'var(--accent-purple)';
+                plusBtn.style.background = '#333';
             }
         }
     }
@@ -1033,7 +1035,7 @@ class ChatManager {
                     <button onclick="window.chatManagerInstance.openShareModal(${user.id}); window.chatManagerInstance.toggleChatActions(${user.id});" 
                         style="background: transparent; border: none; padding: 12px 16px; width: 100%; text-align: left; color: white; cursor: pointer; display: flex; align-items: center; gap: 10px; font-family: 'Outfit', sans-serif; font-size: 0.9rem; transition: background 0.2s;"
                         onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #fbbf24;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-purple);"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                         Compartir llave
                     </button>
                 </div>
@@ -1050,7 +1052,7 @@ class ChatManager {
                     
                     <!-- PLUS BTN (Hidden by default) -->
                     <button id="chat-plus-btn-${user.id}" onclick="event.stopPropagation(); window.chatManagerInstance.toggleChatActions(${user.id})" 
-                        style="display:none; background: #333; border: none; cursor: pointer; color: var(--accent-purple); padding: 8px; border-radius: 50%; width: 32px; height: 32px; align-items: center; justify-content: center; margin-bottom: 4px; flex-shrink: 0;">
+                        style="display:none; background: #333; border: none; cursor: pointer; color: var(--accent-purple); padding: 8px; border-radius: 50%; width: 32px; height: 32px; align-items: center; justify-content: center; margin-bottom: 4px; flex-shrink: 0; transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     </button>
 
