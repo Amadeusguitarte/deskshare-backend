@@ -220,11 +220,15 @@ router.post('/manual-share', auth, async (req, res, next) => {
         const computer = await prisma.computer.findUnique({
             where: { id: parseInt(computerId) }
         });
-        if (!computer || computer.userId !== req.user.userId) {
+        const requestUserId = req.user.userId || req.user.id;
+
+        if (!computer || computer.userId !== requestUserId) {
+            console.log(`Auth Fail: Computer Owner ${computer?.userId} vs Request User ${requestUserId}`);
             return res.status(403).json({ error: 'Not authorized' });
         }
-        if (!computer.parsecPeerId) {
-            return res.status(400).json({ error: 'This computer does not have a Parsec ID configured.' });
+        // Allow if Parsec OR RDP is configured
+        if (!computer.parsecPeerId && !computer.rdpHost) {
+            return res.status(400).json({ error: 'This computer does not have Parsec or RDP configured.' });
         }
 
         // 2. Create "Free Trial" / Manual Booking
@@ -240,9 +244,24 @@ router.post('/manual-share', auth, async (req, res, next) => {
             }
         });
 
-        // 3. Inject Chat Message with Deep Link
-        const connectLink = `parsec://peer_id=${computer.parsecPeerId}`;
-        const msgContent = `🔑 **LLAVE DE ACCESO ENVIADA**\n\nEl anfitrión te ha invitado a conectarte a **${computer.name}**.\n\n<button class="btn btn-primary" onclick="window.location.href='${connectLink}'" style="padding: 6px 12px; font-size: 0.9rem; margin-top: 8px;">🚀 Conectar Ahora</button>`;
+        // 3. Inject Chat Message with Appropriate Link
+        let connectLink = '';
+        let buttonText = 'Conectar';
+
+        if (computer.rdpHost) {
+            // Web Link (Guacamole)
+            // Use absolute URL to be safe, or relative if on same domain
+            // We need to point to the frontend remote-access page
+            const frontendUrl = process.env.FRONTEND_URL || 'https://deskshare.netlify.app';
+            connectLink = `${frontendUrl}/remote-access.html?bookingId=${booking.id}`;
+            buttonText = '🌐 Conectar (Web)';
+        } else {
+            // Parsec Link
+            connectLink = `parsec://peer_id=${computer.parsecPeerId}`;
+            buttonText = '🚀 Conectar (App)';
+        }
+
+        const msgContent = `🔑 **LLAVE DE ACCESO ENVIADA**\n\nEl anfitrión te ha invitado a conectarte a **${computer.name}**.\n\n<button class="btn btn-primary" onclick="window.location.href='${connectLink}'" style="padding: 6px 12px; font-size: 0.9rem; margin-top: 8px;">${buttonText}</button>`;
 
         await prisma.message.create({
             data: {

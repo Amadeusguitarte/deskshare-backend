@@ -1110,8 +1110,8 @@ class ChatManager {
             const data = await res.json();
             const computers = data.computers || [];
 
-            // Filter for computers with Parsec ID
-            const validComputers = computers.filter(c => c.parsecPeerId);
+            // Filter for computers with Parsec ID OR RDP Host (Guacamole)
+            const validComputers = computers.filter(c => c.parsecPeerId || c.rdpHost);
 
             if (validComputers.length === 0) {
                 alert('No tienes computadoras con Parsec configurado para compartir.');
@@ -1136,7 +1136,7 @@ class ChatManager {
                         <img src="${c.images[0]?.imageUrl || 'assets/default-pc.png'}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">
                         <div>
                             <div style="font-weight: 600; color: white;">${c.name}</div>
-                            <div style="font-size: 0.8rem; color: #888;">ID: ...${c.parsecPeerId.slice(-4)}</div>
+                            <div style="font-size: 0.8rem; color: #888;">${c.rdpHost ? '🌐 Web / 🚀 App' : '🚀 Solo App'}</div>
                         </div>
                     </div>
                     <span style="color: #fbbf24;">➜</span>
