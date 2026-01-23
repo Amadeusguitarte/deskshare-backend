@@ -1708,7 +1708,7 @@ class ChatManager {
                 b.computer.userId === this.currentUser.id &&
                 b.renter.id == otherUserId &&
                 b.status === 'active' &&
-                b.computer.parsecPeerId &&
+                (b.computer.parsecPeerId || b.computer.rdpHost) &&
                 !b.isAccessGranted
             );
 

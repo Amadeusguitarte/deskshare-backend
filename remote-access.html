@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sesión Remota - DeskShare</title>
+    <!-- Guacamole Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/guacamole-common-js@1.4.0/dist/guacamole-common.min.js"></script>
     <link rel="stylesheet" href="styles.css">
     <style>
         .remote-container {
@@ -19,39 +21,53 @@
         }
 
         .remote-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px 30px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 1000;
+            height: 60px;
         }
 
         .session-info {
             color: white;
             display: flex;
-            gap: 30px;
+            gap: 20px;
             align-items: center;
         }
 
-        .session-timer {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .session-cost {
-            font-size: 1.2rem;
-        }
-
-        .remote-controls {
+        .toggle-container {
+            background: #333;
+            border-radius: 20px;
+            padding: 4px;
             display: flex;
-            gap: 15px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            padding: 6px 16px;
+            border-radius: 16px;
+            border: none;
+            background: transparent;
+            color: #aaa;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-purple);
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
 
         .btn-end {
             background: #ff4444;
             color: white;
-            padding: 10px 25px;
+            padding: 8px 20px;
             border: none;
             border-radius: 8px;
             font-weight: 600;
@@ -61,158 +77,122 @@
 
         .btn-end:hover {
             background: #cc0000;
-            transform: scale(1.05);
         }
 
-        .parsec-display {
+        /* DISPLAY AREAS */
+        .workspace {
             flex: 1;
+            position: relative;
+            background: #0a0a0a;
+            overflow: hidden;
+        }
+
+        /* GUACAMOLE */
+        #guacamole-view {
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #0a0a0a;
-            position: relative;
+            cursor: none;
+            /* Hide cursor when interacting */
         }
 
-        #parsecVideo {
+        #display {
+            /* Canvas container */
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .connection-status {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: white;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 40px;
-            border-radius: 15px;
-        }
-
-        .status-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-        }
-
-        .status-text {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
+        /* PARSEC */
+        #parsec-view {
+            width: 100%;
+            height: 100%;
+            display: none;
+            /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .connection-instructions {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             padding: 30px;
             border-radius: 10px;
             color: white;
             max-width: 600px;
-            margin: 20px auto;
+            text-align: center;
+            border: 1px solid #333;
         }
 
         .parsec-code {
             background: rgba(102, 126, 234, 0.2);
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             letter-spacing: 4px;
             margin: 20px 0;
-            border: 2px dashed #667eea;
-        }
-
-        .step-list {
-            text-align: left;
-            margin: 20px 0;
-        }
-
-        .step-list li {
-            margin: 15px 0;
-            padding-left: 30px;
-            position: relative;
-        }
-
-        .step-list li::before {
-            content: "▶";
-            position: absolute;
-            left: 0;
-            color: #667eea;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .connecting {
-            animation: pulse 2s infinite;
+            border: 1px dashed #667eea;
+            font-family: monospace;
         }
     </style>
 </head>
 
 <body>
     <div class="remote-container">
-        <!-- Header with session info -->
+        <!-- Header -->
         <div class="remote-header">
             <div class="session-info">
-                <div>
-                    <div style="font-size: 0.9rem; opacity: 0.8;">Sesión Activa</div>
-                    <div id="computerName" style="font-size: 1.2rem; font-weight: 700;">Loading...</div>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-size: 0.8rem; opacity: 0.7;">Conectado a</span>
+                    <strong id="computerName">Cargando...</strong>
                 </div>
-                <div>
-                    <div style="font-size: 0.9rem; opacity: 0.8;">Tiempo Transcurrido</div>
-                    <div class="session-timer" id="sessionTimer">00:00:00</div>
-                </div>
-                <div>
-                    <div style="font-size: 0.9rem; opacity: 0.8;">Costo Actual</div>
-                    <div class="session-cost" id="sessionCost">$0.00</div>
+
+                <div class="toggle-container">
+                    <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Nativo
+                        (Web)</button>
+                    <button class="toggle-btn" onclick="switchMode('parsec')" id="btn-parsec">Parsec (Ultra
+                        Fluido)</button>
                 </div>
             </div>
-            <div class="remote-controls">
-                <button class="btn-end" onclick="endSession()">Finalizar Sesión</button>
+
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <div style="text-align: right; color: #ccc;">
+                    <div style="font-size: 0.8rem;">Tiempo</div>
+                    <div id="sessionTimer" style="font-weight: 700; color:white;">00:00:00</div>
+                </div>
+                <button class="btn-end" onclick="endSession()">Desconectar</button>
             </div>
         </div>
 
-        <!-- Parsec Display Area -->
-        <div class="parsec-display">
-            <!-- This will be replaced with actual Parsec Web SDK when available -->
-            <video id="parsecVideo" style="display: none;"></video>
-            <audio id="parsecAudio" style="display: none;"></audio>
+        <!-- WORKSPACE -->
+        <div class="workspace">
 
-            <!-- Connection Instructions (shown until Parsec connects) -->
-            <div id="connectionInstructions" class="connection-instructions">
-                <div class="status-icon">🖥️</div>
-                <h2>Conectar via Parsec</h2>
+            <!-- VIEW 1: GUACAMOLE (Default) -->
+            <div id="guacamole-view">
+                <div id="display"></div>
+            </div>
 
-                <div class="status-text" id="statusText">Iniciando sesión...</div>
+            <!-- VIEW 2: PARSEC -->
+            <div id="parsec-view">
+                <div class="connection-instructions">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">🚀</div>
+                    <h2>Modo Alto Rendimiento</h2>
+                    <p style="opacity: 0.7;">Ideal para gaming o edición de video usando la app de Parsec.</p>
 
-                <div id="parsecInfo" style="display: none;">
-                    <p><strong>Código de Acceso Parsec:</strong></p>
-                    <div class="parsec-code" id="parsecCode">------</div>
-
-                    <ol class="step-list">
-                        <li>Descarga e instala <a href="https://parsec.app/downloads" target="_blank"
-                                style="color: #667eea;">Parsec App</a> si no la tienes</li>
-                        <li>Abre Parsec en tu computadora</li>
-                        <li>Ve a "Connect" → "Connect to Peer"</li>
-                        <li>Ingresa el código de acceso de arriba</li>
-                        <li>¡Disfruta tu sesión!</li>
-                    </ol>
-
-                    <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.7;">
-                        <strong>Nota:</strong> Por ahora, Parsec requiere su aplicación nativa para la mejor
-                        experiencia.
-                        La integración web directa está en desarrollo.
-                    </p>
+                    <div id="parsecInfo" style="display: none; margin-top: 20px;">
+                        <p>Código de Acceso:</p>
+                        <div class="parsec-code" id="parsecCode">---</div>
+                        <p><a href="https://parsec.app/" target="_blank" style="color: var(--accent-purple);">Abrir
+                                Parsec App</a></p>
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -223,9 +203,14 @@
         let timerInterval = null;
         let pricePerHour = 0;
 
-        // Initialize on page load
+        // Guacamole Vars
+        let guacClient = null;
+        let guacDisplay = null;
+        let mouse = null;
+        let keyboard = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
-            redirectIfNotLoggedIn();
+            if (!checkAuth()) return; // script.js function
 
             const urlParams = new URLSearchParams(window.location.search);
             const bookingId = urlParams.get('bookingId');
@@ -241,57 +226,126 @@
 
         async function initializeSession(bookingId) {
             try {
-                // Get booking details
-                const bookingResponse = await apiRequest(`/bookings/${bookingId}`);
-                booking = bookingResponse.booking || bookingResponse;
+                // 1. Start Session & Get Tokens
+                // Note: The backend /start endpoint now returns 'guacamoleToken'
+                const response = await apiRequest(`/bookings/${bookingId}/start`, { method: 'POST' });
+
+                booking = response.booking;
+                const guacToken = response.guacamoleToken;
 
                 // Update UI
-                document.getElementById('computerName').textContent = booking.computer?.name || 'Computadora';
+                document.getElementById('computerName').textContent = booking.computer?.name || 'PC Remota';
                 pricePerHour = booking.priceAgreed;
-
-                // Start the session on backend
-                await apiRequest(`/bookings/${bookingId}/start`, {
-                    method: 'POST'
-                });
-
-                startTime = new Date();
+                startTime = new Date(); // Reset timer to now
                 startTimer();
 
-                // Get Parsec session info
-                await setupParsecConnection(bookingId);
+                // 2. Initialize Guacamole if token exists
+                if (guacToken) {
+                    connectGuacamole(guacToken);
+                } else {
+                    // If no token (maybe no RDP configured), switch to Parsec
+                    alert('No se detectó configuración RDP. Cambiando a modo Parsec.');
+                    switchMode('parsec');
+                }
+
+                // 3. Setup Parsec Info (Just in case user switches)
+                if (booking.computer?.parsecPeerId) {
+                    document.getElementById('parsecCode').textContent = response.booking.accessToken ? 'Ver en Chat' : 'Auto-Connect';
+                    document.getElementById('parsecInfo').style.display = 'block';
+                }
 
             } catch (error) {
-                console.error('Error initializing session:', error);
-                alert('Error al iniciar la sesión: ' + error.message);
+                console.error('Error starting session:', error);
+                alert(error.message);
                 window.location.href = 'profile.html';
             }
         }
 
-        async function setupParsecConnection(bookingId) {
-            try {
-                document.getElementById('statusText').textContent = 'Obteniendo credenciales de Parsec...';
+        // ========================================
+        // Guacamole Logic
+        // ========================================
+        function connectGuacamole(token) {
+            const displayContainer = document.getElementById('display');
 
-                // In production, this would call the Parsec Teams API
-                // For now, we'll show instructions for manual connection
-                const parsecSession = {
-                    peerID: `peer-${booking.computerId}`,
-                    accessCode: generateDemoAccessCode()
-                };
+            // Create Tunnel
+            // We use HTTPTunnel or WebSocketTunnel. standard guacamole-lite uses WebSocket at the path we defined.
+            // Our backend path is attached to server, so 'ws://HOST/guacamole'
+            // We must pass the token in the query string or protocol. guacamole-lite connection options usually expect a query param.
 
-                // Show Parsec instructions
-                document.getElementById('parsecCode').textContent = parsecSession.accessCode;
-                document.getElementById('parsecInfo').style.display = 'block';
-                document.getElementById('statusText').textContent = 'Listo para conectar';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const tunnelUrl = `${protocol}//${window.location.host}/guacamole`;
 
-                // TODO: Integrate actual Parsec Web SDK when available
-                // This would involve:
-                // 1. Loading Parsec SDK
-                // 2. Creating client with video/audio elements
-                // 3. Calling client.connect(sessionId, peerId)
+            // IMPORTANT: guacamole-common-js tunnel constructor is different depending on version.
+            // For WebSocketTunnel, we pass the URL.
+            // But we need to pass the TOKEN. guacamole-lite reads 'token' from query string.
+            const tunnel = new Guacamole.WebSocketTunnel(`${tunnelUrl}?token=${token}`);
 
-            } catch (error) {
-                console.error('Error setting up Parsec:', error);
-                document.getElementById('statusText').textContent = 'Error al conectar con Parsec';
+            // Create Client
+            guacClient = new Guacamole.Client(tunnel);
+
+            // Error handlers
+            guacClient.onerror = function (error) {
+                console.error('Guacamole Client Error:', error);
+                // alert('Connection error: ' + error.message);
+            };
+
+            // Get Display
+            guacDisplay = guacClient.getDisplay();
+            const element = guacDisplay.getElement();
+            displayContainer.appendChild(element);
+
+            // Connect
+            guacClient.connect();
+
+            // === INPUT HANDLING ===
+
+            // Mouse
+            mouse = new Guacamole.Mouse(element);
+            mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
+                // Scale mouse events if display is scaled (TODO: Auto-scale logic)
+                guacClient.sendMouseState(mouseState);
+            };
+
+            // Keyboard
+            keyboard = new Guacamole.Keyboard(document);
+            keyboard.onkeydown = function (keysym) {
+                guacClient.sendKeyEvent(1, keysym);
+            };
+            keyboard.onkeyup = function (keysym) {
+                guacClient.sendKeyEvent(0, keysym);
+            };
+
+            // Handle window focus for keyboard
+            window.onblur = function () { keyboard.reset(); };
+
+            // Resize listener (Basic)
+            window.addEventListener('resize', () => {
+                // Trigger display resize? 
+                // For simplified V1, we rely on browser scaling or server side.
+            });
+        }
+
+        // ========================================
+        // UI Logic
+        // ========================================
+        function switchMode(mode) {
+            const guacView = document.getElementById('guacamole-view');
+            const parsecView = document.getElementById('parsec-view');
+            const btnNative = document.getElementById('btn-native');
+            const btnParsec = document.getElementById('btn-parsec');
+
+            if (mode === 'native') {
+                guacView.style.display = 'flex';
+                parsecView.style.display = 'none';
+                btnNative.classList.add('active');
+                btnParsec.classList.remove('active');
+                // Re-focus keyboard
+                if (keyboard) keyboard.reset();
+            } else {
+                guacView.style.display = 'none';
+                parsecView.style.display = 'flex';
+                btnNative.classList.remove('active');
+                btnParsec.classList.add('active');
             }
         }
 
@@ -300,68 +354,34 @@
                 const now = new Date();
                 const elapsed = now - startTime;
 
-                // Format time
-                const hours = Math.floor(elapsed / 3600000);
-                const minutes = Math.floor((elapsed % 3600000) / 60000);
-                const seconds = Math.floor((elapsed % 60000) / 1000);
+                const date = new Date(elapsed);
+                const h = String(Math.floor(elapsed / 3600000)).padStart(2, '0');
+                const m = String(date.getUTCMinutes()).padStart(2, '0');
+                const s = String(date.getUTCSeconds()).padStart(2, '0');
 
-                document.getElementById('sessionTimer').textContent =
-                    `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-
-                // Calculate cost
-                const hoursElapsed = elapsed / 3600000;
-                const cost = hoursElapsed * pricePerHour;
-                document.getElementById('sessionCost').textContent = `$${cost.toFixed(2)}`;
-
+                document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
             }, 1000);
         }
 
         async function endSession() {
-            if (!confirm('¿Estás seguro de que quieres finalizar la sesión?')) {
-                return;
-            }
+            if (!confirm('¿Terminar sesión?')) return;
 
             try {
-                clearInterval(timerInterval);
+                if (guacClient) guacClient.disconnect();
 
-                // End session on backend
-                const response = await apiRequest(`/bookings/${booking.id}/end`, {
-                    method: 'POST'
-                });
-
-                const finalCost = response.booking.totalPrice || 0;
-                const duration = response.duration || 0;
-
-                alert(
-                    `Sesión finalizada\n\n` +
-                    `Duración: ${duration.toFixed(2)} horas\n` +
-                    `Costo total: $${finalCost.toFixed(2)}\n\n` +
-                    `Serás redirigido a tu perfil.`
-                );
-
+                await apiRequest(`/bookings/${booking.id}/end`, { method: 'POST' });
                 window.location.href = 'profile.html';
-
-            } catch (error) {
-                alert('Error al finalizar sesión: ' + error.message);
+            } catch (e) {
+                console.error(e);
+                window.location.href = 'profile.html';
             }
         }
 
-        function pad(num) {
-            return num.toString().padStart(2, '0');
-        }
+        // Cleanup
+        window.onbeforeunload = function () {
+            if (guacClient) guacClient.disconnect();
+        };
 
-        function generateDemoAccessCode() {
-            // Generate random 6-digit code for demo
-            return Math.floor(100000 + Math.random() * 900000).toString();
-        }
-
-        // Prevent accidental page close
-        window.addEventListener('beforeunload', (e) => {
-            if (timerInterval) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        });
     </script>
 </body>
 

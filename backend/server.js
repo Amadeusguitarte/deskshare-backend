@@ -245,4 +245,10 @@ process.on('SIGTERM', () => {
     });
 });
 
+// Import Guacamole Tunnel
+const attachGuacamoleTunnel = require('./guacamole-tunnel');
+
+// Attach Tunnel
+attachGuacamoleTunnel(server);
+
 module.exports = { app, server, io };

@@ -137,19 +137,12 @@ async function loadMyRentals() {
                 // === PARSEC BUTTON LOGIC ===
                 // Only show "Connect" if I am the Renter
                 if (isRenter) {
-                    if (computer.parsecPeerId) {
-                        actionBtn = `
-                            <a href="parsec://peer_id=${computer.parsecPeerId}" class="btn btn-primary" style="width: 100%; text-align: center; margin-top: 10px;">
-                                🚀 Conectar (Parsec)
-                            </a>
-                        `;
-                    } else {
-                        actionBtn = `
-                            <a href="remote-access.html?bookingId=${booking.id}" class="btn btn-secondary" style="width: 100%; text-align: center; margin-top: 10px;">
-                                🖥️ Conectar (Web)
-                            </a>
-                        `;
-                    }
+                    // Update: Always go to remote-access.html for Dual Mode (Web + Parsec)
+                    actionBtn = `
+                        <a href="remote-access.html?bookingId=${booking.id}" class="btn btn-primary" style="width: 100%; text-align: center; margin-top: 10px;">
+                            🚀 Conectar (Sesión Remota)
+                        </a>
+                    `;
                 }
             } else if (booking.status === 'completed') {
                 statusBadge = `<span style="background: #444; color: #aaa; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">🏁 FINALIZADO</span>`;

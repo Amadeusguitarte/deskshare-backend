@@ -1,5 +1,9 @@
+# Nixpacks Configuration for DeskShare Backend + Guacamole
+# This allows us to run 'guacd' and 'node' in the same container easily.
+
 [phases.setup]
-nixPkgs = ["nodejs-18_x"]
+# we need nodejs for the app, and standard tools to run guacd
+nixPkgs = ["nodejs-18_x", "guacamole-server", "freerdp", "libvncserver", "busybox"]
 
 [phases.install]
 cmds = ["npm ci"]
@@ -8,6 +12,7 @@ cmds = ["npm ci"]
 cmds = ["npx prisma generate"]
 
 [start]
-cmd = "npx prisma generate && npx prisma db push --accept-data-loss && node server.js"
-
-
+# 1. Start guacd in the background (-b) on localhost:4822 (default)
+# 2. Run Prisma push
+# 3. Start Node server
+cmd = "guacd -b -f -L info && npx prisma db push --accept-data-loss && node server.js"

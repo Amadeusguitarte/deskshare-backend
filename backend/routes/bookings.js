@@ -109,6 +109,26 @@ router.post('/:id/start', auth, async (req, res, next) => {
             { expiresIn: '12h' }
         );
 
+        // === GUACAMOLE INTEGRATION ===
+        const { encryptConnection } = require('../utils/guacamole-crypto');
+        let guacamoleToken = null;
+
+        // Only generate if we have host/port (Basic check)
+        if (booking.computer.rdpHost) {
+            const connectionParams = {
+                type: booking.computer.accessMethod || 'rdp',
+                settings: {
+                    hostname: booking.computer.rdpHost,
+                    port: booking.computer.rdpPort || 3389,
+                    password: booking.computer.accessPassword || '', // TODO: Decrypt if stored encrypted
+                    'ignore-cert': 'true',
+                    security: 'any',
+                    'resize-method': 'display-update'
+                }
+            };
+            guacamoleToken = encryptConnection(connectionParams);
+        }
+
         // Update booking
         const updated = await prisma.booking.update({
             where: { id: bookingId },
@@ -135,7 +155,8 @@ router.post('/:id/start', auth, async (req, res, next) => {
         res.json({
             message: 'Session started successfully',
             booking: updated,
-            accessToken
+            accessToken,
+            guacamoleToken // Send to frontend
         });
     } catch (error) {
         next(error);
