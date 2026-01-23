@@ -319,11 +319,11 @@
                 ? 'http://localhost:3000'
                 : 'https://deskshare-backend-production.up.railway.app';
 
-            // Add cache busting
-            const exeUrl = `${backendUrl}/downloads/DeskShareLauncher.exe?v=${new Date().getTime()}`;
+            // Add cache busting (Nuclear option: v2 filename)
+            const exeUrl = `${backendUrl}/downloads/DeskShareLauncher_v2.exe`;
 
             statusText.innerHTML = `
-                Iniciando descarga (v${new Date().toLocaleTimeString()})...<br>
+                Iniciando descarga (v2.0 - DEFINITIVA)...<br>
                 <a href="${exeUrl}" style="color: #10b981; text-decoration: underline;">Click aquí si no descarga automáticamente.</a>
             `;
 
