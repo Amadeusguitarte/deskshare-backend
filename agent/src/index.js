@@ -105,23 +105,68 @@ async function enableRDP() {
 }
 
 // ============================================
+// Download Cloudflared (Auto on first run)
+// ============================================
+
+const CLOUDFLARED_PATH = path.join(os.homedir(), '.deskshare', 'cloudflared.exe');
+
+async function downloadCloudflared() {
+    const cloudflaredDir = path.dirname(CLOUDFLARED_PATH);
+
+    // Create directory if not exists
+    if (!fs.existsSync(cloudflaredDir)) {
+        fs.mkdirSync(cloudflaredDir, { recursive: true });
+    }
+
+    // Check if already downloaded
+    if (fs.existsSync(CLOUDFLARED_PATH)) {
+        console.log('[Cloudflared] Ya instalado ✓');
+        return CLOUDFLARED_PATH;
+    }
+
+    console.log('[Cloudflared] Descargando... (solo la primera vez)');
+    console.log('[Cloudflared] Esto puede tardar 1-2 minutos...');
+
+    const downloadUrl = 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe';
+
+    try {
+        const response = await axios({
+            method: 'get',
+            url: downloadUrl,
+            responseType: 'stream',
+            timeout: 120000 // 2 minutes timeout
+        });
+
+        const writer = fs.createWriteStream(CLOUDFLARED_PATH);
+        response.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        console.log('[Cloudflared] Descargado correctamente ✓');
+        return CLOUDFLARED_PATH;
+
+    } catch (error) {
+        console.error('[Cloudflared] Error al descargar:', error.message);
+        throw error;
+    }
+}
+
+// ============================================
 // Create Cloudflared Tunnel
 // ============================================
 
 async function createTunnel() {
+    // Step 1: Auto-download cloudflared if needed
+    const cloudflaredPath = await downloadCloudflared();
+
     return new Promise((resolve, reject) => {
-        console.log('[Tunnel] Starting cloudflared...');
-
-        // Check if cloudflared is installed
-        const cloudflaredPath = process.platform === 'win32'
-            ? path.join(__dirname, '..', 'assets', 'cloudflared.exe')
-            : 'cloudflared';
-
-        // For development/testing, use the system cloudflared
-        const cmd = fs.existsSync(cloudflaredPath) ? cloudflaredPath : 'cloudflared';
+        console.log('[Tunnel] Iniciando túnel seguro...');
 
         // Create tunnel for RDP (port 3389)
-        cloudflaredProcess = spawn(cmd, [
+        cloudflaredProcess = spawn(cloudflaredPath, [
             'tunnel', '--url', 'tcp://localhost:3389'
         ], {
             stdio: ['pipe', 'pipe', 'pipe']
@@ -132,33 +177,39 @@ async function createTunnel() {
         cloudflaredProcess.stderr.on('data', (data) => {
             const text = data.toString();
             output += text;
-            console.log('[Cloudflared]', text.trim());
+
+            // Only log important lines
+            if (text.includes('trycloudflare.com') || text.includes('INF')) {
+                console.log('[Tunnel]', text.trim().substring(0, 100));
+            }
 
             // Look for the tunnel URL
             const match = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
             if (match) {
                 tunnelUrl = match[0];
+                console.log('[Tunnel] ¡Conectado!');
                 console.log('[Tunnel] URL:', tunnelUrl);
                 resolve(tunnelUrl);
             }
         });
 
         cloudflaredProcess.on('error', (err) => {
-            console.error('[Tunnel] Failed to start:', err.message);
-            console.log('[Tunnel] Make sure cloudflared is installed: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/');
+            console.error('[Tunnel] Error al iniciar:', err.message);
             reject(err);
         });
 
         cloudflaredProcess.on('exit', (code) => {
-            console.log('[Tunnel] Exited with code:', code);
+            if (code !== 0) {
+                console.log('[Tunnel] Se cerró con código:', code);
+            }
         });
 
-        // Timeout after 30 seconds
+        // Timeout after 45 seconds
         setTimeout(() => {
             if (!tunnelUrl) {
-                reject(new Error('Tunnel creation timed out'));
+                reject(new Error('El túnel tardó demasiado en conectar'));
             }
-        }, 30000);
+        }, 45000);
     });
 }
 
