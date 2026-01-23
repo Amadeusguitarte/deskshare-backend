@@ -89,6 +89,60 @@ class ChatManager {
         }
     }
 
+    // ==========================================
+    // Custom Toast Notification (Platform-styled)
+    // ==========================================
+    showToast(message, type = 'info') {
+        // Remove existing toast if any
+        const existingToast = document.getElementById('deskshare-toast');
+        if (existingToast) existingToast.remove();
+
+        const colors = {
+            success: { bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', icon: '✓' },
+            error: { bg: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', icon: '✕' },
+            warning: { bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', icon: '⚠' },
+            info: { bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: 'ℹ' }
+        };
+        const style = colors[type] || colors.info;
+
+        const toast = document.createElement('div');
+        toast.id = 'deskshare-toast';
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100000;
+            background: ${style.bg};
+            color: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        `;
+        toast.innerHTML = `
+            <span style="font-size: 1.2rem;">${style.icon}</span>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+
+        // Animate in
+        setTimeout(() => { toast.style.transform = 'translateX(0)'; }, 10);
+
+        // Auto-dismiss
+        setTimeout(() => {
+            toast.style.transform = 'translateX(120%)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    }
+
     setupSocketEvents() {
         this.socket.on('connect', () => {
             console.log('Chat Connected');
@@ -1114,7 +1168,7 @@ class ChatManager {
             const validComputers = computers.filter(c => c.parsecPeerId || c.rdpHost);
 
             if (validComputers.length === 0) {
-                alert('No tienes computadoras con Parsec configurado para compartir.');
+                this.showToast('No tienes computadoras configuradas para compartir.', 'warning');
                 return;
             }
 
@@ -1133,7 +1187,11 @@ class ChatManager {
                     style="padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.2s;"
                     onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${c.images[0]?.imageUrl || 'assets/default-pc.png'}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">
+                        ${c.images && c.images[0]?.imageUrl
+                    ? `<img src="${c.images[0].imageUrl}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">`
+                    : `<div style="width: 40px; height: 40px; border-radius: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                              </div>`}
                         <div>
                             <div style="font-weight: 600; color: white;">${c.name}</div>
                             <div style="font-size: 0.8rem; color: #888;">${c.rdpHost ? '🌐 Web / 🚀 App' : '🚀 Solo App'}</div>
@@ -1163,7 +1221,7 @@ class ChatManager {
 
         } catch (e) {
             console.error(e);
-            alert('Error al cargar tus computadoras');
+            this.showToast('Error al cargar tus computadoras', 'error');
         }
     }
 
@@ -1172,7 +1230,9 @@ class ChatManager {
         const modal = document.getElementById('share-key-modal');
         if (modal) modal.remove();
 
-        if (!confirm('¿Seguro que quieres enviar el acceso ahora?')) return;
+        // Custom Confirm Modal instead of native confirm()
+        const confirmed = await this.showConfirmModal('¿Seguro que quieres enviar el acceso ahora?');
+        if (!confirmed) return;
 
         try {
             const token = localStorage.getItem('authToken');
@@ -1186,18 +1246,51 @@ class ChatManager {
             });
 
             if (res.ok) {
-                // Optimistic UI Feedack?
-                // The backend injects the message, so we just wait for the socket event or refresh.
-                // But let's show a toast.
-                alert('✅ Llave enviada correctamente!');
+                this.showToast('Llave enviada correctamente!', 'success');
             } else {
                 const err = await res.json();
-                alert('Error: ' + (err.error || 'Server error'));
+                this.showToast('Error: ' + (err.error || 'Server error'), 'error');
             }
         } catch (e) {
             console.error(e);
-            alert('Error de conexión');
+            this.showToast('Error de conexión', 'error');
         }
+    }
+
+    // Custom Confirm Modal (Styled like the app)
+    showConfirmModal(message) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.id = 'deskshare-confirm-modal';
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.8); z-index: 100001;
+                display: flex; align-items: center; justify-content: center;
+                opacity: 0; transition: opacity 0.2s;
+            `;
+            overlay.innerHTML = `
+                <div style="background: #1a1a1a; padding: 24px; border-radius: 16px; max-width: 380px; width: 90%; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center;">
+                    <div style="font-family: 'Outfit', sans-serif; color: white; font-size: 1.1rem; font-weight: 500; margin-bottom: 20px;">${message}</div>
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button id="confirm-no" style="flex: 1; padding: 10px 20px; border: 1px solid #444; background: transparent; color: #888; border-radius: 8px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.95rem;">Cancelar</button>
+                        <button id="confirm-yes" style="flex: 1; padding: 10px 20px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600;">Confirmar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+
+            const cleanup = (result) => {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 200);
+                resolve(result);
+            };
+
+            overlay.querySelector('#confirm-yes').onclick = () => cleanup(true);
+            overlay.querySelector('#confirm-no').onclick = () => cleanup(false);
+            overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+        });
     }
     toggleMinimize(userId) {
         // 1. Update State

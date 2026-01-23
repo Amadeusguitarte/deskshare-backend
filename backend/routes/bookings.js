@@ -265,7 +265,7 @@ router.post('/manual-share', auth, async (req, res, next) => {
 
         await prisma.message.create({
             data: {
-                senderId: req.user.userId,
+                senderId: requestUserId,
                 receiverId: parseInt(renterId),
                 computerId: parseInt(computerId),
                 message: msgContent,
