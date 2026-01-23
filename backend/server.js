@@ -31,7 +31,8 @@ const io = new Server(server, {
     cors: {
         origin: process.env.FRONTEND_URL || '*',
         methods: ['GET', 'POST']
-    }
+    },
+    destroyUpgrade: false // IMPORTANT: Allow other libraries (Guacamole) to handle upgrades
 });
 
 const PORT = process.env.PORT || 3000;
