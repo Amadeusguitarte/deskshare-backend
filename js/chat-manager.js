@@ -1247,6 +1247,9 @@ class ChatManager {
 
             if (res.ok) {
                 this.showToast('Llave enviada correctamente!', 'success');
+                // Refresh the conversation to show the new message
+                await this.loadHistory(userId);
+                this.renderWidgetTabs();
             } else {
                 const err = await res.json();
                 this.showToast('Error: ' + (err.error || 'Server error'), 'error');

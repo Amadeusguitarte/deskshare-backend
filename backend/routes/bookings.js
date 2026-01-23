@@ -263,7 +263,7 @@ router.post('/manual-share', auth, async (req, res, next) => {
 
         const msgContent = `🔑 **LLAVE DE ACCESO ENVIADA**\n\nEl anfitrión te ha invitado a conectarte a **${computer.name}**.\n\n<button class="btn btn-primary" onclick="window.location.href='${connectLink}'" style="padding: 6px 12px; font-size: 0.9rem; margin-top: 8px;">${buttonText}</button>`;
 
-        await prisma.message.create({
+        const newMessage = await prisma.message.create({
             data: {
                 senderId: requestUserId,
                 receiverId: parseInt(renterId),
@@ -273,7 +273,22 @@ router.post('/manual-share', auth, async (req, res, next) => {
             }
         });
 
-        res.json({ success: true, booking });
+        // 4. Emit Socket Event for Real-time Delivery
+        const io = req.app.get('io');
+        if (io) {
+            // Emit to recipient's room
+            io.to(`user-${renterId}`).emit('new-direct-message', {
+                message: newMessage,
+                sender: { id: requestUserId }
+            });
+            // Also emit to sender so their chat refreshes
+            io.to(`user-${requestUserId}`).emit('new-direct-message', {
+                message: newMessage,
+                sender: { id: requestUserId }
+            });
+        }
+
+        res.json({ success: true, booking, message: newMessage });
 
     } catch (error) {
         next(error);
