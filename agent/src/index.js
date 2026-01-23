@@ -385,70 +385,129 @@ async function cleanup() {
 }
 
 // ============================================
+// Logging & UI Utilities
+// ============================================
+
+const LOG_FILE = path.join(INSTALL_DIR, 'debug.log');
+
+function logToFile(msg) {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] ${msg}\n`;
+    try {
+        fs.appendFileSync(LOG_FILE, logLine);
+    } catch (e) {
+        // Ignored
+    }
+}
+
+function log(msg, type = 'info') {
+    const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+    console.log(`${prefix} ${msg}`);
+    logToFile(`${type.toUpperCase()}: ${msg}`);
+}
+
+function waitAndExit(code = 0) {
+    console.log('');
+    console.log('Press any key to close this window...');
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.on('data', () => process.exit(code));
+}
+
+// ============================================
 // Main
 // ============================================
 
 async function main() {
-    console.log('');
-    console.log('╔═══════════════════════════════════════════╗');
-    console.log('║     🚀 DeskShare Launcher v1.0.0         ║');
-    console.log('║     Enabling Remote Access...            ║');
-    console.log('╚═══════════════════════════════════════════╝');
-    console.log('');
+    // Initial Setup
+    if (!fs.existsSync(INSTALL_DIR)) fs.mkdirSync(INSTALL_DIR, { recursive: true });
+    logToFile('--- Starting DeskShare Launcher ---');
 
-    // Step 0: Ensure installed & protocol registered (first run only)
-    await ensureInstalled();
-
-    // Load saved config
-    loadConfig();
-
-    // Parse protocol arguments
-    parseArgs();
-
-    if (!config.computerId || !config.token) {
-        console.log('[Error] Missing configuration!');
-        console.log('Launch via DeskShare website or provide --computerId and --token');
-        console.log('');
-        console.log('Usage: DeskShareLauncher.exe --computerId 123 --token eyJ...');
-        process.exit(1);
-    }
-
-    console.log(`[Config] Computer ID: ${config.computerId}`);
-    console.log(`[Config] Backend: ${BACKEND_URL}`);
+    console.clear();
+    console.log('\x1b[36m%s\x1b[0m', '╔════════════════════════════════════════════════╗');
+    console.log('\x1b[36m%s\x1b[0m', '║           DeskShare Launcher Agent             ║');
+    console.log('\x1b[36m%s\x1b[0m', '║        Zero-Config Remote Access Tool          ║');
+    console.log('\x1b[36m%s\x1b[0m', '╚════════════════════════════════════════════════╝');
     console.log('');
 
-    // Step 1: Enable RDP
-    await enableRDP();
-
-    // Step 2: Create tunnel
     try {
+        // Step 0: Ensure installed & protocol registered (first run only)
+        log('Verifying installation...', 'info');
+        await ensureInstalled();
+
+        // Load saved config
+        loadConfig();
+
+        // Parse protocol arguments
+        parseArgs();
+        log(`Arguments parsed: ${JSON.stringify(process.argv)}`, 'info');
+
+        if (!config.computerId || !config.token) {
+            log('Configuration missing!', 'error');
+            log('Please launch this agent via the DeskShare website.', 'info');
+            console.log('');
+            console.log('Or use command line: --computerId X --token Y');
+            waitAndExit(1);
+            return;
+        }
+
+        log(`Computer ID: ${config.computerId}`, 'info');
+        log(`Backend: ${BACKEND_URL}`, 'info');
+
+        // Step 1: Enable RDP
+        log('Enabling Remote Desktop Protocol...', 'info');
+        await enableRDP();
+
+        // Step 2: Create tunnel
+        log('Starting secure tunnel...', 'info');
         const url = await createTunnel();
 
         // Step 3: Register with backend
-        await registerTunnel(url);
+        log('Registering with DeskShare Network...', 'info');
+        const success = await registerTunnel(url);
+
+        if (!success) {
+            throw new Error('Failed to register with backend');
+        }
 
         // Step 4: Start heartbeat
         setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
 
+        console.clear();
+        console.log('\x1b[32m%s\x1b[0m', '╔════════════════════════════════════════════════╗');
+        console.log('\x1b[32m%s\x1b[0m', '║              ✅ SYSTEM ONLINE                  ║');
+        console.log('\x1b[32m%s\x1b[0m', '╚════════════════════════════════════════════════╝');
         console.log('');
-        console.log('✅ DeskShare Launcher is running!');
-        console.log('   Your computer is now accessible remotely.');
-        console.log('   Keep this window open to maintain the connection.');
+        console.log('  🟢 Tunnel Status:  CONNECTED');
+        console.log(`  🔗 Secure URL:     ${url}`);
+        console.log(`  🖥️  Computer ID:    ${config.computerId}`);
         console.log('');
-        console.log('Press Ctrl+C to stop sharing.');
+        console.log('  Your computer is now securely accessible.');
+        console.log('  You can minimize this window, but DO NOT CLOSE IT.');
+        console.log('');
+        console.log('  [Quit: Ctrl+C]');
 
     } catch (error) {
-        console.error('[Error]', error.message);
+        log(error.message, 'error');
+        log(error.stack, 'error');
         console.log('');
-        console.log('❌ Failed to start tunnel.');
-        console.log('   Make sure cloudflared is installed.');
-        process.exit(1);
+        console.log('❌ FATAL ERROR: The agent could not start.');
+        console.log(`   Logs saved to: ${LOG_FILE}`);
+        waitAndExit(1);
     }
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
+process.on('uncaughtException', (err) => {
+    logToFile(`UNCAUGHT: ${err.message}\n${err.stack}`);
+    console.error('CRASH:', err.message);
+    waitAndExit(1);
+});
 
 // Run
-main().catch(console.error);
+main().catch(e => {
+    console.error(e);
+    waitAndExit(1);
+});
