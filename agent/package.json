@@ -1,27 +1,51 @@
 {
     "name": "deskshare-launcher",
     "version": "1.0.0",
-    "description": "DeskShare Launcher Agent - Enables zero-config remote access",
-    "main": "src/index.js",
+    "description": "DeskShare Launcher Agent - Zero-Config Remote Access",
+    "main": "main.js",
     "scripts": {
-        "start": "node src/index.js",
-        "build": "pkg . --targets node18-win-x64 --output dist/DeskShareLauncher.exe"
+        "start": "electron .",
+        "build": "electron-builder --win --x64"
     },
-    "bin": "src/index.js",
-    "pkg": {
-        "assets": [
-            "assets/**/*"
-        ],
-        "targets": [
-            "node18-win-x64"
-        ],
-        "outputPath": "dist"
-    },
+    "author": "DeskShare",
+    "license": "ISC",
     "dependencies": {
         "axios": "^1.6.0",
         "open": "^9.1.0"
     },
     "devDependencies": {
-        "pkg": "^5.8.1"
+        "electron": "^28.0.0",
+        "electron-builder": "^24.9.1",
+        "electron-packager": "^17.1.2"
+    },
+    "build": {
+        "appId": "com.deskshare.launcher",
+        "productName": "DeskShare Launcher",
+        "win": {
+            "target": "nsis",
+            "icon": "assets/icon.ico",
+            "requestedExecutionLevel": "asInvoker",
+            "forceCodeSigning": false,
+            "verifyUpdateCodeSignature": false,
+            "sign": null
+        },
+        "nsis": {
+            "oneClick": true,
+            "perMachine": false,
+            "allowToChangeInstallationDirectory": false,
+            "include": "installer.nsh"
+        },
+        "protocols": [
+            {
+                "name": "DeskShare Protocol",
+                "schemes": [
+                    "deskshare"
+                ]
+            }
+        ],
+        "files": [
+            "**/*",
+            "!dist"
+        ]
     }
 }

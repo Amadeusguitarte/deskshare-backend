@@ -297,15 +297,10 @@ router.post('/manual-share', auth, async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             // Emit to recipient's room
-            io.to(`user-${renterId}`).emit('new-direct-message', {
-                message: newMessage,
-                sender: { id: requestUserId }
-            });
+            io.to(`user-${renterId}`).emit('private-message', newMessage);
+
             // Also emit to sender so their chat refreshes
-            io.to(`user-${requestUserId}`).emit('new-direct-message', {
-                message: newMessage,
-                sender: { id: requestUserId }
-            });
+            io.to(`user-${requestUserId}`).emit('private-message', newMessage);
         }
 
         res.json({ success: true, booking, message: newMessage });

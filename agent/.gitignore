@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-packager
+lzma_sdk
+temp_7z
+*.7z
+*.zip
+*.sfx
+build_error.log
+build_v2.log
+config.txt
+filelist.txt
+
