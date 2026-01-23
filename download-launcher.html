@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descargar DeskShare Launcher | DeskShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #1a1a1f;
+            --accent-purple: #667eea;
+            --accent-purple-light: #764ba2;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image:
+                radial-gradient(ellipse at top, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-purple-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .icon-container {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-purple-light) 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .icon-container svg {
+            width: 50px;
+            height: 50px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-purple-light) 100%);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .steps {
+            margin-top: 32px;
+            text-align: left;
+        }
+
+        .steps h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-purple-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .step-content p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .requirements {
+            margin-top: 24px;
+            padding: 16px;
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .requirements h4 {
+            color: #f97316;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .requirements ul {
+            list-style: none;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .requirements li {
+            padding: 4px 0;
+        }
+
+        .requirements li::before {
+            content: "•";
+            color: #f97316;
+            margin-right: 8px;
+        }
+
+        .back-link {
+            margin-top: 24px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent-purple);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">DeskShare</div>
+
+        <div class="card">
+            <div class="icon-container">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3V15" />
+                </svg>
+            </div>
+
+            <h1>DeskShare Launcher</h1>
+            <p class="subtitle">
+                Instala el launcher para compartir tu PC de forma segura sin configuraciones complicadas.
+            </p>
+
+            <a href="https://github.com/Amadeusguitarte/deskshare-launcher/releases/latest/download/DeskShareLauncher.exe"
+                class="download-btn" id="downloadBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Descargar para Windows
+            </a>
+
+            <div class="steps">
+                <h3>Cómo funciona:</h3>
+
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Descarga e instala</h4>
+                        <p>Ejecuta el instalador y sigue las instrucciones.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Comparte desde el chat</h4>
+                        <p>Al dar click en "Compartir Llave", el launcher se abrirá automáticamente.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>¡Listo!</h4>
+                        <p>El otro usuario podrá conectarse a tu PC desde su navegador. Sin apps extra.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="requirements">
+                <h4>⚠️ Requisitos</h4>
+                <ul>
+                    <li>Windows 10 o superior</li>
+                    <li>Conexión a internet estable</li>
+                    <li>El launcher debe estar corriendo mientras compartes</li>
+                </ul>
+            </div>
+        </div>
+
+        <a href="index.html" class="back-link">← Volver a DeskShare</a>
+    </div>
+
+    <script>
+        // Check if user came here from protocol failure
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('from')) {
+            // User was redirected because launcher isn't installed
+            document.querySelector('.subtitle').innerHTML =
+                '<strong style="color: #f97316;">El launcher no está instalado.</strong><br>' +
+                'Descárgalo para poder compartir tu PC.';
+        }
+    </script>
+</body>
+
+</html>

@@ -59,6 +59,10 @@ model Computer {
   remoteId      String?  @map("remote_id") // For Chrome Remote Desktop
   parsecPeerId  String?  @map("parsec_peer_id") // For Parsec Native App Strategy
   
+  // Dynamic Tunnel (DeskShare Launcher Agent)
+  tunnelUrl       String?   @map("tunnel_url") // Cloudflared tunnel URL
+  tunnelStatus    String?   @default("offline") @map("tunnel_status") // online, offline
+  tunnelUpdatedAt DateTime? @map("tunnel_updated_at")
   
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")

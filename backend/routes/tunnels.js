@@ -1,0 +1,159 @@
+// ========================================
+// Tunnel Routes
+// Agent Registration for Dynamic Tunnels
+// ========================================
+
+const express = require('express');
+const router = express.Router();
+const { PrismaClient } = require('@prisma/client');
+const auth = require('../middleware/auth');
+
+const prisma = new PrismaClient();
+
+// ========================================
+// POST /api/tunnels/register
+// Agent registers/updates its tunnel URL
+// ========================================
+router.post('/register', auth, async (req, res, next) => {
+    try {
+        const { computerId, tunnelUrl } = req.body;
+        const userId = req.user.userId || req.user.id;
+
+        // Verify ownership
+        const computer = await prisma.computer.findUnique({
+            where: { id: parseInt(computerId) }
+        });
+
+        if (!computer || computer.userId !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        // Update tunnel info
+        const updated = await prisma.computer.update({
+            where: { id: parseInt(computerId) },
+            data: {
+                tunnelUrl: tunnelUrl,
+                tunnelStatus: 'online',
+                tunnelUpdatedAt: new Date(),
+                // Auto-set rdpHost to tunnel URL for Guacamole compatibility
+                rdpHost: tunnelUrl
+            }
+        });
+
+        console.log(`[Tunnel] Computer ${computerId} registered tunnel: ${tunnelUrl}`);
+
+        res.json({
+            success: true,
+            message: 'Tunnel registered successfully',
+            computer: {
+                id: updated.id,
+                name: updated.name,
+                tunnelUrl: updated.tunnelUrl,
+                tunnelStatus: updated.tunnelStatus
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
+// POST /api/tunnels/heartbeat
+// Agent sends heartbeat to keep tunnel alive
+// ========================================
+router.post('/heartbeat', auth, async (req, res, next) => {
+    try {
+        const { computerId } = req.body;
+        const userId = req.user.userId || req.user.id;
+
+        const computer = await prisma.computer.findUnique({
+            where: { id: parseInt(computerId) }
+        });
+
+        if (!computer || computer.userId !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        await prisma.computer.update({
+            where: { id: parseInt(computerId) },
+            data: { tunnelUpdatedAt: new Date() }
+        });
+
+        res.json({ success: true });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
+// POST /api/tunnels/offline
+// Agent going offline
+// ========================================
+router.post('/offline', auth, async (req, res, next) => {
+    try {
+        const { computerId } = req.body;
+        const userId = req.user.userId || req.user.id;
+
+        const computer = await prisma.computer.findUnique({
+            where: { id: parseInt(computerId) }
+        });
+
+        if (!computer || computer.userId !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        await prisma.computer.update({
+            where: { id: parseInt(computerId) },
+            data: {
+                tunnelStatus: 'offline',
+                tunnelUpdatedAt: new Date()
+            }
+        });
+
+        console.log(`[Tunnel] Computer ${computerId} went offline`);
+
+        res.json({ success: true, message: 'Tunnel marked offline' });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
+// GET /api/tunnels/:computerId
+// Get tunnel status for a computer
+// ========================================
+router.get('/:computerId', async (req, res, next) => {
+    try {
+        const computer = await prisma.computer.findUnique({
+            where: { id: parseInt(req.params.computerId) },
+            select: {
+                id: true,
+                name: true,
+                tunnelUrl: true,
+                tunnelStatus: true,
+                tunnelUpdatedAt: true
+            }
+        });
+
+        if (!computer) {
+            return res.status(404).json({ error: 'Computer not found' });
+        }
+
+        // Check if tunnel is stale (no heartbeat in 2 minutes)
+        const isStale = computer.tunnelUpdatedAt &&
+            (new Date() - new Date(computer.tunnelUpdatedAt)) > 2 * 60 * 1000;
+
+        res.json({
+            ...computer,
+            tunnelStatus: isStale ? 'offline' : computer.tunnelStatus
+        });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+module.exports = router;

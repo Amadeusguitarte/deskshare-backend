@@ -1,0 +1,27 @@
+{
+    "name": "deskshare-launcher",
+    "version": "1.0.0",
+    "description": "DeskShare Launcher Agent - Enables zero-config remote access",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/index.js",
+        "build": "pkg . --targets node18-win-x64 --output dist/DeskShareLauncher.exe"
+    },
+    "bin": "src/index.js",
+    "pkg": {
+        "assets": [
+            "assets/**/*"
+        ],
+        "targets": [
+            "node18-win-x64"
+        ],
+        "outputPath": "dist"
+    },
+    "dependencies": {
+        "axios": "^1.6.0",
+        "open": "^9.1.0"
+    },
+    "devDependencies": {
+        "pkg": "^5.8.1"
+    }
+}

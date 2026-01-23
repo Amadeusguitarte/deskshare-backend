@@ -1164,11 +1164,11 @@ class ChatManager {
             const data = await res.json();
             const computers = data.computers || [];
 
-            // Filter for computers with Parsec ID OR RDP Host (Guacamole)
-            const validComputers = computers.filter(c => c.parsecPeerId || c.rdpHost);
+            // Filter to include ALL user's computers (Launcher will enable tunnel)
+            const validComputers = computers;
 
             if (validComputers.length === 0) {
-                this.showToast('No tienes computadoras configuradas para compartir.', 'warning');
+                this.showToast('No tienes computadoras publicadas.', 'warning');
                 return;
             }
 
@@ -1182,24 +1182,47 @@ class ChatManager {
                 document.body.appendChild(modal);
             }
 
-            const listHtml = validComputers.map(c => `
-                <div onclick="chatManagerInstance.shareAccess(${c.id}, ${userId})" 
+            const listHtml = validComputers.map(c => {
+                // Determine connection status
+                const hasTunnel = c.tunnelStatus === 'online';
+                const hasParsec = !!c.parsecPeerId;
+                const hasRdp = !!c.rdpHost;
+
+                let statusText = '';
+                let statusColor = '#888';
+
+                if (hasTunnel) {
+                    statusText = '🟢 Túnel activo';
+                    statusColor = '#10b981';
+                } else if (hasParsec) {
+                    statusText = '🚀 Parsec';
+                    statusColor = '#888';
+                } else if (hasRdp) {
+                    statusText = '🌐 Web configurado';
+                    statusColor = '#888';
+                } else {
+                    statusText = '🔧 Requiere Launcher';
+                    statusColor = '#f59e0b';
+                }
+
+                return `
+                <div onclick="chatManagerInstance.launchAndShare(${c.id}, ${userId}, '${c.tunnelStatus || 'offline'}', ${hasParsec})" 
                     style="padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.2s;"
                     onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         ${c.images && c.images[0]?.imageUrl
-                    ? `<img src="${c.images[0].imageUrl}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">`
-                    : `<div style="width: 40px; height: 40px; border-radius: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                        ? `<img src="${c.images[0].imageUrl}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">`
+                        : `<div style="width: 40px; height: 40px; border-radius: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                               </div>`}
                         <div>
                             <div style="font-weight: 600; color: white;">${c.name}</div>
-                            <div style="font-size: 0.8rem; color: #888;">${c.rdpHost ? '🌐 Web / 🚀 App' : '🚀 Solo App'}</div>
+                            <div style="font-size: 0.8rem; color: ${statusColor};">${statusText}</div>
                         </div>
                     </div>
                     <span style="color: #fbbf24;">➜</span>
                 </div>
-            `).join('');
+            `}).join('');
 
             modal.innerHTML = `
                 <div style="background: #1a1a1a; padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; border: 1px solid var(--glass-border); box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: translateY(20px); transition: transform 0.3s;">
@@ -1223,6 +1246,95 @@ class ChatManager {
             console.error(e);
             this.showToast('Error al cargar tus computadoras', 'error');
         }
+    }
+
+    // ==========================================
+    // LAUNCH AND SHARE (Launcher Integration)
+    // ==========================================
+    async launchAndShare(computerId, userId, tunnelStatus, hasParsec) {
+        // Close Modal
+        const modal = document.getElementById('share-key-modal');
+        if (modal) modal.remove();
+
+        // If tunnel is already online OR has Parsec, proceed directly to share
+        if (tunnelStatus === 'online' || hasParsec) {
+            return this.shareAccess(computerId, userId);
+        }
+
+        // Tunnel not active - need to launch DeskShare Launcher
+        const token = localStorage.getItem('authToken');
+
+        // Show launcher modal
+        const launcherModal = document.createElement('div');
+        launcherModal.id = 'launcher-modal';
+        launcherModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+        launcherModal.innerHTML = `
+            <div style="background: #1a1a1a; padding: 32px; border-radius: 20px; max-width: 420px; width: 90%; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center;">
+                <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                </div>
+                <h3 style="color: white; font-size: 1.3rem; margin-bottom: 12px;">Iniciar DeskShare Launcher</h3>
+                <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 24px; line-height: 1.6;">
+                    Para compartir tu PC, necesitas ejecutar el Launcher.
+                </p>
+                
+                <button id="launch-btn" style="width: 100%; padding: 14px 24px; border: none; border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 12px;">
+                    ▶️ Abrir Launcher
+                </button>
+                
+                <button id="download-btn" style="width: 100%; padding: 12px 24px; border: 1px solid #444; border-radius: 12px; background: transparent; color: #888; font-family: 'Outfit', sans-serif; font-size: 0.9rem; cursor: pointer; margin-bottom: 16px;">
+                    ¿No lo tienes? Descargar
+                </button>
+                
+                <button id="cancel-btn" style="background: none; border: none; color: #666; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+            </div>
+        `;
+        document.body.appendChild(launcherModal);
+
+        const self = this;
+
+        document.getElementById('launch-btn').onclick = async () => {
+            // Try to launch via custom protocol
+            const protocolUrl = 'deskshare://start?computerId=' + computerId + '&token=' + token;
+            window.location.href = protocolUrl;
+
+            self.showToast('Abriendo DeskShare Launcher...', 'info');
+            launcherModal.remove();
+
+            // Poll for tunnel to come online
+            setTimeout(() => {
+                let attempts = 0;
+                const pollInterval = setInterval(async () => {
+                    attempts++;
+                    try {
+                        const res = await fetch(API_BASE_URL + '/tunnels/' + computerId);
+                        const data = await res.json();
+
+                        if (data.tunnelStatus === 'online') {
+                            clearInterval(pollInterval);
+                            self.showToast('¡Conectado! Enviando acceso...', 'success');
+                            self.shareAccess(computerId, userId);
+                        } else if (attempts >= 15) {
+                            clearInterval(pollInterval);
+                            self.showToast('El launcher no respondió', 'warning');
+                        }
+                    } catch (e) { }
+                }, 2000);
+            }, 2000);
+        };
+
+        document.getElementById('download-btn').onclick = () => {
+            launcherModal.remove();
+            window.location.href = 'download-launcher.html?from=share';
+        };
+
+        document.getElementById('cancel-btn').onclick = () => {
+            launcherModal.remove();
+        };
     }
 
     async shareAccess(computerId, userId) {
