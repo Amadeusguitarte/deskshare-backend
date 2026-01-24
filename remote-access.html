@@ -226,161 +226,179 @@
 
         async function initializeSession(bookingId) {
             try {
-                // 1. Start Session & Get Tokens
-                // Note: The backend /start endpoint now returns 'guacamoleToken'
-                const response = await apiRequest(`/bookings/${bookingId}/start`, { method: 'POST' });
+                try {
+                    // DEBUG: Direct fetch to bypass cache/script.js issues
+                    const token = localStorage.getItem('authToken');
+                    const backendUrl = 'https://deskshare-backend-production.up.railway.app/api';
 
-                booking = response.booking;
-                const guacToken = response.guacamoleToken;
+                    const response = await fetch(`${backendUrl}/bookings/${bookingId}/start`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
 
-                // Update UI
-                document.getElementById('computerName').textContent = booking.computer?.name || 'PC Remota';
-                pricePerHour = booking.priceAgreed;
-                startTime = new Date(); // Reset timer to now
-                startTimer();
+                    const data = await response.json();
 
-                // 2. Initialize Guacamole if token exists
-                if (guacToken) {
-                    connectGuacamole(guacToken);
-                } else {
-                    // If no token (maybe no RDP configured), switch to Parsec
-                    alert('No se detectó configuración RDP. Cambiando a modo Parsec.');
-                    switchMode('parsec');
+                    if (!response.ok) {
+                        // SHOW FULL ERROR JSON
+                        alert(`DEBUG ERROR:\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`);
+                        // Don't redirect immediately so user can read
+                        return;
+                    }
+
+                    // Success flow
+                    booking = data.booking;
+                    const guacToken = data.guacamoleToken;
+
+                    // Update UI
+                    document.getElementById('computerName').textContent = booking.computer?.name || 'PC Remota';
+                    pricePerHour = booking.priceAgreed;
+                    startTime = new Date(); // Reset timer to now
+                    startTimer();
+
+                    // 2. Initialize Guacamole if token exists
+                    if (guacToken) {
+                        connectGuacamole(guacToken);
+                    } else {
+                        // If no token (maybe no RDP configured), switch to Parsec
+                        alert('No se detectó configuración RDP. Cambiando a modo Parsec.');
+                        switchMode('parsec');
+                    }
+
+                    // 3. Setup Parsec Info (Just in case user switches)
+                    if (booking.computer?.parsecPeerId) {
+                        document.getElementById('parsecCode').textContent = booking.accessToken ? 'Ver en Chat' : 'Auto-Connect';
+                        document.getElementById('parsecInfo').style.display = 'block';
+                    }
+
+                } catch (error) {
+                    console.error('Critical Session Error:', error);
+                    alert('Critical Error: ' + error.message);
                 }
-
-                // 3. Setup Parsec Info (Just in case user switches)
-                if (booking.computer?.parsecPeerId) {
-                    document.getElementById('parsecCode').textContent = response.booking.accessToken ? 'Ver en Chat' : 'Auto-Connect';
-                    document.getElementById('parsecInfo').style.display = 'block';
-                }
-
-            } catch (error) {
-                console.error('Error starting session:', error);
-                alert(error.message);
-                window.location.href = 'profile.html';
             }
-        }
 
         // ========================================
         // Guacamole Logic
         // ========================================
         function connectGuacamole(token) {
-            const displayContainer = document.getElementById('display');
+                const displayContainer = document.getElementById('display');
 
-            // Create Tunnel
-            // We use HTTPTunnel or WebSocketTunnel. standard guacamole-lite uses WebSocket at the path we defined.
-            // Our backend path is attached to server, so 'ws://HOST/guacamole'
-            // We must pass the token in the query string or protocol. guacamole-lite connection options usually expect a query param.
+                // Create Tunnel
+                // We use HTTPTunnel or WebSocketTunnel. standard guacamole-lite uses WebSocket at the path we defined.
+                // Our backend path is attached to server, so 'ws://HOST/guacamole'
+                // We must pass the token in the query string or protocol. guacamole-lite connection options usually expect a query param.
 
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const tunnelUrl = `${protocol}//${window.location.host}/guacamole`;
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const tunnelUrl = `${protocol}//${window.location.host}/guacamole`;
 
-            // IMPORTANT: guacamole-common-js tunnel constructor is different depending on version.
-            // For WebSocketTunnel, we pass the URL.
-            // But we need to pass the TOKEN. guacamole-lite reads 'token' from query string.
-            const tunnel = new Guacamole.WebSocketTunnel(`${tunnelUrl}?token=${token}`);
+                // IMPORTANT: guacamole-common-js tunnel constructor is different depending on version.
+                // For WebSocketTunnel, we pass the URL.
+                // But we need to pass the TOKEN. guacamole-lite reads 'token' from query string.
+                const tunnel = new Guacamole.WebSocketTunnel(`${tunnelUrl}?token=${token}`);
 
-            // Create Client
-            guacClient = new Guacamole.Client(tunnel);
+                // Create Client
+                guacClient = new Guacamole.Client(tunnel);
 
-            // Error handlers
-            guacClient.onerror = function (error) {
-                console.error('Guacamole Client Error:', error);
-                // alert('Connection error: ' + error.message);
-            };
+                // Error handlers
+                guacClient.onerror = function (error) {
+                    console.error('Guacamole Client Error:', error);
+                    // alert('Connection error: ' + error.message);
+                };
 
-            // Get Display
-            guacDisplay = guacClient.getDisplay();
-            const element = guacDisplay.getElement();
-            displayContainer.appendChild(element);
+                // Get Display
+                guacDisplay = guacClient.getDisplay();
+                const element = guacDisplay.getElement();
+                displayContainer.appendChild(element);
 
-            // Connect
-            guacClient.connect();
+                // Connect
+                guacClient.connect();
 
-            // === INPUT HANDLING ===
+                // === INPUT HANDLING ===
 
-            // Mouse
-            mouse = new Guacamole.Mouse(element);
-            mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
-                // Scale mouse events if display is scaled (TODO: Auto-scale logic)
-                guacClient.sendMouseState(mouseState);
-            };
+                // Mouse
+                mouse = new Guacamole.Mouse(element);
+                mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
+                    // Scale mouse events if display is scaled (TODO: Auto-scale logic)
+                    guacClient.sendMouseState(mouseState);
+                };
 
-            // Keyboard
-            keyboard = new Guacamole.Keyboard(document);
-            keyboard.onkeydown = function (keysym) {
-                guacClient.sendKeyEvent(1, keysym);
-            };
-            keyboard.onkeyup = function (keysym) {
-                guacClient.sendKeyEvent(0, keysym);
-            };
+                // Keyboard
+                keyboard = new Guacamole.Keyboard(document);
+                keyboard.onkeydown = function (keysym) {
+                    guacClient.sendKeyEvent(1, keysym);
+                };
+                keyboard.onkeyup = function (keysym) {
+                    guacClient.sendKeyEvent(0, keysym);
+                };
 
-            // Handle window focus for keyboard
-            window.onblur = function () { keyboard.reset(); };
+                // Handle window focus for keyboard
+                window.onblur = function () { keyboard.reset(); };
 
-            // Resize listener (Basic)
-            window.addEventListener('resize', () => {
-                // Trigger display resize? 
-                // For simplified V1, we rely on browser scaling or server side.
-            });
-        }
-
-        // ========================================
-        // UI Logic
-        // ========================================
-        function switchMode(mode) {
-            const guacView = document.getElementById('guacamole-view');
-            const parsecView = document.getElementById('parsec-view');
-            const btnNative = document.getElementById('btn-native');
-            const btnParsec = document.getElementById('btn-parsec');
-
-            if (mode === 'native') {
-                guacView.style.display = 'flex';
-                parsecView.style.display = 'none';
-                btnNative.classList.add('active');
-                btnParsec.classList.remove('active');
-                // Re-focus keyboard
-                if (keyboard) keyboard.reset();
-            } else {
-                guacView.style.display = 'none';
-                parsecView.style.display = 'flex';
-                btnNative.classList.remove('active');
-                btnParsec.classList.add('active');
+                // Resize listener (Basic)
+                window.addEventListener('resize', () => {
+                    // Trigger display resize? 
+                    // For simplified V1, we rely on browser scaling or server side.
+                });
             }
-        }
 
-        function startTimer() {
-            timerInterval = setInterval(() => {
-                const now = new Date();
-                const elapsed = now - startTime;
+            // ========================================
+            // UI Logic
+            // ========================================
+            function switchMode(mode) {
+                const guacView = document.getElementById('guacamole-view');
+                const parsecView = document.getElementById('parsec-view');
+                const btnNative = document.getElementById('btn-native');
+                const btnParsec = document.getElementById('btn-parsec');
 
-                const date = new Date(elapsed);
-                const h = String(Math.floor(elapsed / 3600000)).padStart(2, '0');
-                const m = String(date.getUTCMinutes()).padStart(2, '0');
-                const s = String(date.getUTCSeconds()).padStart(2, '0');
+                if (mode === 'native') {
+                    guacView.style.display = 'flex';
+                    parsecView.style.display = 'none';
+                    btnNative.classList.add('active');
+                    btnParsec.classList.remove('active');
+                    // Re-focus keyboard
+                    if (keyboard) keyboard.reset();
+                } else {
+                    guacView.style.display = 'none';
+                    parsecView.style.display = 'flex';
+                    btnNative.classList.remove('active');
+                    btnParsec.classList.add('active');
+                }
+            }
 
-                document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
-            }, 1000);
-        }
+            function startTimer() {
+                timerInterval = setInterval(() => {
+                    const now = new Date();
+                    const elapsed = now - startTime;
 
-        async function endSession() {
-            if (!confirm('¿Terminar sesión?')) return;
+                    const date = new Date(elapsed);
+                    const h = String(Math.floor(elapsed / 3600000)).padStart(2, '0');
+                    const m = String(date.getUTCMinutes()).padStart(2, '0');
+                    const s = String(date.getUTCSeconds()).padStart(2, '0');
 
-            try {
+                    document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
+                }, 1000);
+            }
+
+            async function endSession() {
+                if (!confirm('¿Terminar sesión?')) return;
+
+                try {
+                    if (guacClient) guacClient.disconnect();
+
+                    await apiRequest(`/bookings/${booking.id}/end`, { method: 'POST' });
+                    window.location.href = 'profile.html';
+                } catch (e) {
+                    console.error(e);
+                    window.location.href = 'profile.html';
+                }
+            }
+
+            // Cleanup
+            window.onbeforeunload = function () {
                 if (guacClient) guacClient.disconnect();
-
-                await apiRequest(`/bookings/${booking.id}/end`, { method: 'POST' });
-                window.location.href = 'profile.html';
-            } catch (e) {
-                console.error(e);
-                window.location.href = 'profile.html';
-            }
-        }
-
-        // Cleanup
-        window.onbeforeunload = function () {
-            if (guacClient) guacClient.disconnect();
-        };
+            };
 
     </script>
 </body>
