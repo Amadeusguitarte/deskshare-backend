@@ -972,7 +972,7 @@ class ChatManager {
         }
 
         // Emit Typing
-        if (window.safeEmitTyping) window.safeEmitTyping(userId);
+        if (window.safeEmitTyping && hasText) window.safeEmitTyping(userId);
     }
 
     toggleChatActions(userId) {
