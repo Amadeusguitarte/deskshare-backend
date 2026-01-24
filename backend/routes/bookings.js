@@ -86,8 +86,9 @@ router.post('/:id/start', auth, async (req, res, next) => {
         const isHost = booking.computer.userId == req.user.userId;
 
         if (!isRenter && !isHost) {
-            console.log(`Auth Fail: Renter ${booking.renterId}, Host ${booking.computer.userId}, Req ${req.user.userId}`);
-            return res.status(403).json({ error: 'Not authorized' });
+            const reason = `Auth Fail: Renter ${booking.renterId} vs Req ${req.user.userId} | Host ${booking.computer.userId} vs Req ${req.user.userId}`;
+            console.log(reason);
+            return res.status(403).json({ error: 'Not authorized', details: reason, code: 'AUTH_MISMATCH' });
         }
 
         // === ACCESS CONTROL CHECK (Added) ===
