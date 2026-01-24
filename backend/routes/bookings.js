@@ -81,8 +81,8 @@ router.post('/:id/start', auth, async (req, res, next) => {
             return res.status(404).json({ error: 'Booking not found' });
         }
 
-        // Verify ownership
-        if (booking.renterId !== req.user.userId) {
+        // Verify ownership (Renter OR Host/Owner)
+        if (booking.renterId !== req.user.userId && booking.computer.userId !== req.user.userId) {
             return res.status(403).json({ error: 'Not authorized' });
         }
 
