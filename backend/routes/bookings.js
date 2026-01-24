@@ -81,15 +81,19 @@ router.post('/:id/start', auth, async (req, res, next) => {
             return res.status(404).json({ error: 'Booking not found' });
         }
 
-        // Verify ownership (Renter OR Host/Owner)
-        if (booking.renterId !== req.user.userId && booking.computer.userId !== req.user.userId) {
+        // Verify ownership (Renter OR Host/Owner) -> Use loose equality for safety (int vs string)
+        const isRenter = booking.renterId == req.user.userId;
+        const isHost = booking.computer.userId == req.user.userId;
+
+        if (!isRenter && !isHost) {
+            console.log(`Auth Fail: Renter ${booking.renterId}, Host ${booking.computer.userId}, Req ${req.user.userId}`);
             return res.status(403).json({ error: 'Not authorized' });
         }
 
         // === ACCESS CONTROL CHECK (Added) ===
         // If it's a paid/controlled session, Host must grant access first
-        // We only enforce this if the computer has a Parsec ID (Remote Access)
-        if (booking.computer.parsecPeerId && !booking.isAccessGranted) {
+        // We only enforce this if the computer has a Parsec ID (Remote Access) AND user is NOT the host
+        if (!isHost && booking.computer.parsecPeerId && !booking.isAccessGranted) {
             return res.status(403).json({
                 error: 'Access Not Granted Yet',
                 code: 'WAITING_FOR_HOST',
