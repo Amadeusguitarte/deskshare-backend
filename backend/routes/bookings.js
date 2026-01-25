@@ -288,36 +288,35 @@ router.post('/manual-share', auth, async (req, res, next) => {
         // Store as JSON string with special prefix so frontend knows to render it specially
         const msgContent = `[ACCESS_GRANT]${JSON.stringify(accessData)}`;
 
-        isRead: false
-    }
+        const newMessage = await prisma.message.create({
+            data: {
+                senderId: requestUserId,
+                receiverId: parseInt(renterId),
+                computerId: parseInt(computerId),
+                message: msgContent,
+                isRead: false
+            }
         });
 
-// 4. Emit Real-time Socket Event
-if (req.io) {
-    req.io.to(parseInt(renterId)).emit('private-message', {
-        ...newMessage,
-        sender: { id: req.user.userId, name: req.user.name, avatarUrl: req.user.avatarUrl }, // Mock sender for UI
-        computer: computer // Include computer details for card
-    });
-}
+        console.log(`Manual Share Success: Booking ${booking.id} created for Renter ${renterId} by Host ${requestUserId}`);
 
-console.log(`Manual Share Success: Booking ${booking.id} created for Renter ${renterId} by Host ${requestUserId}`);
+        console.log(`Manual Share Success: Booking ${booking.id} created for Renter ${renterId} by Host ${requestUserId}`);
 
-// 4. Emit Socket Event for Real-time Delivery
-const io = req.app.get('io');
-if (io) {
-    // Emit to recipient's room
-    io.to(`user-${renterId}`).emit('private-message', newMessage);
+        // 4. Emit Socket Event for Real-time Delivery
+        const io = req.app.get('io');
+        if (io) {
+            // Emit to recipient's room
+            io.to(`user-${renterId}`).emit('private-message', newMessage);
 
-    // Also emit to sender so their chat refreshes
-    io.to(`user-${requestUserId}`).emit('private-message', newMessage);
-}
+            // Also emit to sender so their chat refreshes
+            io.to(`user-${requestUserId}`).emit('private-message', newMessage);
+        }
 
-res.json({ success: true, booking, message: newMessage });
+        res.json({ success: true, booking, message: newMessage });
 
     } catch (error) {
-    next(error);
-}
+        next(error);
+    }
 });
 
 // ========================================
