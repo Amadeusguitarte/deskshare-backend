@@ -44,30 +44,39 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         }
     };
 
-    // --- NUCLEAR FIX: MONKEY-PATCH LIBRARY ---
+    // --- NUCLEAR FIX: MONKEY-PATCH LIBRARY (ULTRA VERBOSE) ---
     const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
     const GuacServerClass = require('guacamole-lite/lib/Server.js');
 
     // 1. Patch Server.js (Dynamic Routing)
     GuacServerClass.prototype.decryptToken = function (token) {
-        console.log('[Nuclear Patch] Bypassing Server decryption...');
+        console.log('>>> [TUNNEL] Server.decryptToken() called with token:', token ? token.substring(0, 50) + '...' : 'NULL');
         try {
-            return JSON.parse(Buffer.from(token, 'base64').toString());
+            const decoded = Buffer.from(token, 'base64').toString();
+            console.log('>>> [TUNNEL] Server Decoded raw:', decoded);
+            const parsed = JSON.parse(decoded);
+            console.log('>>> [TUNNEL] Server Parsed successfully.');
+            return parsed;
         } catch (e) {
-            console.error('[Nuclear Patch] Server decode fail:', e.message);
+            console.error('>>> [TUNNEL] Server Decrypt FAIL:', e.message);
+            // Fallback to original if we somehow still have encrypted tokens (unlikely)
             throw e;
         }
     };
 
     // 2. Patch ClientConnection.js (Handshake)
     GuacClientConnection.prototype.decryptToken = function () {
-        console.log('[Nuclear Patch] Bypassing Connection decryption...');
+        const token = this.query.token;
+        console.log('>>> [TUNNEL] ClientConnection.decryptToken() for token:', token ? token.substring(0, 50) + '...' : 'NULL');
         try {
-            const token = this.query.token;
+            const decoded = Buffer.from(token, 'base64').toString();
+            console.log('>>> [TUNNEL] ClientConnection Decoded raw:', decoded);
+            const parsed = JSON.parse(decoded);
+            console.log('>>> [TUNNEL] ClientConnection Parsed successfully.');
             delete this.query.token;
-            return JSON.parse(Buffer.from(token, 'base64').toString());
+            return parsed;
         } catch (e) {
-            console.error('[Nuclear Patch] Connection decode fail:', e.message);
+            console.error('>>> [TUNNEL] ClientConnection Decrypt FAIL:', e.message);
             throw e;
         }
     };
@@ -75,6 +84,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     // 3. Patch Connect to handle Cloudflare Bridge BEFORE starting guacd Handshake
     const originalConnect = GuacClientConnection.prototype.connect;
     GuacClientConnection.prototype.connect = async function (guacdOptions) {
+        console.log('>>> [TUNNEL] ClientConnection.connect() triggered.');
         const settings = this.connectionSettings.connection.settings;
 
         if (settings && settings.hostname && settings.hostname.includes('trycloudflare.com')) {
