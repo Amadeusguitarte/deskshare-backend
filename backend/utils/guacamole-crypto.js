@@ -1,39 +1,41 @@
-const crypto = require('crypto');
+const Crypto = require('crypto');
 
 // MUST MATCH guacamole-tunnel.js clientOptions.crypt
 const algorithm = 'AES-256-CBC';
 const GUAC_KEY = process.env.GUAC_KEY || 'ThisIsASecretKeyForDeskShare123!';
 
 function getKey() {
-    // Generate a 256-bit key from the secret (same as guacamole-tunnel.js)
-    return crypto.createHash('sha256').update(GUAC_KEY).digest();
+    return Crypto.createHash('sha256').update(GUAC_KEY).digest();
+}
+
+/**
+ * Base64 encode (matching Crypt.js exactly)
+ */
+function base64encode(string, mode) {
+    return Buffer.from(string, mode || 'ascii').toString('base64');
 }
 
 /**
  * Encrypts connection details into a token that guacamole-lite can decrypt.
- * Format: Base64({ iv: Base64(iv), value: Base64(encryptedData) })
+ * THIS IS A DIRECT COPY OF Crypt.js encrypt() for 100% compatibility.
  */
 function encryptConnection(connectionParams) {
     const jsonData = { connection: connectionParams };
-    const plaintext = JSON.stringify(jsonData);
     const key = getKey();
 
-    // Generate random IV (16 bytes for AES-CBC)
-    const iv = crypto.randomBytes(16);
+    const iv = Crypto.randomBytes(16);
+    const cipher = Crypto.createCipheriv(algorithm, key, iv);
 
-    // Encrypt
-    const cipher = crypto.createCipheriv(algorithm, key, iv);
-    let encrypted = cipher.update(plaintext, 'utf8', 'binary');
+    // MUST USE 'binary' encoding to match Crypt.js
+    let encrypted = cipher.update(JSON.stringify(jsonData), 'utf8', 'binary');
     encrypted += cipher.final('binary');
 
-    // Build token in the format guacamole-lite expects
-    const tokenData = {
-        iv: iv.toString('base64'),
-        value: Buffer.from(encrypted, 'binary').toString('base64')
+    const data = {
+        iv: base64encode(iv),
+        value: base64encode(encrypted, 'binary')
     };
 
-    // Final token is Base64-encoded JSON
-    return Buffer.from(JSON.stringify(tokenData)).toString('base64');
+    return base64encode(JSON.stringify(data));
 }
 
 module.exports = { encryptConnection };
