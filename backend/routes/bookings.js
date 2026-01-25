@@ -173,13 +173,13 @@ router.post('/:id/start', auth, async (req, res, next) => {
                     'resize-method': 'display-update'
                 });
             } else if (protocol === 'vnc') {
-                // VNC specific settings - Enhanced for display
+                // VNC specific settings - TightVNC compatible
                 Object.assign(settings, {
-                    'color-depth': '24',        // 24-bit color (standard)
-                    'swap-red-blue': 'false',   // Color format
+                    'color-depth': '16',        // 16-bit color (more compatible)
                     'cursor': 'remote',         // Show remote cursor
-                    'autoretry': '5',           // Retry connection
-                    'clipboard-encoding': 'UTF-8'
+                    'read-only': 'false',       // Allow interaction
+                    'force-lossless': 'false',  // Allow compression
+                    'autoretry': '5'
                 });
             }
 
