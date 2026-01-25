@@ -282,6 +282,11 @@
 
                 if (rustdeskId) {
                     console.log('[RUSTDESK] P2P connection available:', rustdeskId);
+
+                    // SHOW BUTTON
+                    const btnRustdesk = document.getElementById('btn-rustdesk');
+                    if (btnRustdesk) btnRustdesk.style.display = 'flex'; // Or inline-flex
+
                     const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
                     debugOverlay.innerHTML += `<div style="color:lime;">🚀 RustDesk P2P: ${rustdeskId}</div>`;
 
