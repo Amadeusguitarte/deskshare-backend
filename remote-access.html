@@ -161,6 +161,17 @@
             </div>
 
             <div style="display: flex; gap: 20px; align-items: center;">
+                <!-- LATENCY PANEL -->
+                <div id="latency-panel"
+                    style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 20px;">
+                    <div id="latency-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #00ff00;">
+                    </div>
+                    <div style="text-align: center; color: #ccc;">
+                        <div style="font-size: 0.7rem; opacity: 0.7;">Latencia</div>
+                        <div id="latency-value" style="font-weight: 700; color: white; font-size: 0.9rem;">-- ms</div>
+                    </div>
+                </div>
+
                 <div style="text-align: right; color: #ccc;">
                     <div style="font-size: 0.8rem;">Tiempo</div>
                     <div id="sessionTimer" style="font-weight: 700; color:white;">00:00:00</div>
@@ -415,6 +426,41 @@
                     guacDisplay.scale(scale);
                 }
             });
+
+            // === LATENCY MEASUREMENT ===
+            let lastPingTime = Date.now();
+            let latencySamples = [];
+
+            // Measure latency based on sync frequency
+            setInterval(() => {
+                const now = Date.now();
+                const sinceLast = now - lastPingTime;
+
+                // Only update if we've gotten syncs recently
+                if (syncCount > 0) {
+                    latencySamples.push(sinceLast);
+                    if (latencySamples.length > 10) latencySamples.shift();
+
+                    const avgLatency = Math.round(latencySamples.reduce((a, b) => a + b, 0) / latencySamples.length);
+
+                    const latencyValue = document.getElementById('latency-value');
+                    const latencyDot = document.getElementById('latency-dot');
+
+                    latencyValue.textContent = avgLatency + ' ms';
+
+                    // Color based on latency
+                    if (avgLatency < 100) {
+                        latencyDot.style.background = '#00ff00'; // Green - excellent
+                    } else if (avgLatency < 200) {
+                        latencyDot.style.background = '#ffff00'; // Yellow - good
+                    } else if (avgLatency < 400) {
+                        latencyDot.style.background = '#ffa500'; // Orange - fair
+                    } else {
+                        latencyDot.style.background = '#ff0000'; // Red - poor
+                    }
+                }
+                lastPingTime = now;
+            }, 1000);
         }
 
         // ========================================
