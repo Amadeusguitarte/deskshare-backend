@@ -261,7 +261,6 @@
 
                 // Success flow
                 booking = data.booking;
-                const guacToken = data.guacamoleToken;
 
                 // DEBUG: Show Connection Strategy
                 const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
@@ -276,7 +275,22 @@
                 startTime = new Date(); // Reset timer to now
                 startTimer();
 
-                // 2. Initialize Guacamole if token exists
+                // === CHECK FOR RUSTDESK (P2P - LOW LATENCY) ===
+                const rustdeskId = booking.computer?.rustdeskId;
+                const rustdeskPassword = booking.computer?.rustdeskPassword;
+
+                if (rustdeskId) {
+                    console.log('[RUSTDESK] P2P connection available:', rustdeskId);
+                    const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                    debugOverlay.innerHTML += `<div style="color:lime;">🚀 RustDesk P2P: ${rustdeskId}</div>`;
+
+                    // Try to connect via RustDesk
+                    connectRustDesk(rustdeskId, rustdeskPassword);
+                    return;
+                }
+
+                // === FALLBACK: GUACAMOLE (VNC/RDP) ===
+                const guacToken = data.guacamoleToken;
                 if (guacToken) {
                     connectGuacamole(guacToken);
                 } else {
@@ -295,6 +309,49 @@
                 console.error('Critical Session Error:', error);
                 alert('Critical Error: ' + error.message);
             }
+        }
+
+        // ========================================
+        // RustDesk P2P Connection
+        // ========================================
+        function connectRustDesk(rustdeskId, password) {
+            const displayContainer = document.getElementById('display');
+
+            // Show connection info
+            displayContainer.innerHTML = `
+                <div style="text-align: center; color: white; padding: 40px;">
+                    <h2>🚀 Conectando via RustDesk P2P</h2>
+                    <p style="opacity: 0.7;">Latencia ultra-baja (~20-50ms)</p>
+                    <div style="background: rgba(0,255,0,0.1); border: 1px solid #0f0; border-radius: 10px; padding: 20px; margin: 20px auto; max-width: 400px;">
+                        <p style="margin: 0 0 10px 0;">ID: <strong>${rustdeskId}</strong></p>
+                        <p style="margin: 0;">Password: <strong>${password || 'Auto'}</strong></p>
+                    </div>
+                    <p style="font-size: 0.9rem; opacity: 0.7;">Abriendo RustDesk...</p>
+                    <button onclick="openRustDeskApp('${rustdeskId}', '${password}')" 
+                            style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 10px;">
+                        Abrir RustDesk App
+                    </button>
+                    <div style="margin-top: 20px;">
+                        <a href="https://rustdesk.com/download" target="_blank" style="color: #667eea; font-size: 0.9rem;">
+                            ¿No tienes RustDesk? Descargar aquí
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            // Try to open RustDesk automatically
+            setTimeout(() => {
+                openRustDeskApp(rustdeskId, password);
+            }, 1500);
+        }
+
+        function openRustDeskApp(rustdeskId, password) {
+            // RustDesk protocol handler
+            const rustdeskUrl = `rustdesk://connection/new/${rustdeskId}${password ? '?password=' + encodeURIComponent(password) : ''}`;
+            console.log('[RUSTDESK] Opening:', rustdeskUrl);
+
+            // Try to open
+            window.location.href = rustdeskUrl;
         }
 
         // ========================================
