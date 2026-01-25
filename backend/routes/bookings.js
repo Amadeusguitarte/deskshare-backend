@@ -173,10 +173,13 @@ router.post('/:id/start', auth, async (req, res, next) => {
                     'resize-method': 'display-update'
                 });
             } else if (protocol === 'vnc') {
-                // VNC specific settings
+                // VNC specific settings - Enhanced for display
                 Object.assign(settings, {
-                    autoretry: 'true',
-                    security: 'vnc' // Standard auth
+                    'color-depth': '24',        // 24-bit color (standard)
+                    'swap-red-blue': 'false',   // Color format
+                    'cursor': 'remote',         // Show remote cursor
+                    'autoretry': '5',           // Retry connection
+                    'clipboard-encoding': 'UTF-8'
                 });
             }
 
