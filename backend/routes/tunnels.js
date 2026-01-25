@@ -41,7 +41,9 @@ router.post('/register', auth, async (req, res, next) => {
                 rdpHost: tunnelUrl,
                 // If VNC, set VNC port, otherwise RDP
                 vncPort: (req.body.accessMethod === 'vnc') ? 5900 : null,
-                rdpPort: (req.body.accessMethod === 'vnc') ? null : 3389
+                rdpPort: (req.body.accessMethod === 'vnc') ? null : 3389,
+                // Update password if provided (for VNC auto-config)
+                accessPassword: req.body.accessPassword || undefined
             }
         });
 
