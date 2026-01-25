@@ -9,15 +9,18 @@ function getKey() {
 }
 
 /**
- * Base64 encode (matching Crypt.js exactly)
+ * URL-safe Base64 encode (replaces + with -, / with _, removes padding =)
  */
-function base64encode(string, mode) {
-    return Buffer.from(string, mode || 'ascii').toString('base64');
+function base64UrlEncode(buffer) {
+    return buffer.toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
 }
 
 /**
  * Encrypts connection details into a token that guacamole-lite can decrypt.
- * THIS IS A DIRECT COPY OF Crypt.js encrypt() for 100% compatibility.
+ * Uses URL-safe Base64 to prevent corruption in URLs.
  */
 function encryptConnection(connectionParams) {
     const jsonData = { connection: connectionParams };
@@ -26,16 +29,17 @@ function encryptConnection(connectionParams) {
     const iv = Crypto.randomBytes(16);
     const cipher = Crypto.createCipheriv(algorithm, key, iv);
 
-    // MUST USE 'binary' encoding to match Crypt.js
+    // Match Crypt.js encoding: utf8 input, binary output
     let encrypted = cipher.update(JSON.stringify(jsonData), 'utf8', 'binary');
     encrypted += cipher.final('binary');
 
     const data = {
-        iv: base64encode(iv),
-        value: base64encode(encrypted, 'binary')
+        iv: Buffer.from(iv).toString('base64'),
+        value: Buffer.from(encrypted, 'binary').toString('base64')
     };
 
-    return base64encode(JSON.stringify(data));
+    // Use STANDARD base64 for inner JSON, but URL-safe for outer wrapper
+    return base64UrlEncode(Buffer.from(JSON.stringify(data)));
 }
 
 module.exports = { encryptConnection };

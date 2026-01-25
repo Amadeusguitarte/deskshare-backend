@@ -21,8 +21,21 @@ function isPortOpen(port, timeout = 1000) {
     });
 }
 
+/**
+ * URL-safe Base64 decode (reverse of frontend encoding)
+ */
+function base64UrlDecode(str) {
+    // Add padding back
+    let padded = str;
+    const remainder = str.length % 4;
+    if (remainder === 2) padded += '==';
+    else if (remainder === 3) padded += '=';
+
+    // Replace URL-safe chars with standard Base64 chars
+    return padded.replace(/-/g, '+').replace(/_/g, '/');
+}
+
 module.exports = function attachGuacamoleTunnel(httpServer) {
-    // CRITICAL: This key MUST match guacamole-crypto.js
     const GUAC_KEY = process.env.GUAC_KEY || 'ThisIsASecretKeyForDeskShare123!';
     const encryptionKey = require('crypto').createHash('sha256').update(GUAC_KEY).digest();
 
@@ -40,7 +53,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
             path: '/guacamole'
         },
         log: {
-            level: 'VERBOSE' // Enable verbose logging for debugging
+            level: 'VERBOSE'
         },
         allowedUnencryptedConnectionSettings: {
             rdp: ['width', 'height', 'dpi'],
@@ -51,10 +64,19 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         }
     };
 
-    // Get library internals for patching the CONNECT method (for Cloudflare bridge)
+    // PATCH: Override Crypt's base64decode to handle URL-safe Base64
+    const Crypt = require('guacamole-lite/lib/Crypt.js');
+    const originalBase64Decode = Crypt.base64decode;
+    Crypt.base64decode = function (string, mode) {
+        // Convert URL-safe Base64 to standard Base64 first
+        const standardBase64 = base64UrlDecode(string);
+        return originalBase64Decode.call(this, standardBase64, mode);
+    };
+
+    // Get library internals for patching the CONNECT method
     const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
 
-    // Patch connect() to handle Cloudflare tunnels (Bridge Logic)
+    // Patch connect() to handle Cloudflare tunnels
     const originalConnect = GuacClientConnection.prototype.connect;
     GuacClientConnection.prototype.connect = async function (guacdOpts) {
         const conn = this.connectionSettings.connection;
@@ -136,5 +158,5 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         console.error('[GUAC SERVER ERROR]:', err);
     });
 
-    console.log('✅ Guacamole Tunnel (Proper Encryption) Attached at /guacamole');
+    console.log('✅ Guacamole Tunnel (URL-Safe Base64) Attached at /guacamole');
 };
