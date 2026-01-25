@@ -244,6 +244,10 @@ router.post('/manual-share', auth, async (req, res, next) => {
     try {
         const { computerId, renterId } = req.body;
 
+        if (!renterId || isNaN(parseInt(renterId))) {
+            return res.status(400).json({ error: 'Invalid renter ID' });
+        }
+
         // 1. Verify Ownership
         const computer = await prisma.computer.findUnique({
             where: { id: parseInt(computerId) }
