@@ -35,7 +35,23 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         {
             // Debug Callbacks
             processConnectionSettings: (settings, clientConnection) => {
-                console.log('[Guacamole] Processing Params...');
+                console.log('[Guacamole] Processing Params (Manual Decode)...');
+
+                // Manual Decode Logic (Since crypt is disabled)
+                if (settings.token && !settings.settings) {
+                    try {
+                        const buffer = Buffer.from(settings.token, 'base64');
+                        const decodedPart = JSON.parse(buffer.toString('utf8'));
+
+                        // We expect { connection: { type: '...', settings: {...} } }
+                        if (decodedPart && decodedPart.connection) {
+                            settings = decodedPart.connection;
+                            console.log('[Guacamole] Manually decoded token successfully.');
+                        }
+                    } catch (e) {
+                        console.error('[Guacamole] Manual Decode Failed:', e.message);
+                    }
+                }
 
                 // --- CLOUDFLARE PROXY LOGIC ---
                 // If hostname is a Cloudflare Tunnel URL, we must bridge it via 'cloudflared access'
