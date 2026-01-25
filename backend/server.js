@@ -351,10 +351,64 @@ process.on('SIGTERM', () => {
     });
 });
 
-// Import Guacamole Tunnel
-const attachGuacamoleTunnel = require('./guacamole-tunnel');
+// ========================================
+// GUACD DAEMON STARTUP (Fallback)
+// If guacd isn't running from nixpacks, start it here
+// ========================================
+const { spawn, execSync } = require('child_process');
 
-// Attach Tunnel
-attachGuacamoleTunnel(server);
+function startGuacd() {
+    try {
+        // Check if already running
+        try {
+            const result = execSync('ps aux | grep -v grep | grep guacd', { encoding: 'utf8' });
+            if (result.includes('guacd')) {
+                console.log('✅ guacd already running');
+                return true;
+            }
+        } catch (e) {
+            // Not running, start it
+        }
+
+        console.log('🚀 Starting guacd daemon...');
+        const guacd = spawn('guacd', ['-f', '-L', 'info'], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            detached: true
+        });
+
+        guacd.stdout.on('data', (data) => {
+            console.log(`[guacd stdout]: ${data.toString().trim()}`);
+        });
+
+        guacd.stderr.on('data', (data) => {
+            console.log(`[guacd stderr]: ${data.toString().trim()}`);
+        });
+
+        guacd.on('error', (err) => {
+            console.error('❌ guacd spawn error:', err.message);
+        });
+
+        guacd.on('exit', (code) => {
+            console.log(`⚠️ guacd exited with code ${code}`);
+        });
+
+        guacd.unref(); // Don't keep Node.js alive just for guacd
+
+        // Give it a moment to start
+        return new Promise(resolve => setTimeout(() => resolve(true), 2000));
+    } catch (err) {
+        console.error('❌ Failed to start guacd:', err.message);
+        return false;
+    }
+}
+
+// Start guacd before importing tunnel
+startGuacd().then(() => {
+    // Import Guacamole Tunnel
+    const attachGuacamoleTunnel = require('./guacamole-tunnel');
+    // Attach Tunnel
+    attachGuacamoleTunnel(server);
+    console.log('✅ Guacamole tunnel attached');
+});
 
 module.exports = { app, server, io };
