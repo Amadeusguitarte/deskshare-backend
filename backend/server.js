@@ -95,7 +95,7 @@ app.set('io', io);
 // ========================================
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -104,7 +104,7 @@ app.get('/health', (req, res) => {
 });
 
 // DEBUG: Production Environment Diagnostics
-app.get('/debug-env', async (req, res) => {
+app.get('/api/debug-env', async (req, res) => {
     const { execSync } = require('child_process');
     let report = {
         timestamp: new Date().toISOString(),
@@ -117,9 +117,8 @@ app.get('/debug-env', async (req, res) => {
     try { report.cloudflared = execSync('which cloudflared').toString().trim(); } catch (e) { }
     try {
         const guacStatus = execSync('ps aux | grep guacd').toString();
-        if (guacStatus.includes('/usr/sbin/guacd') || guacStatus.includes('guacd')) {
+        if (guacStatus.includes('guacd')) {
             report.guacd = 'running';
-            report.guacd_raw = guacStatus;
         }
     } catch (e) { }
 
@@ -136,7 +135,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tunnels', tunnelRoutes);
-app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
+app.use('/api/migrate', migrateRoutes);
 
 // Server Entry Point (v180 RESTORED - GOLDEN STATE)(Project Root)
 // FALLBACK: Serve root (for existing monorepo structure)
@@ -147,8 +146,13 @@ app.use((req, res, next) => {
     if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'Route not found' });
     }
-    // Fallback to index.html for unknown non-API routes (SPA support)
-    res.sendFile(path.join(__dirname, '../index.html'));
+    // Fixed path for production
+    const indexPath = path.resolve(__dirname, '..', 'index.html');
+    if (require('fs').existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).json({ error: 'Frontend not found' });
+    }
 });
 
 // Error handler

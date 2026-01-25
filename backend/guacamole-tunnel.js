@@ -44,17 +44,18 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         }
     };
 
-    // --- NUCLEAR FIX: MONKEY-PATCH LIBRARY (V3 - STABLE) ---
+    // --- NUCLEAR FIX: MONKEY-PATCH LIBRARY ---
     const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
     const GuacServerClass = require('guacamole-lite/lib/Server.js');
     const GuacCryptClass = require('guacamole-lite/lib/Crypt.js');
 
-    // 0. Patch Crypt Class (Actual decoder)
+    // 0. Patch Crypt Class (The actual decoder used in ClientConnection)
     GuacCryptClass.prototype.decrypt = function (token) {
+        console.log('>>> [BRIDGE] Decrypting Token...');
         try {
             return JSON.parse(Buffer.from(token, 'base64').toString());
         } catch (e) {
-            console.error('>>> [DECRYPT FAIL]:', e.message);
+            console.error('>>> [BRIDGE] Decrypt Fail:', e.message);
             throw e;
         }
     };
@@ -63,76 +64,70 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     GuacServerClass.prototype.decryptToken = function (token) {
         try {
             return JSON.parse(Buffer.from(token, 'base64').toString());
-        } catch (e) {
-            throw e;
-        }
+        } catch (e) { throw e; }
     };
 
-    // 2. Patch ClientConnection.js
+    // 2. Patch ClientConnection.js (Handshake)
     GuacClientConnection.prototype.decryptToken = function () {
         try {
-            const token = this.query.token;
-            // Note: Don't delete token yet, we might need it for re-connect logic if library does it
-            return JSON.parse(Buffer.from(token, 'base64').toString());
-        } catch (e) {
-            throw e;
-        }
+            return JSON.parse(Buffer.from(this.query.token, 'base64').toString());
+        } catch (e) { throw e; }
     };
 
-    // 3. Patch Connect to handle Cloudflare Bridge
+    // 3. Robust Bridge Patch
     const originalConnect = GuacClientConnection.prototype.connect;
-    GuacClientConnection.prototype.connect = async function (guacdOptions) {
-        // IMPORTANT: settings can be nested or merged
+    GuacClientConnection.prototype.connect = async function (guacdOpts) {
+        // Access settings safely
         const conn = this.connectionSettings.connection;
-        const s = conn.settings || conn;
+        const config = conn.settings || conn;
 
-        if (s.hostname && s.hostname.includes('trycloudflare.com')) {
-            console.log('>>> [BRIDGE] Initializing for:', s.hostname);
+        if (config.hostname && config.hostname.includes('trycloudflare.com')) {
+            console.log(`>>> [BRIDGE] Starting setup for ${config.hostname}`);
             try {
-                const tunnelUrl = s.hostname;
+                const tunnelUrl = config.hostname;
                 const cleanHostname = tunnelUrl.replace('https://', '').replace('http://', '').split('/')[0];
-                const localPort = Math.floor(Math.random() * 5000) + 45000;
+                const localPort = Math.floor(Math.random() * 5000) + 40000;
 
                 const { spawn } = require('child_process');
+                console.log(`>>> [BRIDGE] Spawning cloudflared access on port ${localPort}`);
+
                 const proxyProc = spawn('cloudflared', [
                     'access', 'tcp',
                     '--hostname', cleanHostname,
                     '--url', `127.0.0.1:${localPort}`
                 ]);
 
-                proxyProc.stderr.on('data', d => {
-                    const msg = d.toString();
-                    if (msg.includes('error')) console.error(`>>> [BRIDGE ERR]: ${msg.trim()}`);
-                });
+                // Log proxy output
+                proxyProc.stderr.on('data', d => console.log(`>>> [BRIDGE LOG]: ${d.toString().trim()}`));
 
+                // Cleanup
                 this.on('close', () => {
-                    console.log('>>> [BRIDGE] Terminating proxy...');
+                    console.log(`>>> [BRIDGE] Killing proxy...`);
                     proxyProc.kill();
                 });
 
-                // Patience loop (Wait for bridge to PC)
+                // Wait for Readiness
                 let ready = false;
-                for (let i = 0; i < 30; i++) { // Max 15 seconds
+                for (let i = 0; i < 30; i++) {
                     ready = await isPortOpen(localPort, 500);
                     if (ready) break;
                     await new Promise(r => setTimeout(r, 500));
                 }
 
                 if (ready) {
-                    console.log('>>> [BRIDGE] READY on port', localPort);
-                    s.hostname = '127.0.0.1';
-                    s.port = localPort;
+                    console.log(`>>> [BRIDGE] Proxy is ACTIVE on 127.0.0.1:${localPort}`);
+                    config.hostname = '127.0.0.1';
+                    config.port = localPort;
                 } else {
-                    console.error('>>> [BRIDGE] TIMEOUT');
+                    console.error('>>> [BRIDGE] Proxy FAILED to open port.');
                 }
             } catch (err) {
-                console.error('>>> [BRIDGE FATAL]:', err.message);
+                console.error('>>> [BRIDGE] Setup error:', err.message);
             }
         }
 
-        // Final handshake with guacd
-        console.log(`>>> [GUACD] Connecting to ${s.hostname}:${s.port} (${conn.type || 'vnc'})`);
-        originalConnect.call(this, guacdOptions);
+        console.log(`>>> [BRIDGE] Handing off to guacd at ${config.hostname}:${config.port}`);
+        originalConnect.call(this, guacdOpts);
     };
 
     const { EventEmitter } = require('events');
@@ -155,5 +150,5 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         }
     });
 
-    console.log('✅ Guacamole Tunnel (Nuclear V3) Attached');
+    console.log('✅ Guacamole Tunnel (Nuclear Final) Attached');
 };
