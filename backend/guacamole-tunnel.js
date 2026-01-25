@@ -1,5 +1,6 @@
 const GuacamoleLite = require('guacamole-lite');
 const net = require('net');
+const Crypto = require('crypto');
 
 /**
  * Checks if a local port is open
@@ -22,22 +23,53 @@ function isPortOpen(port, timeout = 1000) {
 }
 
 /**
- * URL-safe Base64 decode (reverse of frontend encoding)
+ * URL-safe Base64 decode
  */
-function base64UrlDecode(str) {
-    // Add padding back
-    let padded = str;
-    const remainder = str.length % 4;
-    if (remainder === 2) padded += '==';
-    else if (remainder === 3) padded += '=';
+function base64UrlToStandard(str) {
+    let result = str.replace(/-/g, '+').replace(/_/g, '/');
+    const remainder = result.length % 4;
+    if (remainder === 2) result += '==';
+    else if (remainder === 3) result += '=';
+    return result;
+}
 
-    // Replace URL-safe chars with standard Base64 chars
-    return padded.replace(/-/g, '+').replace(/_/g, '/');
+/**
+ * Custom decrypt that handles URL-safe Base64
+ */
+function customDecrypt(encodedToken, key) {
+    console.log('[DECRYPT] Raw token length:', encodedToken.length);
+    console.log('[DECRYPT] Token first 50 chars:', encodedToken.substring(0, 50));
+    console.log('[DECRYPT] Token last 20 chars:', encodedToken.substring(encodedToken.length - 20));
+
+    // Convert URL-safe to standard Base64
+    const standardBase64 = base64UrlToStandard(encodedToken);
+    console.log('[DECRYPT] Standard B64 first 50:', standardBase64.substring(0, 50));
+
+    // Decode outer Base64 to get JSON string
+    const jsonString = Buffer.from(standardBase64, 'base64').toString('ascii');
+    console.log('[DECRYPT] JSON string first 100:', jsonString.substring(0, 100));
+
+    // Parse JSON to get iv and value
+    const parsed = JSON.parse(jsonString);
+    console.log('[DECRYPT] Parsed IV exists:', !!parsed.iv);
+    console.log('[DECRYPT] Parsed value exists:', !!parsed.value);
+
+    // Decode iv and value
+    const iv = Buffer.from(parsed.iv, 'base64');
+    const encryptedValue = Buffer.from(parsed.value, 'base64');
+
+    // Decrypt
+    const decipher = Crypto.createDecipheriv('AES-256-CBC', key, iv);
+    let decrypted = decipher.update(encryptedValue, null, 'utf8');
+    decrypted += decipher.final('utf8');
+
+    console.log('[DECRYPT] Decrypted first 100:', decrypted.substring(0, 100));
+    return JSON.parse(decrypted);
 }
 
 module.exports = function attachGuacamoleTunnel(httpServer) {
     const GUAC_KEY = process.env.GUAC_KEY || 'ThisIsASecretKeyForDeskShare123!';
-    const encryptionKey = require('crypto').createHash('sha256').update(GUAC_KEY).digest();
+    const encryptionKey = Crypto.createHash('sha256').update(GUAC_KEY).digest();
 
     const guacdOptions = {
         host: '127.0.0.1',
@@ -64,17 +96,32 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         }
     };
 
-    // PATCH: Override Crypt's base64decode to handle URL-safe Base64
-    const Crypt = require('guacamole-lite/lib/Crypt.js');
-    const originalBase64Decode = Crypt.base64decode;
-    Crypt.base64decode = function (string, mode) {
-        // Convert URL-safe Base64 to standard Base64 first
-        const standardBase64 = base64UrlDecode(string);
-        return originalBase64Decode.call(this, standardBase64, mode);
+    // PATCH: Override the entire decryptToken method in ClientConnection
+    const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
+    GuacClientConnection.prototype.decryptToken = function () {
+        console.log('[PATCH] decryptToken called!');
+        const token = this.query.token;
+        delete this.query.token;
+
+        try {
+            return customDecrypt(token, encryptionKey);
+        } catch (e) {
+            console.error('[PATCH] Decrypt error:', e.message);
+            throw e;
+        }
     };
 
-    // Get library internals for patching the CONNECT method
-    const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
+    // PATCH: Override decryptToken in Server too (for extractGuacdOptions)
+    const GuacServer = require('guacamole-lite/lib/Server.js');
+    GuacServer.prototype.decryptToken = function (token) {
+        console.log('[PATCH-SERVER] decryptToken called!');
+        try {
+            return customDecrypt(token, encryptionKey);
+        } catch (e) {
+            console.error('[PATCH-SERVER] Decrypt error:', e.message);
+            throw e;
+        }
+    };
 
     // Patch connect() to handle Cloudflare tunnels
     const originalConnect = GuacClientConnection.prototype.connect;
@@ -108,7 +155,6 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
                     proxyProc.kill();
                 });
 
-                // Wait for bridge readiness (up to 15 seconds)
                 let ready = false;
                 for (let i = 0; i < 30; i++) {
                     ready = await isPortOpen(localPort, 500);
@@ -150,6 +196,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     httpServer.on('upgrade', (req, socket, head) => {
         if (req.url.startsWith('/guacamole')) {
             console.log('[GUAC] WebSocket upgrade request received.');
+            console.log('[GUAC] Full URL:', req.url.substring(0, 100) + '...');
             shimServer.emit('upgrade', req, socket, head);
         }
     });
@@ -158,5 +205,5 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         console.error('[GUAC SERVER ERROR]:', err);
     });
 
-    console.log('✅ Guacamole Tunnel (URL-Safe Base64) Attached at /guacamole');
+    console.log('✅ Guacamole Tunnel (Debug Logging) Attached at /guacamole');
 };
