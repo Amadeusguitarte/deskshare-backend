@@ -173,12 +173,9 @@ router.post('/:id/start', auth, async (req, res, next) => {
                     'resize-method': 'display-update'
                 });
             } else if (protocol === 'vnc') {
-                // VNC specific settings - TightVNC compatible
+                // VNC specific settings - Minimal (let VNC auto-negotiate)
                 Object.assign(settings, {
-                    'color-depth': '16',        // 16-bit color (more compatible)
-                    'cursor': 'remote',         // Show remote cursor
-                    'read-only': 'false',       // Allow interaction
-                    'force-lossless': 'false',  // Allow compression
+                    'cursor': 'remote',
                     'autoretry': '5'
                 });
             }
