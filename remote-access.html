@@ -290,8 +290,12 @@
             // Our backend path is attached to server, so 'ws://HOST/guacamole'
             // We must pass the token in the query string or protocol. guacamole-lite connection options usually expect a query param.
 
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const tunnelUrl = `${protocol}//${window.location.host}/guacamole`;
+            // FIX: Point to Backend, not Frontend (Netlify)
+            // const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            // const tunnelUrl = `${protocol}//${window.location.host}/guacamole`;
+
+            // Hardcoded Backend for Production (Railway)
+            const tunnelUrl = 'wss://deskshare-backend-production.up.railway.app/guacamole';
 
             // IMPORTANT: guacamole-common-js tunnel constructor is different depending on version.
             // For WebSocketTunnel, we pass the URL.
