@@ -7,14 +7,20 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     };
 
     const clientOptions = {
-        /*
         crypt: {
             cypher: 'AES-256-CBC',
             key: require('crypto').createHash('sha256').update(process.env.GUAC_KEY || 'ThisIsASecretKeyForDeskShare123!').digest()
         },
-        */
         websocket: {
             path: '/guacamole' // Endpoint for websocket
+        },
+        // We can put allowed settings here if needed, but GuacamoleLite handles them
+        allowedUnencryptedConnectionSettings: {
+            rdp: ['width', 'height', 'dpi'],
+            vnc: ['width', 'height', 'dpi'],
+            ssh: ['width', 'height', 'dpi'],
+            telnet: ['width', 'height', 'dpi'],
+            kubernetes: ['width', 'height', 'dpi'],
         }
     };
 
@@ -33,25 +39,9 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         guacdOptions,
         clientOptions,
         {
-            // Debug Callbacks
+            // Callbacks
             processConnectionSettings: (settings, clientConnection) => {
-                console.log('[Guacamole] Processing Params (Manual Decode)...');
-
-                // Manual Decode Logic (Since crypt is disabled)
-                if (settings.token && !settings.settings) {
-                    try {
-                        const buffer = Buffer.from(settings.token, 'base64');
-                        const decodedPart = JSON.parse(buffer.toString('utf8'));
-
-                        // We expect { connection: { type: '...', settings: {...} } }
-                        if (decodedPart && decodedPart.connection) {
-                            settings = decodedPart.connection;
-                            console.log('[Guacamole] Manually decoded token successfully.');
-                        }
-                    } catch (e) {
-                        console.error('[Guacamole] Manual Decode Failed:', e.message);
-                    }
-                }
+                console.log('[Guacamole] Processing Params...');
 
                 // --- CLOUDFLARE PROXY LOGIC ---
                 // If hostname is a Cloudflare Tunnel URL, we must bridge it via 'cloudflared access'
