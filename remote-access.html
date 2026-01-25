@@ -292,10 +292,19 @@
                 // === FALLBACK: GUACAMOLE (VNC/RDP) ===
                 const guacToken = data.guacamoleToken;
                 if (guacToken) {
+                    // Show small notification about upgrade
+                    const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                    debugOverlay.innerHTML += `
+                        <div style="background: rgba(102, 126, 234, 0.2); padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #667eea;">
+                            <strong style="color: #fff;">💡 Tip:</strong> Baja latencia disponible.<br>
+                            <a href="https://deskshare-backend-production.up.railway.app/downloads/DeskShareSetup.exe" target="_blank" style="color: #667eea;">Descargar Nuevo Launcher</a> para usar modo Rápido.
+                        </div>
+                    `;
+
                     connectGuacamole(guacToken);
                 } else {
                     // If no token (maybe no RDP configured), switch to Parsec
-                    alert('No se detectó configuración RDP. Cambiando a modo Parsec.');
+                    alert('No se detectó configuración RDP/VNC. Cambiando a modo Parsec.');
                     switchMode('parsec');
                 }
 
