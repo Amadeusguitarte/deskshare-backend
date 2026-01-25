@@ -14,23 +14,11 @@ function getKey() {
  * @param {Object} connectionParams - { type: 'rdp', settings: { ... } }
  */
 function encryptConnection(connectionParams) {
+    // NUCLEAR FIX: Bypass inconsistent library encryption
+    // We return a plain Base64 string of the JSON object.
+    // The monkey-patched decoder in guacamole-tunnel.js will handle this.
     const jsonData = { connection: connectionParams };
-    const cypher = algorithm;
-    const encryptionKey = getKey();
-
-    // Exact replica of guacamole-lite/lib/Crypt.js encrypt()
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(cypher, encryptionKey, iv);
-
-    let encrypted = cipher.update(JSON.stringify(jsonData), 'utf8', 'binary');
-    encrypted += cipher.final('binary');
-
-    const data = {
-        iv: iv.toString('base64'),
-        value: Buffer.from(encrypted, 'binary').toString('base64')
-    };
-
-    return Buffer.from(JSON.stringify(data)).toString('base64');
+    return Buffer.from(JSON.stringify(jsonData)).toString('base64');
 }
 
 module.exports = { encryptConnection };

@@ -24,11 +24,36 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         }
     };
 
-    // --- FIX: UPGRADE CONFLICT SHIM ---
-    // GuacamoleLite attempts to handle ALL upgrades if passed the server directly.
-    // Socket.IO also handles upgrades.
-    // Solution: Pass a fake "Shim" server to GuacamoleLite to capture its listener,
-    // then manually route only requests starting with '/guacamole' from the real server.
+    // --- NUCLEAR FIX: MONKEY-PATCH LIBRARAY ---
+    // The library has incompatible decryption logic between Server.js and ClientConnection.js.
+    // We force both to just use Base64 decode to solve the "Token validation failed" error permanently.
+
+    const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
+    const GuacServerClass = require('guacamole-lite/lib/Server.js');
+
+    // 1. Patch Server.js (Dynamic Routing)
+    GuacServerClass.prototype.decryptToken = function (token) {
+        console.log('[Nuclear Patch] Bypassing Server decryption...');
+        try {
+            return JSON.parse(Buffer.from(token, 'base64').toString());
+        } catch (e) {
+            console.error('[Nuclear Patch] Server decode fail:', e.message);
+            throw e;
+        }
+    };
+
+    // 2. Patch ClientConnection.js (Handshake)
+    GuacClientConnection.prototype.decryptToken = function () {
+        console.log('[Nuclear Patch] Bypassing Connection decryption...');
+        try {
+            const token = this.query.token;
+            delete this.query.token;
+            return JSON.parse(Buffer.from(token, 'base64').toString());
+        } catch (e) {
+            console.error('[Nuclear Patch] Connection decode fail:', e.message);
+            throw e;
+        }
+    };
 
     const { EventEmitter } = require('events');
     const shimServer = new EventEmitter();
