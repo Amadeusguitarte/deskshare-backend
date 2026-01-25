@@ -125,6 +125,55 @@ app.get('/api/debug-env', async (req, res) => {
     res.json(report);
 });
 
+// DEBUG: Test crypto compatibility
+app.get('/api/debug-crypto', async (req, res) => {
+    const Crypto = require('crypto');
+    const GUAC_KEY = process.env.GUAC_KEY || 'ThisIsASecretKeyForDeskShare123!';
+    const key = Crypto.createHash('sha256').update(GUAC_KEY).digest();
+
+    // Import our encryption function
+    const { encryptConnection } = require('./utils/guacamole-crypto');
+
+    // Import library's Crypt class
+    const Crypt = require('guacamole-lite/lib/Crypt.js');
+    const crypt = new Crypt('AES-256-CBC', key);
+
+    const testParams = {
+        type: 'vnc',
+        settings: {
+            hostname: 'test.trycloudflare.com',
+            port: '5900',
+            password: 'testpwd'
+        }
+    };
+
+    let result = {
+        step1_encrypt: null,
+        step2_token: null,
+        step3_decrypt: null,
+        step4_match: null,
+        error: null
+    };
+
+    try {
+        // Step 1: Encrypt using our function
+        const token = encryptConnection(testParams);
+        result.step1_encrypt = 'SUCCESS';
+        result.step2_token = token.substring(0, 50) + '...';
+
+        // Step 2: Decrypt using library's Crypt class
+        const decrypted = crypt.decrypt(token);
+        result.step3_decrypt = 'SUCCESS';
+        result.step4_match = JSON.stringify(decrypted.connection) === JSON.stringify(testParams);
+        result.decrypted = decrypted;
+    } catch (e) {
+        result.error = e.message;
+        result.stack = e.stack;
+    }
+
+    res.json(result);
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', googleAuthRoutes);
