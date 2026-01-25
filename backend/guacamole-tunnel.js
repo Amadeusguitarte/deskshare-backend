@@ -34,16 +34,26 @@ function base64UrlToStandard(str) {
 }
 
 /**
- * Custom decrypt that handles URL-safe Base64
+ * Custom decrypt that handles URL-safe Base64 AND sanitizes token
  */
 function customDecrypt(encodedToken, key) {
-    console.log('[DECRYPT] Raw token length:', encodedToken.length);
-    console.log('[DECRYPT] Token first 50 chars:', encodedToken.substring(0, 50));
-    console.log('[DECRYPT] Token last 20 chars:', encodedToken.substring(encodedToken.length - 20));
+    // SANITIZE: Remove any URL pollution (e.g., ?undefined, &width=x)
+    let cleanToken = encodedToken;
+    if (cleanToken.includes('?')) {
+        cleanToken = cleanToken.split('?')[0];
+        console.log('[DECRYPT] SANITIZED: removed ?params from token');
+    }
+    if (cleanToken.includes('&')) {
+        cleanToken = cleanToken.split('&')[0];
+        console.log('[DECRYPT] SANITIZED: removed &params from token');
+    }
+
+    console.log('[DECRYPT] Clean token length:', cleanToken.length);
+    console.log('[DECRYPT] Token first 50 chars:', cleanToken.substring(0, 50));
+    console.log('[DECRYPT] Token last 20 chars:', cleanToken.substring(cleanToken.length - 20));
 
     // Convert URL-safe to standard Base64
-    const standardBase64 = base64UrlToStandard(encodedToken);
-    console.log('[DECRYPT] Standard B64 first 50:', standardBase64.substring(0, 50));
+    const standardBase64 = base64UrlToStandard(cleanToken);
 
     // Decode outer Base64 to get JSON string
     const jsonString = Buffer.from(standardBase64, 'base64').toString('ascii');
@@ -51,8 +61,6 @@ function customDecrypt(encodedToken, key) {
 
     // Parse JSON to get iv and value
     const parsed = JSON.parse(jsonString);
-    console.log('[DECRYPT] Parsed IV exists:', !!parsed.iv);
-    console.log('[DECRYPT] Parsed value exists:', !!parsed.value);
 
     // Decode iv and value
     const iv = Buffer.from(parsed.iv, 'base64');
@@ -63,7 +71,7 @@ function customDecrypt(encodedToken, key) {
     let decrypted = decipher.update(encryptedValue, null, 'utf8');
     decrypted += decipher.final('utf8');
 
-    console.log('[DECRYPT] Decrypted first 100:', decrypted.substring(0, 100));
+    console.log('[DECRYPT] SUCCESS! Decrypted first 80:', decrypted.substring(0, 80));
     return JSON.parse(decrypted);
 }
 
@@ -99,7 +107,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     // PATCH: Override the entire decryptToken method in ClientConnection
     const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
     GuacClientConnection.prototype.decryptToken = function () {
-        console.log('[PATCH] decryptToken called!');
+        console.log('[PATCH] ClientConnection.decryptToken called!');
         const token = this.query.token;
         delete this.query.token;
 
@@ -114,7 +122,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     // PATCH: Override decryptToken in Server too (for extractGuacdOptions)
     const GuacServer = require('guacamole-lite/lib/Server.js');
     GuacServer.prototype.decryptToken = function (token) {
-        console.log('[PATCH-SERVER] decryptToken called!');
+        console.log('[PATCH-SERVER] Server.decryptToken called!');
         try {
             return customDecrypt(token, encryptionKey);
         } catch (e) {
@@ -129,17 +137,16 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         const conn = this.connectionSettings.connection;
         const config = conn.settings || conn;
 
-        console.log(`[GUAC-BRIDGE] Connect called. Hostname: ${config.hostname}`);
+        console.log(`[GUAC-BRIDGE] Hostname: ${config.hostname}`);
 
         if (config.hostname && config.hostname.includes('trycloudflare.com')) {
-            console.log(`[GUAC-BRIDGE] Cloudflare tunnel detected: ${config.hostname}`);
+            console.log(`[GUAC-BRIDGE] Cloudflare tunnel detected`);
             try {
-                const tunnelUrl = config.hostname;
-                const cleanHostname = tunnelUrl.replace('https://', '').replace('http://', '').split('/')[0];
+                const cleanHostname = config.hostname.replace('https://', '').replace('http://', '').split('/')[0];
                 const localPort = Math.floor(Math.random() * 5000) + 40000;
 
                 const { spawn } = require('child_process');
-                console.log(`[GUAC-BRIDGE] Spawning cloudflared access on port ${localPort}...`);
+                console.log(`[GUAC-BRIDGE] Spawning cloudflared on port ${localPort}...`);
 
                 const proxyProc = spawn('cloudflared', [
                     'access', 'tcp',
@@ -147,11 +154,11 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
                     '--url', `127.0.0.1:${localPort}`
                 ]);
 
-                proxyProc.stderr.on('data', d => console.log(`[GUAC-BRIDGE LOG]: ${d.toString().trim()}`));
-                proxyProc.on('error', e => console.error(`[GUAC-BRIDGE ERR]: ${e.message}`));
+                proxyProc.stderr.on('data', d => console.log(`[BRIDGE]: ${d.toString().trim()}`));
+                proxyProc.on('error', e => console.error(`[BRIDGE ERR]: ${e.message}`));
 
                 this.on('close', () => {
-                    console.log(`[GUAC-BRIDGE] Killing bridge process.`);
+                    console.log(`[BRIDGE] Cleanup`);
                     proxyProc.kill();
                 });
 
@@ -163,18 +170,18 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
                 }
 
                 if (ready) {
-                    console.log(`[GUAC-BRIDGE] Bridge ACTIVE on 127.0.0.1:${localPort}`);
+                    console.log(`[BRIDGE] ACTIVE on 127.0.0.1:${localPort}`);
                     config.hostname = '127.0.0.1';
                     config.port = localPort;
                 } else {
-                    console.error('[GUAC-BRIDGE] Bridge FAILED to open port!');
+                    console.error('[BRIDGE] TIMEOUT');
                 }
             } catch (err) {
-                console.error('[GUAC-BRIDGE] Setup error:', err.message);
+                console.error('[BRIDGE] Error:', err.message);
             }
         }
 
-        console.log(`[GUAC-BRIDGE] Handing off to guacd -> ${config.hostname}:${config.port}`);
+        console.log(`[GUACD] Connecting to ${config.hostname}:${config.port}`);
         originalConnect.call(this, guacdOpts);
     };
 
@@ -187,7 +194,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         clientOptions,
         {
             processConnectionSettings: (settings, callback) => {
-                console.log('[GUAC] Settings received.');
+                console.log('[GUAC] Settings OK');
                 callback(null, settings);
             }
         }
@@ -195,15 +202,14 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
 
     httpServer.on('upgrade', (req, socket, head) => {
         if (req.url.startsWith('/guacamole')) {
-            console.log('[GUAC] WebSocket upgrade request received.');
-            console.log('[GUAC] Full URL:', req.url.substring(0, 100) + '...');
+            console.log('[GUAC] WebSocket upgrade');
             shimServer.emit('upgrade', req, socket, head);
         }
     });
 
     guacServer.on('error', (conn, err) => {
-        console.error('[GUAC SERVER ERROR]:', err);
+        console.error('[GUAC ERROR]:', err);
     });
 
-    console.log('✅ Guacamole Tunnel (Debug Logging) Attached at /guacamole');
+    console.log('✅ Guacamole Tunnel (Token Sanitizer) Ready');
 };
