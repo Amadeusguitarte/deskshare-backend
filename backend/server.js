@@ -106,21 +106,47 @@ app.get('/api/health', (req, res) => {
 // DEBUG: Production Environment Diagnostics
 app.get('/api/debug-env', async (req, res) => {
     const { execSync } = require('child_process');
+    const net = require('net');
+
     let report = {
         timestamp: new Date().toISOString(),
         cloudflared: 'missing',
-        guacd: 'dead',
+        guacd_process: 'not found',
+        guacd_port_4822: 'NOT LISTENING',
         path: process.env.PATH,
         user: process.env.USER || 'unknown'
     };
 
     try { report.cloudflared = execSync('which cloudflared').toString().trim(); } catch (e) { }
+
     try {
-        const guacStatus = execSync('ps aux | grep guacd').toString();
+        const guacStatus = execSync('ps aux | grep -v grep | grep guacd').toString();
         if (guacStatus.includes('guacd')) {
-            report.guacd = 'running';
+            report.guacd_process = 'running';
+            report.guacd_process_details = guacStatus.trim();
         }
     } catch (e) { }
+
+    // TCP Port Test for guacd
+    await new Promise((resolve) => {
+        const socket = new net.Socket();
+        socket.setTimeout(2000);
+        socket.on('connect', () => {
+            report.guacd_port_4822 = 'LISTENING';
+            socket.destroy();
+            resolve();
+        });
+        socket.on('error', (err) => {
+            report.guacd_port_4822 = `ERROR: ${err.code}`;
+            resolve();
+        });
+        socket.on('timeout', () => {
+            report.guacd_port_4822 = 'TIMEOUT';
+            socket.destroy();
+            resolve();
+        });
+        socket.connect(4822, '127.0.0.1');
+    });
 
     res.json(report);
 });
