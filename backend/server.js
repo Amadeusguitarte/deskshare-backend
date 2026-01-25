@@ -371,7 +371,7 @@ function startGuacd() {
         }
 
         console.log('🚀 Starting guacd daemon...');
-        const guacd = spawn('guacd', ['-f', '-L', 'info'], {
+        const guacd = spawn('guacd', ['-f', '-L', 'info', '-b', '127.0.0.1', '-l', '4822'], {
             stdio: ['ignore', 'pipe', 'pipe'],
             detached: true
         });
