@@ -131,6 +131,55 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         }
     };
 
+    // === HELPER: CLOUDFLARED AUTO-DOWNLOADER ===
+    async function getCloudflaredPath() {
+        const { spawn } = require('child_process');
+        const fs = require('fs');
+        const path = require('path');
+        const axios = require('axios');
+        const os = require('os');
+
+        // 1. Check Global Path
+        const globalCheck = new Promise(resolve => {
+            const proc = spawn('cloudflared', ['--version']);
+            proc.on('error', () => resolve(false));
+            proc.on('close', code => resolve(code === 0 ? 'cloudflared' : false));
+        });
+
+        if (await globalCheck) return 'cloudflared';
+
+        // 2. Check /tmp/cloudflared
+        const tmpPath = path.join(os.tmpdir(), 'cloudflared-linux-amd64');
+        if (fs.existsSync(tmpPath)) {
+            try {
+                fs.chmodSync(tmpPath, 0o777);
+                return tmpPath;
+            } catch (e) { }
+        }
+
+        // 3. Download
+        console.log('[GUAC-BRIDGE] Cloudflared not found. Downloading to /tmp...');
+        try {
+            const writer = fs.createWriteStream(tmpPath);
+            const response = await axios({
+                method: 'get',
+                url: 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64',
+                responseType: 'stream'
+            });
+            response.data.pipe(writer);
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+            fs.chmodSync(tmpPath, 0o777);
+            console.log('[GUAC-BRIDGE] Download complete.');
+            return tmpPath;
+        } catch (e) {
+            console.error('[GUAC-BRIDGE] Download failed:', e.message);
+            throw e;
+        }
+    }
+
     // Patch connect() to handle Cloudflare tunnels
     const originalConnect = GuacClientConnection.prototype.connect;
     GuacClientConnection.prototype.connect = async function (guacdOpts) {
@@ -145,10 +194,12 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
                 const cleanHostname = config.hostname.replace('https://', '').replace('http://', '').split('/')[0];
                 const localPort = Math.floor(Math.random() * 5000) + 40000;
 
-                const { spawn } = require('child_process');
-                console.log(`[GUAC-BRIDGE] Spawning cloudflared on port ${localPort}...`);
+                // GET BINARY
+                const binPath = await getCloudflaredPath();
+                console.log(`[GUAC-BRIDGE] Spawning ${binPath} on port ${localPort}...`);
 
-                const proxyProc = spawn('cloudflared', [
+                const { spawn } = require('child_process');
+                const proxyProc = spawn(binPath, [
                     'access', 'tcp',
                     '--hostname', cleanHostname,
                     '--url', `127.0.0.1:${localPort}`
