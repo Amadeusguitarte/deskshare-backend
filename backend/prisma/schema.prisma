@@ -64,6 +64,10 @@ model Computer {
   tunnelStatus    String?   @default("offline") @map("tunnel_status") // online, offline
   tunnelUpdatedAt DateTime? @map("tunnel_updated_at")
   
+  // RustDesk P2P Integration
+  rustdeskId       String?   @map("rustdesk_id") // RustDesk unique ID
+  rustdeskPassword String?   @map("rustdesk_password") // Temp access password
+  
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   

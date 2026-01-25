@@ -210,7 +210,9 @@ router.post('/:id/start', auth, async (req, res, next) => {
                         remoteId: true,
                         parsecPeerId: true, // ADDED: Parsec Integration
                         tunnelUrl: true,    // ADDED: Dynamic Tunnel
-                        tunnelStatus: true  // ADDED: Dynamic Tunnel
+                        tunnelStatus: true, // ADDED: Dynamic Tunnel
+                        rustdeskId: true,   // ADDED: RustDesk P2P
+                        rustdeskPassword: true // ADDED: RustDesk P2P
                     }
                 }
             }
