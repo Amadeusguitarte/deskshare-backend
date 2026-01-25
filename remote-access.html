@@ -354,13 +354,7 @@
             // === INPUT HANDLING ===
             // ... (rest of input handling)
 
-            function createDebugOverlay() {
-                const div = document.createElement('div');
-                div.id = 'debug-overlay';
-                div.style.cssText = 'position:fixed; top:60px; left:10px; background:rgba(0,0,0,0.8); color:#0f0; padding:10px; border:1px solid #0f0; font-family:monospace; z-index:9999; max-width:300px; pointer-events:none;';
-                document.body.appendChild(div);
-                return div;
-            }
+
 
             // Mouse
             mouse = new Guacamole.Mouse(element);
@@ -444,6 +438,15 @@
         window.onbeforeunload = function () {
             if (guacClient) guacClient.disconnect();
         };
+
+        // Global Debug Helper
+        function createDebugOverlay() {
+            const div = document.createElement('div');
+            div.id = 'debug-overlay';
+            div.style.cssText = 'position:fixed; top:60px; left:10px; background:rgba(0,0,0,0.8); color:#0f0; padding:10px; border:1px solid #0f0; font-family:monospace; z-index:9999; max-width:300px; pointer-events:none;';
+            document.body.appendChild(div);
+            return div;
+        }
 
     </script>
 </body>
