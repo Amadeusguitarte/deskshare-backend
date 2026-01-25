@@ -47,6 +47,18 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     // --- NUCLEAR FIX: MONKEY-PATCH LIBRARY (ULTRA VERBOSE) ---
     const GuacClientConnection = require('guacamole-lite/lib/ClientConnection.js');
     const GuacServerClass = require('guacamole-lite/lib/Server.js');
+    const GuacCryptClass = require('guacamole-lite/lib/Crypt.js');
+
+    // 0. Patch Crypt Class (Used by ClientConnection)
+    GuacCryptClass.prototype.decrypt = function (token) {
+        console.log('>>> [TUNNEL] Crypt.decrypt() called for token:', token ? token.substring(0, 50) + '...' : 'NULL');
+        try {
+            return JSON.parse(Buffer.from(token, 'base64').toString());
+        } catch (e) {
+            console.error('>>> [TUNNEL] Crypt Decrypt FAIL:', e.message);
+            throw e;
+        }
+    };
 
     // 1. Patch Server.js (Dynamic Routing)
     GuacServerClass.prototype.decryptToken = function (token) {
