@@ -1,538 +1,422 @@
-/**
- * DeskShare Launcher Agent
- * Main Entry Point
- * 
- * This agent:
- * 1. Enables RDP on Windows (if not already enabled)
- * 2. Creates a cloudflared tunnel to expose RDP
- * 3. Registers the tunnel URL with DeskShare backend
- * 4. Sends heartbeats to keep the tunnel alive
- */
-
-const { spawn, exec } = require('child_process');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const axios = require('axios');
 const os = require('os');
+const { spawn, exec } = require('child_process');
+const axios = require('axios');
 
-// Configuration
+// ==========================================
+// CONFIG & PATHS
+// ==========================================
 const APP_NAME = 'DeskShareLauncher';
-const INSTALL_DIR = path.join(os.homedir(), 'AppData', 'Local', 'DeskShare');
-const INSTALL_PATH = path.join(INSTALL_DIR, 'DeskShareLauncher.exe');
-const CONFIG_PATH = path.join(INSTALL_DIR, 'config.json');
-const BACKEND_URL = process.env.DESKSHARE_BACKEND || 'https://deskshare-backend-production.up.railway.app';
-const HEARTBEAT_INTERVAL = 60000; // 1 minute
+const USER_DATA_PATH = app.getPath('userData');
 
+// Portable config: Prioritize 'config.json' in the executable directory
+const PORTABLE_CONFIG = path.join(__dirname, '..', '..', 'config.json');
+const APPDATA_CONFIG = path.join(USER_DATA_PATH, 'config.json');
+const CONFIG_PATH = fs.existsSync(PORTABLE_CONFIG) ? PORTABLE_CONFIG : APPDATA_CONFIG;
+
+// Logs go to the same folder as config for visibility
+const LOG_FILE = path.join(path.dirname(CONFIG_PATH), 'agent.log');
+
+const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app';
+const HEARTBEAT_INTERVAL = 60000;
+
+// ==========================================
+// STATE
+// ==========================================
+let mainWindow;
+let cloudflaredProcess;
+let vncProcess;
 let config = {};
-let cloudflaredProcess = null;
-let tunnelUrl = null;
+let webrtcMode = null;
+let broadcasterWindow = null;
 
-// ============================================
-// Self-Installation & Protocol Registration
-// ============================================
-
-async function ensureInstalled() {
-    // Create install directory
-    if (!fs.existsSync(INSTALL_DIR)) {
-        fs.mkdirSync(INSTALL_DIR, { recursive: true });
-        console.log('[Install] Creando directorio:', INSTALL_DIR);
-    }
-
-    // Get current exe path
-    const currentExe = process.execPath;
-
-    // Check if we're already running from install location
-    if (currentExe.toLowerCase() === INSTALL_PATH.toLowerCase()) {
-        console.log('[Install] Ya instalado ✓');
-        return true;
-    }
-
-    // Check if this is a pkg-bundled exe (not node.exe)
-    if (!currentExe.includes('node.exe')) {
-        console.log('[Install] Instalando DeskShare Launcher...');
-
-        try {
-            // Copy exe to install location
-            fs.copyFileSync(currentExe, INSTALL_PATH);
-            console.log('[Install] Copiado a:', INSTALL_PATH);
-
-            // Register protocol handler
-            await registerProtocol();
-
-            console.log('[Install] ¡Instalación completa! ✓');
-            console.log('[Install] Ahora puedes usar DeskShare desde la web.');
-
-        } catch (e) {
-            console.error('[Install] Error:', e.message);
+// ==========================================
+// LOGGING & UTILS
+// ==========================================
+function safeSend(channel, data) {
+    try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send(channel, data);
         }
-    }
-
-    return true;
+    } catch (e) { }
 }
 
-async function registerProtocol() {
-    return new Promise((resolve, reject) => {
-        log('Registrando protocolo deskshare://...', 'info');
+function log(msg, type = 'info') {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] [${type.toUpperCase()}] ${msg}\n`;
+    try { fs.appendFileSync(LOG_FILE, logLine); } catch (e) { }
+    console.log(`[${type}] ${msg}`);
+    safeSend('log-update', { msg, type });
+}
 
-        // Escape path for PowerShell (double backslashes not needed if passing as arg, but needed for registry string)
-        // actually for Start-Process -ArgumentList we need to be careful.
-        // Let's use a simpler approach: create the registry keys directly via separate commands or a cleaner script block.
+// ==========================================
+// WINDOW MANAGEMENT
+// ==========================================
+function createWindow() {
+    mainWindow = new BrowserWindow({
+        width: 800, height: 600,
+        backgroundColor: '#0a0a0f',
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: false,
+            contextIsolation: true
+        },
+        autoHideMenuBar: true,
+        show: false
+    });
 
-        const exePath = INSTALL_PATH.replace(/"/g, '`"'); // Escape quotes for PS
+    mainWindow.loadFile('index.html');
 
-        // We use a properly escaped string for the command value
-        // value should be: "C:\Path\To\Exe" "%1"
-        const commandValue = `\\"${exePath}\\" \\"%1\\"`;
-
-        const psScript = `
-            $ErrorActionPreference = 'Stop'
-            $path = 'HKCU:\\Software\\Classes\\deskshare'
-            
-            # Force create/overwrite
-            New-Item -Path $path -Force | Out-Null
-            Set-ItemProperty -Path $path -Name '(Default)' -Value 'URL:DeskShare Protocol'
-            Set-ItemProperty -Path $path -Name 'URL Protocol' -Value ''
-            
-            $cmdPath = "$path\\shell\\open\\command"
-            New-Item -Path $cmdPath -Force | Out-Null
-            
-            # Important: Use literal quotes for the registry value
-            $val = '${commandValue}'
-            Set-ItemProperty -Path $cmdPath -Name '(Default)' -Value $val
-            
-            Write-Output "Success"
-        `;
-
-        const child = spawn('powershell', [
-            '-ExecutionPolicy', 'Bypass',
-            '-Command', psScript
-        ]);
-
-        let output = '';
-        let error = '';
-
-        child.stdout.on('data', (data) => output += data.toString());
-        child.stderr.on('data', (data) => error += data.toString());
-
-        child.on('close', (code) => {
-            if (code === 0) {
-                log('Protocolo registrado correctamente en el registro.', 'success');
-                resolve(true);
-            } else {
-                log(`Error al registrar protocolo (Code ${code}): ${error}`, 'error');
-                // Don't reject, just log error. Maybe permission issue?
-                resolve(false);
-            }
-        });
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+        startAgent();
     });
 }
 
-// ============================================
-// Configuration Management
-// ============================================
+// ==========================================
+// APP LIFECYCLE
+// ==========================================
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+} else {
+    // Second Instance Handler
+    app.on('second-instance', (event, commandLine) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        }
+        const url = commandLine.find(arg => arg.startsWith('deskshare://'));
+        if (url) handleProtocolUrl(url);
+    });
+
+    // Ready Handler
+    app.whenReady().then(() => {
+        // Register Protocol
+        if (process.defaultApp) {
+            if (process.argv.length >= 2) {
+                app.setAsDefaultProtocolClient('deskshare', process.execPath, [path.resolve(process.argv[1])]);
+            }
+        } else {
+            app.setAsDefaultProtocolClient('deskshare');
+        }
+
+        createWindow();
+
+        if (process.platform === 'win32') {
+            const url = process.argv.find(arg => arg.startsWith('deskshare://'));
+            if (url) handleProtocolUrl(url);
+        }
+    });
+
+    // Cleanup
+    app.on('window-all-closed', () => {
+        if (cloudflaredProcess) cloudflaredProcess.kill();
+        if (vncProcess) vncProcess.kill();
+        app.quit();
+    });
+
+    // Crash Prevention
+    process.on('uncaughtException', (err) => {
+        log(`CRITICAL CRASH: ${err.message}`, 'error');
+        try { fs.appendFileSync(LOG_FILE, `Stack: ${err.stack}\n`); } catch (e) { }
+    });
+}
+
+// ==========================================
+// IPC HANDLERS
+// ==========================================
+ipcMain.on('open-url', (e, url) => shell.openExternal(url));
+ipcMain.on('retry-vnc', () => {
+    log('User requested retry...', 'info');
+    startAgentFallback();
+});
+ipcMain.on('start-webrtc-session', async (event, sessionId) => {
+    log(`Starting WebRTC Session: ${sessionId}`, 'info');
+    if (webrtcMode === 'browser') await startBroadcasterWindow(sessionId);
+    else if (webrtcMode === 'native') require('./webrtc-broadcaster').startBroadcasting(sessionId, config.token);
+});
+
+// ==========================================
+// CORE LOGIC
+// ==========================================
+
+function handleProtocolUrl(urlStr) {
+    try {
+        const url = new URL(urlStr);
+        const params = new URLSearchParams(url.search);
+        if (params.has('computerId')) config.computerId = params.get('computerId');
+        if (params.has('token')) config.token = params.get('token');
+        saveConfig();
+
+        // Restart services with new ID
+        startAgent();
+    } catch (e) {
+        log(`Invalid Protocol URL: ${e.message}`, 'error');
+    }
+}
 
 function loadConfig() {
     try {
         if (fs.existsSync(CONFIG_PATH)) {
             config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-            console.log('[Config] Loaded:', config);
+            log(`Config Loaded (ID: ${config.computerId})`, 'info');
+            safeSend('status-update', {
+                status: 'CONFIGURED',
+                details: `Computer ID: ${config.computerId}`
+            });
         }
     } catch (e) {
-        console.error('[Config] Failed to load:', e.message);
+        log('No config found', 'warning');
     }
 }
 
 function saveConfig() {
-    try {
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-        console.log('[Config] Saved');
-    } catch (e) {
-        console.error('[Config] Failed to save:', e.message);
-    }
+    try { fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2)); } catch (e) { }
 }
 
-// ============================================
-// Parse Launch Arguments (from deskshare:// protocol)
-// ============================================
+async function startAgent() {
+    loadConfig();
 
-function parseArgs() {
-    // When launched via protocol: deskshare://start?computerId=X&token=Y
-    const args = process.argv.slice(2);
-
-    for (const arg of args) {
-        if (arg.startsWith('deskshare://')) {
-            const url = new URL(arg);
-            const params = new URLSearchParams(url.search);
-
-            if (params.has('computerId')) config.computerId = params.get('computerId');
-            if (params.has('token')) config.token = params.get('token');
-            if (params.has('action')) config.action = params.get('action');
-
-            saveConfig();
-        }
-    }
-
-    // Also check command line args
-    for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--computerId' && args[i + 1]) config.computerId = args[i + 1];
-        if (args[i] === '--token' && args[i + 1]) config.token = args[i + 1];
-    }
-}
-
-// ============================================
-// Enable RDP on Windows
-// ============================================
-
-async function enableRDP() {
-    return new Promise((resolve, reject) => {
-        console.log('[RDP] Checking/enabling RDP...');
-
-        // PowerShell command to enable RDP
-        const psCommand = `
-            Set-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name "fDenyTSConnections" -Value 0;
-            Enable-NetFirewallRule -DisplayGroup "Remote Desktop";
-            Write-Output "RDP Enabled"
-        `;
-
-        exec(`powershell -ExecutionPolicy Bypass -Command "${psCommand}"`, { shell: true }, (error, stdout, stderr) => {
-            if (error) {
-                console.log('[RDP] May need admin rights to enable RDP:', error.message);
-                // Continue anyway - RDP might already be enabled
-                resolve(true);
-            } else {
-                console.log('[RDP] Status:', stdout.trim());
-                resolve(true);
-            }
-        });
-    });
-}
-
-// ============================================
-// Download Cloudflared (Auto on first run)
-// ============================================
-
-const CLOUDFLARED_PATH = path.join(os.homedir(), '.deskshare', 'cloudflared.exe');
-
-async function downloadCloudflared() {
-    const cloudflaredDir = path.dirname(CLOUDFLARED_PATH);
-
-    // Create directory if not exists
-    if (!fs.existsSync(cloudflaredDir)) {
-        fs.mkdirSync(cloudflaredDir, { recursive: true });
-    }
-
-    // Check if already downloaded
-    if (fs.existsSync(CLOUDFLARED_PATH)) {
-        console.log('[Cloudflared] Ya instalado ✓');
-        return CLOUDFLARED_PATH;
-    }
-
-    console.log('[Cloudflared] Descargando... (solo la primera vez)');
-    console.log('[Cloudflared] Esto puede tardar 1-2 minutos...');
-
-    const downloadUrl = 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe';
-
-    try {
-        const response = await axios({
-            method: 'get',
-            url: downloadUrl,
-            responseType: 'stream',
-            timeout: 120000 // 2 minutes timeout
-        });
-
-        const writer = fs.createWriteStream(CLOUDFLARED_PATH);
-        response.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-
-        console.log('[Cloudflared] Descargado correctamente ✓');
-        return CLOUDFLARED_PATH;
-
-    } catch (error) {
-        console.error('[Cloudflared] Error al descargar:', error.message);
-        throw error;
-    }
-}
-
-// ============================================
-// Create Cloudflared Tunnel
-// ============================================
-
-async function createTunnel() {
-    // Step 1: Auto-download cloudflared if needed
-    const cloudflaredPath = await downloadCloudflared();
-
-    return new Promise((resolve, reject) => {
-        console.log('[Tunnel] Iniciando túnel seguro...');
-
-        // Create tunnel for RDP (port 3389)
-        cloudflaredProcess = spawn(cloudflaredPath, [
-            'tunnel', '--url', 'tcp://localhost:3389'
-        ], {
-            stdio: ['pipe', 'pipe', 'pipe']
-        });
-
-        let output = '';
-
-        cloudflaredProcess.stderr.on('data', (data) => {
-            const text = data.toString();
-            output += text;
-
-            // Only log important lines
-            if (text.includes('trycloudflare.com') || text.includes('INF')) {
-                console.log('[Tunnel]', text.trim().substring(0, 100));
-            }
-
-            // Look for the tunnel URL
-            const match = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
-            if (match) {
-                tunnelUrl = match[0];
-                console.log('[Tunnel] ¡Conectado!');
-                console.log('[Tunnel] URL:', tunnelUrl);
-                resolve(tunnelUrl);
-            }
-        });
-
-        cloudflaredProcess.on('error', (err) => {
-            console.error('[Tunnel] Error al iniciar:', err.message);
-            reject(err);
-        });
-
-        cloudflaredProcess.on('exit', (code) => {
-            if (code !== 0) {
-                console.log('[Tunnel] Se cerró con código:', code);
-            }
-        });
-
-        // Timeout after 45 seconds
-        setTimeout(() => {
-            if (!tunnelUrl) {
-                reject(new Error('El túnel tardó demasiado en conectar'));
-            }
-        }, 45000);
-    });
-}
-
-// ============================================
-// Register Tunnel with Backend
-// ============================================
-
-async function registerTunnel(url) {
     if (!config.computerId || !config.token) {
-        console.error('[Register] Missing computerId or token');
-        return false;
+        safeSend('status-update', { status: 'WAITING', details: 'Config Needed (Launch from Web)' });
+        return;
     }
 
+    safeSend('status-update', { status: 'STARTING', details: 'Initializing...' });
+
+    // === 1. WEBRTC (P2P) ===
     try {
-        console.log('[Register] Registering tunnel with backend...');
+        log('Starting WebRTC P2P...', 'info');
+        safeSend('status-update', { status: 'CONFIGURING', details: 'Setting up WebRTC...' });
+        await setupWebRTC();
+        safeSend('status-update', {
+            status: 'ONLINE',
+            details: `ID: ${config.computerId} | WebRTC: READY`
+        });
+    } catch (e) {
+        log(`WebRTC Failed: ${e.message}`, 'warning');
+    }
 
-        const response = await axios.post(
-            `${BACKEND_URL}/api/tunnels/register`,
-            {
-                computerId: config.computerId,
-                tunnelUrl: url
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${config.token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
+    // === 2. VNC + TUNNEL (Standard) ===
+    // Always run this in parallel for Guacamole compat
+    log('Starting Standard Tunnel...', 'info');
+    startAgentFallback().catch(e => log(`Tunnel Error: ${e.message}`, 'error'));
 
-        console.log('[Register] Success:', response.data.message);
+    // Heartbeat
+    if (global.heartbeatInt) clearInterval(global.heartbeatInt);
+    global.heartbeatInt = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+}
+
+// ==========================================
+// DUAL MODE SERVICES
+// ==========================================
+
+// --- WebRTC ---
+async function setupWebRTC() {
+    try {
+        // Try Native first (requires binaries)
+        try {
+            require('wrtc');
+            await setupWebRTCNative();
+        } catch {
+            await setupWebRTCBrowser();
+        }
         return true;
-
-    } catch (error) {
-        console.error('[Register] Failed:', error.response?.data?.error || error.message);
-        return false;
+    } catch (e) {
+        throw e;
     }
 }
 
-// ============================================
-// Heartbeat
-// ============================================
+async function setupWebRTCBrowser() {
+    log('WebRTC: Using Browser Mode', 'info');
+    broadcasterWindow = new BrowserWindow({
+        width: 400, height: 300, show: false,
+        webPreferences: { nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, 'preload.js') }
+    });
+
+    await registerWebRTCCapability('browser');
+    webrtcMode = 'browser';
+}
+
+async function setupWebRTCNative() {
+    const webrtc = require('./webrtc-broadcaster');
+    await webrtc.registerWebRTCCapability(config.computerId, config.token);
+    webrtcMode = 'native';
+    log('WebRTC: Using Native Mode', 'success');
+}
+
+async function startBroadcasterWindow(sessionId) {
+    if (!broadcasterWindow) return;
+    const url = `file://${path.join(__dirname, 'broadcaster.html')}?sessionId=${sessionId}&token=${config.token}`;
+    broadcasterWindow.loadURL(url);
+}
+
+async function registerWebRTCCapability(mode) {
+    try {
+        await axios.post(`${BACKEND_URL}/api/webrtc/register`,
+            { computerId: config.computerId, mode },
+            { headers: { 'Authorization': `Bearer ${config.token}` } }
+        );
+    } catch (e) { log(`WebRTC Reg Error: ${e.message}`, 'warning'); }
+}
+
+
+// --- STANDARD TUNNEL (VNC) ---
+
+async function startAgentFallback() {
+    const osType = await checkWindowsEdition();
+    log(`OS Type: ${osType}`, 'info');
+
+    let method = 'rdp';
+    let port = 3389;
+    let pass = null;
+
+    if (osType === 'Home') {
+        method = 'vnc';
+        port = 5900;
+        pass = "12345678"; // Internal password for VNC
+        await setupVNC();
+    } else {
+        await enableRDP();
+    }
+
+    try {
+        const url = await createTunnel(port);
+        await registerTunnel(url, method, pass);
+        log('Tunnel Registered Successfully', 'success');
+    } catch (e) {
+        throw e;
+    }
+}
+
+async function checkWindowsEdition() {
+    return new Promise(resolve => {
+        exec('wmic os get Caption', (e, stdout) => {
+            if (e) return resolve('Unknown');
+            resolve(stdout.toString().toLowerCase().includes('home') ? 'Home' : 'Pro');
+        });
+    });
+}
+
+async function runPowershell(content) {
+    const scriptPath = path.join(os.tmpdir(), `deskshare_setup_${Date.now()}.ps1`);
+    fs.writeFileSync(scriptPath, content);
+    return new Promise(resolve => {
+        const child = spawn('powershell', ['-ExecutionPolicy', 'Bypass', '-File', scriptPath]);
+        child.on('close', () => {
+            try { fs.unlinkSync(scriptPath); } catch { }
+            resolve();
+        });
+    });
+}
+
+// RDP Setup
+async function enableRDP() {
+    log('Enabling RDP...', 'info');
+    const script = `
+    Set-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force;
+    Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue;
+    `;
+    await runPowershell(script);
+}
+
+// VNC Setup
+async function setupVNC() {
+    // 1. Locate Binary
+    const binName = 'tvnserver.exe';
+    let binPath = [
+        path.join(__dirname, 'bin', binName),
+        path.join(process.resourcesPath, 'bin', binName),
+        path.join(__dirname, '..', '..', 'bin', binName)
+    ].find(p => fs.existsSync(p));
+
+    if (!binPath) {
+        log('Error: VNC Binary Missing', 'error');
+        safeSend('status-update', { status: 'MANUAL_ACTION_REQUIRED', details: 'Missing VNC Engine' });
+        return;
+    }
+
+    // 2. Kill Old
+    exec('taskkill /F /IM tvnserver.exe /T', () => { });
+
+    // 3. Configure Registry (Password: 12345678)
+    const script = `
+    $path = "HKCU:\\Software\\TightVNC\\Server";
+    if (!(Test-Path $path)) { New-Item -Path $path -Force; }
+    $hex = "F0,E4,31,64,F6,C2,E3,73"; 
+    $bytes = $hex.Split(',') | ForEach-Object { [byte]('0x' + $_) };
+    Set-ItemProperty -Path $path -Name "Password" -Value $bytes -Type Binary -Force;
+    Set-ItemProperty -Path $path -Name "RfbPort" -Value 5900 -Type DWord -Force;
+    Set-ItemProperty -Path $path -Name "UseVncAuthentication" -Value 1 -Type DWord -Force;
+    Set-ItemProperty -Path $path -Name "AllowLoopback" -Value 1 -Type DWord -Force;
+    `;
+    await runPowershell(script);
+
+    // 4. Firewall
+    await runPowershell(`
+    if (!(Get-NetFirewallRule -DisplayName "DeskShare-VNC" -ErrorAction SilentlyContinue)) {
+        New-NetFirewallRule -DisplayName "DeskShare-VNC" -Direction Inbound -LocalPort 5900 -Protocol TCP -Action Allow -Profile Any;
+    }
+    `);
+
+    // 5. Spawn Process
+    log('Spawning VNC Engine...', 'info');
+    setTimeout(() => {
+        vncProcess = spawn(binPath, ['-run'], { detached: true });
+        log('VNC Engine Started', 'success');
+    }, 1000);
+}
+
+// Cloudflare Tunnel
+async function createTunnel(port) {
+    if (cloudflaredProcess) cloudflaredProcess.kill();
+
+    // Find binary
+    const binName = 'cloudflared.exe';
+    let binPath = [
+        path.join(process.resourcesPath, 'bin', binName),
+        path.join(__dirname, 'bin', binName),
+        path.join(USER_DATA_PATH, 'bin', binName)
+    ].find(p => fs.existsSync(p));
+
+    // Download if missing
+    if (!binPath) {
+        log('Downloading Tunnel Engine...', 'info');
+        binPath = path.join(USER_DATA_PATH, 'bin', binName);
+        fs.mkdirSync(path.dirname(binPath), { recursive: true });
+        const writer = fs.createWriteStream(binPath);
+        const response = await axios({ method: 'get', url: 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe', responseType: 'stream' });
+        response.data.pipe(writer);
+        await new Promise(r => writer.on('finish', r));
+    }
+
+    log(`Starting Tunnel on port ${port}...`, 'info');
+    return new Promise((resolve, reject) => {
+        cloudflaredProcess = spawn(binPath, ['tunnel', '--url', `tcp://localhost:${port}`]);
+        cloudflaredProcess.stderr.on('data', d => {
+            const t = d.toString();
+            const m = t.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+            if (m) resolve(m[0]);
+        });
+        setTimeout(() => reject(new Error('Tunnel Connection Timeout')), 20000);
+    });
+}
+
+async function registerTunnel(url, method, pass) {
+    try {
+        await axios.post(`${BACKEND_URL}/api/tunnels/register`,
+            { computerId: config.computerId, tunnelUrl: url, accessMethod: method, accessPassword: pass },
+            { headers: { 'Authorization': `Bearer ${config.token}` } }
+        );
+    } catch (e) { log('Tunnel Registration Failed', 'error'); }
+}
 
 async function sendHeartbeat() {
-    if (!config.computerId || !config.token) return;
-
     try {
-        await axios.post(
-            `${BACKEND_URL}/api/tunnels/heartbeat`,
-            { computerId: config.computerId },
-            {
-                headers: {
-                    'Authorization': `Bearer ${config.token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-        console.log('[Heartbeat] Sent');
-    } catch (error) {
-        console.error('[Heartbeat] Failed:', error.message);
-    }
+        await axios.post(`${BACKEND_URL}/api/tunnels/heartbeat`, { computerId: config.computerId }, { headers: { 'Authorization': `Bearer ${config.token}` } });
+    } catch { }
 }
-
-// ============================================
-// Cleanup
-// ============================================
-
-async function cleanup() {
-    console.log('[Cleanup] Shutting down...');
-
-    if (cloudflaredProcess) {
-        cloudflaredProcess.kill();
-    }
-
-    // Notify backend we're going offline
-    if (config.computerId && config.token) {
-        try {
-            await axios.post(
-                `${BACKEND_URL}/api/tunnels/offline`,
-                { computerId: config.computerId },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${config.token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            console.log('[Cleanup] Notified backend of offline status');
-        } catch (e) {
-            // Ignore errors during cleanup
-        }
-    }
-
-    process.exit(0);
-}
-
-// ============================================
-// Logging & UI Utilities
-// ============================================
-
-const LOG_FILE = path.join(INSTALL_DIR, 'debug.log');
-
-function logToFile(msg) {
-    const timestamp = new Date().toISOString();
-    const logLine = `[${timestamp}] ${msg}\n`;
-    try {
-        fs.appendFileSync(LOG_FILE, logLine);
-    } catch (e) {
-        // Ignored
-    }
-}
-
-function log(msg, type = 'info') {
-    const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
-    console.log(`${prefix} ${msg}`);
-    logToFile(`${type.toUpperCase()}: ${msg}`);
-}
-
-function waitAndExit(code = 0) {
-    console.log('');
-    console.log('Press any key to close this window...');
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.on('data', () => process.exit(code));
-}
-
-// ============================================
-// Main
-// ============================================
-
-async function main() {
-    // Initial Setup
-    if (!fs.existsSync(INSTALL_DIR)) fs.mkdirSync(INSTALL_DIR, { recursive: true });
-    logToFile('--- Starting DeskShare Launcher ---');
-
-    console.clear();
-    console.log('\x1b[36m%s\x1b[0m', '╔════════════════════════════════════════════════╗');
-    console.log('\x1b[36m%s\x1b[0m', '║           DeskShare Launcher Agent             ║');
-    console.log('\x1b[36m%s\x1b[0m', '║        Zero-Config Remote Access Tool          ║');
-    console.log('\x1b[36m%s\x1b[0m', '╚════════════════════════════════════════════════╝');
-    console.log('');
-
-    try {
-        // Step 0: Ensure installed & protocol registered (first run only)
-        log('Verifying installation...', 'info');
-        await ensureInstalled();
-
-        // Load saved config
-        loadConfig();
-
-        // Parse protocol arguments
-        parseArgs();
-        log(`Arguments parsed: ${JSON.stringify(process.argv)}`, 'info');
-
-        if (!config.computerId || !config.token) {
-            log('Configuration missing!', 'error');
-            log('Please launch this agent via the DeskShare website.', 'info');
-            console.log('');
-            console.log('Or use command line: --computerId X --token Y');
-            waitAndExit(1);
-            return;
-        }
-
-        log(`Computer ID: ${config.computerId}`, 'info');
-        log(`Backend: ${BACKEND_URL}`, 'info');
-
-        // Step 1: Enable RDP
-        log('Enabling Remote Desktop Protocol...', 'info');
-        await enableRDP();
-
-        // Step 2: Create tunnel
-        log('Starting secure tunnel...', 'info');
-        const url = await createTunnel();
-
-        // Step 3: Register with backend
-        log('Registering with DeskShare Network...', 'info');
-        const success = await registerTunnel(url);
-
-        if (!success) {
-            throw new Error('Failed to register with backend');
-        }
-
-        // Step 4: Start heartbeat
-        setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
-
-        console.clear();
-        console.log('\x1b[32m%s\x1b[0m', '╔════════════════════════════════════════════════╗');
-        console.log('\x1b[32m%s\x1b[0m', '║              ✅ SYSTEM ONLINE                  ║');
-        console.log('\x1b[32m%s\x1b[0m', '╚════════════════════════════════════════════════╝');
-        console.log('');
-        console.log('  🟢 Tunnel Status:  CONNECTED');
-        console.log(`  🔗 Secure URL:     ${url}`);
-        console.log(`  🖥️  Computer ID:    ${config.computerId}`);
-        console.log('');
-        console.log('  Your computer is now securely accessible.');
-        console.log('  You can minimize this window, but DO NOT CLOSE IT.');
-        console.log('');
-        console.log('  [Quit: Ctrl+C]');
-
-    } catch (error) {
-        log(error.message, 'error');
-        log(error.stack, 'error');
-        console.log('');
-        console.log('❌ FATAL ERROR: The agent could not start.');
-        console.log(`   Logs saved to: ${LOG_FILE}`);
-        waitAndExit(1);
-    }
-}
-
-// Handle graceful shutdown
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
-process.on('uncaughtException', (err) => {
-    logToFile(`UNCAUGHT: ${err.message}\n${err.stack}`);
-    console.error('CRASH:', err.message);
-    waitAndExit(1);
-});
-
-// Run
-main().catch(e => {
-    console.error(e);
-    waitAndExit(1);
-});
