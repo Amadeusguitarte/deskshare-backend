@@ -348,6 +348,24 @@
             const element = guacDisplay.getElement();
             displayContainer.appendChild(element);
 
+            // === CRITICAL: Handle display sync/updates ===
+            guacClient.onsync = function () {
+                // Called when display updates - ensure it renders
+                const canvas = guacDisplay.flatten();
+                // Auto-scale to fit container
+                const containerWidth = displayContainer.offsetWidth;
+                const containerHeight = displayContainer.offsetHeight;
+                const displayWidth = guacDisplay.getWidth();
+                const displayHeight = guacDisplay.getHeight();
+
+                if (displayWidth > 0 && displayHeight > 0) {
+                    const scaleX = containerWidth / displayWidth;
+                    const scaleY = containerHeight / displayHeight;
+                    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+                    guacDisplay.scale(scale);
+                }
+            };
+
             // Connect
             guacClient.connect();
 
@@ -359,7 +377,10 @@
             // Mouse
             mouse = new Guacamole.Mouse(element);
             mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
-                // Scale mouse events if display is scaled (TODO: Auto-scale logic)
+                // Scale mouse events if display is scaled
+                const scale = guacDisplay.getScale();
+                mouseState.x = mouseState.x / scale;
+                mouseState.y = mouseState.y / scale;
                 guacClient.sendMouseState(mouseState);
             };
 
@@ -375,10 +396,18 @@
             // Handle window focus for keyboard
             window.onblur = function () { keyboard.reset(); };
 
-            // Resize listener (Basic)
+            // Resize listener (Auto-scale on window resize)
             window.addEventListener('resize', () => {
-                // Trigger display resize? 
-                // For simplified V1, we rely on browser scaling or server side.
+                if (guacDisplay && guacDisplay.getWidth() > 0) {
+                    const containerWidth = displayContainer.offsetWidth;
+                    const containerHeight = displayContainer.offsetHeight;
+                    const displayWidth = guacDisplay.getWidth();
+                    const displayHeight = guacDisplay.getHeight();
+                    const scaleX = containerWidth / displayWidth;
+                    const scaleY = containerHeight / displayHeight;
+                    const scale = Math.min(scaleX, scaleY, 1);
+                    guacDisplay.scale(scale);
+                }
             });
         }
 
