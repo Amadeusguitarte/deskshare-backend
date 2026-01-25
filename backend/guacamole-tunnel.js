@@ -95,6 +95,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         log: {
             level: 'VERBOSE'
         },
+        connectionTimeout: 60000, // EXTENDED TIMEOUT: 60s for Cloudflare Tunnel startup
         allowedUnencryptedConnectionSettings: {
             rdp: ['width', 'height', 'dpi'],
             vnc: ['width', 'height', 'dpi', 'password'],
