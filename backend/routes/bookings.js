@@ -128,6 +128,8 @@ router.post('/:id/start', auth, async (req, res, next) => {
         let connectionStrategy = 'DIRECT_IP';
         let connectionDebug = `Target: ${rdpHost}:${rdpPort}`;
 
+        // Legacy Tunnel Manager (Disabled in favor of Guacamole Tunnel Proxy)
+        /*
         if (booking.computer.tunnelUrl) {
             try {
                 console.log(`[Session] Bridging tunnel for ${booking.computer.name}...`);
@@ -144,6 +146,14 @@ router.post('/:id/start', auth, async (req, res, next) => {
                 connectionStrategy = 'BRIDGE_FAILED_FALLBACK';
                 connectionDebug = `Bridge Failed (${err.message}). Fallback to ${rdpHost}:${rdpPort}`;
             }
+        }
+        */
+
+        // Priority: Tunnel URL > RDP Host
+        if (booking.computer.tunnelUrl) {
+            rdpHost = booking.computer.tunnelUrl;
+            connectionStrategy = 'CLOUDFLARE_TUNNEL_V2'; // V2 = Magic Proxy in GuacTunnel
+            connectionDebug = `Target: ${rdpHost}`;
         }
 
         // Only generate if we have host/port
@@ -163,8 +173,11 @@ router.post('/:id/start', auth, async (req, res, next) => {
                     'resize-method': 'display-update'
                 });
             } else if (protocol === 'vnc') {
-                // VNC specific settings if needed
-                // Guacamole VNC doesn't use ignore-cert
+                // VNC specific settings
+                Object.assign(settings, {
+                    autoretry: 'true',
+                    security: 'vnc' // Standard auth
+                });
             }
 
             const connectionParams = {
