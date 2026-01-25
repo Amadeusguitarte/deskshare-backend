@@ -252,6 +252,13 @@
                 booking = data.booking;
                 const guacToken = data.guacamoleToken;
 
+                // DEBUG: Show Connection Strategy
+                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                debugOverlay.innerHTML += `<div style="color:yellow; border-bottom:1px solid #555; padding-bottom:5px; margin-bottom:5px;">Strategy: ${data.connectionStrategy}</div>`;
+                if (data.connectionDebug) {
+                    debugOverlay.innerHTML += `<div style="font-size:0.8rem; color:#888;">${data.connectionDebug}</div>`;
+                }
+
                 // Update UI
                 document.getElementById('computerName').textContent = booking.computer?.name || 'PC Remota';
                 pricePerHour = booking.priceAgreed;
