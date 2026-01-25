@@ -35,8 +35,13 @@ router.post('/register', auth, async (req, res, next) => {
                 tunnelUrl: tunnelUrl,
                 tunnelStatus: 'online',
                 tunnelUpdatedAt: new Date(),
-                // Auto-set rdpHost to tunnel URL for Guacamole compatibility
-                rdpHost: tunnelUrl
+                // Use accessMethod from agent, default to 'rdp'
+                accessMethod: req.body.accessMethod || 'rdp',
+                // Auto-set rdpHost to tunnel URL for Guacamole
+                rdpHost: tunnelUrl,
+                // If VNC, set VNC port, otherwise RDP
+                vncPort: (req.body.accessMethod === 'vnc') ? 5900 : null,
+                rdpPort: (req.body.accessMethod === 'vnc') ? null : 3389
             }
         });
 
