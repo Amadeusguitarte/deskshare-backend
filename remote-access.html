@@ -349,19 +349,25 @@
             displayContainer.appendChild(element);
 
             // === CRITICAL: Handle display sync/updates ===
+            let syncCount = 0;
             guacClient.onsync = function () {
-                // Called when display updates - ensure it renders
-                const canvas = guacDisplay.flatten();
-                // Auto-scale to fit container
-                const containerWidth = displayContainer.offsetWidth;
-                const containerHeight = displayContainer.offsetHeight;
+                syncCount++;
+                // Called when display updates
                 const displayWidth = guacDisplay.getWidth();
                 const displayHeight = guacDisplay.getHeight();
 
+                // Log every 10th sync to avoid spam
+                if (syncCount === 1 || syncCount % 10 === 0) {
+                    console.log(`[GUAC] onsync #${syncCount} - Display: ${displayWidth}x${displayHeight}`);
+                }
+
                 if (displayWidth > 0 && displayHeight > 0) {
+                    // Auto-scale to fit container
+                    const containerWidth = displayContainer.offsetWidth;
+                    const containerHeight = displayContainer.offsetHeight;
                     const scaleX = containerWidth / displayWidth;
                     const scaleY = containerHeight / displayHeight;
-                    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+                    const scale = Math.min(scaleX, scaleY, 1);
                     guacDisplay.scale(scale);
                 }
             };
