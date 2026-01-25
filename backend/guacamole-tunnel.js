@@ -74,40 +74,49 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
 
                 if (settings.settings.hostname && settings.settings.hostname.includes('trycloudflare.com')) {
                     try {
-                        const tunnelUrl = settings.settings.hostname;
+                        let tunnelUrl = settings.settings.hostname;
+                        // Clean URL: remove https:// if present for --hostname flag
+                        const cleanHostname = tunnelUrl.replace('https://', '').replace('http://', '').split('/')[0];
+
                         // Pick random port 40000-50000
                         const localPort = Math.floor(Math.random() * 10000) + 40000;
 
-                        console.log(`[Guacamole Proxy] Cloudflare Tunnel Detected: ${tunnelUrl}`);
+                        console.log(`[Guacamole Proxy] Cloudflare Tunnel Detected: ${cleanHostname}`);
                         console.log(`[Guacamole Proxy] Spawning bridge on 127.0.0.1:${localPort}...`);
 
                         const { spawn } = require('child_process');
+                        // Use full path if needed, but 'cloudflared' should be in PATH from nixpacks
                         const proxyProc = spawn('cloudflared', [
                             'access', 'tcp',
-                            '--hostname', tunnelUrl,
+                            '--hostname', cleanHostname,
                             '--url', `127.0.0.1:${localPort}`
                         ]);
 
-                        proxyProc.stdout.on('data', d => console.log(`[Proxy Out]: ${d}`));
-                        proxyProc.stderr.on('data', d => console.log(`[Proxy Err]: ${d}`));
+                        proxyProc.stdout.on('data', d => console.log(`[Proxy-STDOUT]: ${d}`));
+                        proxyProc.stderr.on('data', d => {
+                            const msg = d.toString();
+                            console.log(`[Proxy-STDERR]: ${msg}`);
+                        });
 
                         proxyProc.on('error', (err) => {
                             console.error(`[Guacamole Proxy Error] Failed to spawn: ${err.message}`);
                         });
 
+                        proxyProc.on('exit', (code) => {
+                            console.log(`[Guacamole Proxy] Process exited with code ${code}`);
+                        });
+
                         // Clean up when client disconnects
                         clientConnection.on('close', () => {
-                            console.log(`[Guacamole Proxy] Client closed. Killing proxy PID ${proxyProc.pid}`);
-                            proxyProc.kill();
+                            console.log(`[Guacamole Proxy] Client closed. Cleaning up PID ${proxyProc.pid}`);
+                            proxyProc.kill('SIGTERM');
                         });
 
                         // Rewrite Settings for Guacd
                         settings.settings.hostname = '127.0.0.1';
                         settings.settings.port = localPort;
 
-                        // Wait a tiny bit for spawn? Guacd retries, so it's fine.
-
-                        console.log(`[Guacamole Proxy] Rewrote target to 127.0.0.1:${localPort}`);
+                        console.log(`[Guacamole Proxy] Logic Complete. Guacd target -> 127.0.0.1:${localPort}`);
                     } catch (e) {
                         console.error(`[Guacamole Proxy Exception] ${e.message}`);
                     }
