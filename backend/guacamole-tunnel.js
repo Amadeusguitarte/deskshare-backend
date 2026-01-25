@@ -26,10 +26,22 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     const shimServer = new EventEmitter();
 
     // 1. Initialize GuacamoleLite with Shim
-    const guacServer = new GuacamoleLite(
-        { server: shimServer },
-        guacdOptions,
-        clientOptions
+    clientOptions,
+    {
+        // Debug Callbacks
+        processConnectionSettings: (settings, clientConnection) => {
+            console.log('[Guacamole Debug] Processing Connection Settings:');
+            // Mask password for safety in logs, but confirm it exists
+            const safeSettings = { ...settings };
+            if (safeSettings.settings && safeSettings.settings.password) {
+                safeSettings.settings.password = '***MASKED***';
+            }
+            console.log(JSON.stringify(safeSettings, null, 2));
+
+            // If type is missing or wrong, force it here if possible (debug only)
+            return settings;
+        }
+    }
     );
 
     // 2. Attach Global Listener to Real Server
