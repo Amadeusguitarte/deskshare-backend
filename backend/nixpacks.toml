@@ -12,7 +12,8 @@ cmds = ["npm ci"]
 cmds = ["npx prisma generate"]
 
 [start]
-# 1. Start guacd in the background (-b) on localhost:4822 (default)
-# 2. Run Prisma push
-# 3. Start Node server
-cmd = "guacd -b -L info && npx prisma db push --accept-data-loss && node server.js"
+# 1. Start guacd in foreground but backgrounded with &
+# 2. Wait a moment for guacd to initialize
+# 3. Run Prisma push
+# 4. Start Node server
+cmd = "guacd -f -L info & sleep 2 && npx prisma db push --accept-data-loss && node server.js"
