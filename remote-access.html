@@ -153,10 +153,10 @@
                 </div>
 
                 <div class="toggle-container">
-                    <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Nativo
-                        (Web)</button>
-                    <button class="toggle-btn" onclick="switchMode('parsec')" id="btn-parsec">Parsec (Ultra
-                        Fluido)</button>
+                    <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Nativo</button>
+                    <button class="toggle-btn" onclick="switchMode('rustdesk')" id="btn-rustdesk"
+                        style="display:none;">RustDesk (P2P)</button>
+                    <button class="toggle-btn" onclick="switchMode('parsec')" id="btn-parsec">Parsec</button>
                 </div>
             </div>
 
@@ -261,6 +261,7 @@
 
                 // Success flow
                 booking = data.booking;
+                window.currentBooking = booking; // Store for mode switching
 
                 // DEBUG: Show Connection Strategy
                 const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
@@ -286,7 +287,22 @@
 
                     // Try to connect via RustDesk
                     connectRustDesk(rustdeskId, rustdeskPassword);
-                    return;
+                    // allow fallback to run? No, we need to choose one.
+                    // For now, let's NOT return, but let the user choose. 
+                    // Actually, simpler: Let's make RustDesk a "Mode" like Native/Parsec.
+
+                    // But to respect user request "deja la de guacamole funcionando":
+                    // We will NOT return here. We will let Guacamole load, but maybe overlay RustDesk info?
+                    // Or better: Only use RustDesk if mode selected?
+
+                    // Let's CHANGE strategy:
+                    // If RustDesk exists, we show a notification but let Guacamole load as default for now
+                    // UNLESS we want to force P2P.
+                    // User said "Guacamole no funciona".
+
+                    // Let's COMMENT OUT the return for now, so Guacamole loads, 
+                    // and we just show RustDesk as an option/overlay.
+                    // return; 
                 }
 
                 // === FALLBACK: GUACAMOLE (VNC/RDP) ===
@@ -535,21 +551,50 @@
         function switchMode(mode) {
             const guacView = document.getElementById('guacamole-view');
             const parsecView = document.getElementById('parsec-view');
+            // Check if RustDesk view exists (we might need to create it dynamically)
+            let rustdeskView = document.getElementById('rustdesk-view');
+
+            if (mode === 'rustdesk' && !rustdeskView) {
+                // Create container if not exists
+                rustdeskView = document.createElement('div');
+                rustdeskView.id = 'rustdesk-view';
+                rustdeskView.className = 'connection-instructions';
+                document.querySelector('.workspace').appendChild(rustdeskView);
+            }
+
             const btnNative = document.getElementById('btn-native');
             const btnParsec = document.getElementById('btn-parsec');
+            const btnRustdesk = document.getElementById('btn-rustdesk');
+
+            // Reset all
+            guacView.style.display = 'none';
+            parsecView.style.display = 'none';
+            if (rustdeskView) rustdeskView.style.display = 'none';
+
+            btnNative.classList.remove('active');
+            btnParsec.classList.remove('active');
+            if (btnRustdesk) btnRustdesk.classList.remove('active');
 
             if (mode === 'native') {
                 guacView.style.display = 'flex';
-                parsecView.style.display = 'none';
                 btnNative.classList.add('active');
-                btnParsec.classList.remove('active');
                 // Re-focus keyboard
-                if (keyboard) keyboard.reset();
-            } else {
-                guacView.style.display = 'none';
+                if (window.keyboard) window.keyboard.reset();
+            } else if (mode === 'parsec') {
                 parsecView.style.display = 'flex';
-                btnNative.classList.remove('active');
                 btnParsec.classList.add('active');
+            } else if (mode === 'rustdesk') {
+                if (rustdeskView) rustdeskView.style.display = 'flex';
+                if (btnRustdesk) btnRustdesk.classList.add('active');
+
+                // Show content if empty
+                if (rustdeskView && !rustdeskView.innerHTML) {
+                    // Logic handled by initSession, or we re-render here
+                    const booking = window.currentBooking; // We need to store this
+                    if (booking && booking.computer?.rustdeskId) {
+                        connectRustDesk(booking.computer.rustdeskId, booking.computer.rustdeskPassword);
+                    }
+                }
             }
         }
 
