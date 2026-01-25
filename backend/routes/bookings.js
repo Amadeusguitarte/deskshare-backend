@@ -82,11 +82,12 @@ router.post('/:id/start', auth, async (req, res, next) => {
         }
 
         // Verify ownership (Renter OR Host/Owner) -> Use loose equality for safety (int vs string)
-        const isRenter = booking.renterId == req.user.userId;
-        const isHost = booking.computer.userId == req.user.userId;
+        const requestUserId = req.user.userId || req.user.id;
+        const isRenter = booking.renterId == requestUserId;
+        const isHost = booking.computer.userId == requestUserId;
 
         if (!isRenter && !isHost) {
-            const reason = `Auth Fail: Renter ${booking.renterId} vs Req ${req.user.userId} | Host ${booking.computer.userId} vs Req ${req.user.userId}`;
+            const reason = `Auth Fail: Renter ${booking.renterId} vs Req ${requestUserId} | Host ${booking.computer.userId} vs Req ${requestUserId}`;
             console.log(reason);
             return res.status(403).json({ error: 'Not authorized', details: reason, code: 'AUTH_MISMATCH' });
         }
