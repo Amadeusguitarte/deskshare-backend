@@ -22,6 +22,7 @@ const chatRoutes = require('./routes/chat');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
 const tunnelRoutes = require('./routes/tunnels');
+const webrtcRoutes = require('./routes/webrtc'); // WebRTC signaling
 const migrateRoutes = require('./routes/migrate'); // TEMPORARY - DELETE AFTER MIGRATION
 
 // Import middleware
@@ -210,7 +211,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tunnels', tunnelRoutes);
-app.use('/api/migrate', migrateRoutes);
+app.use('/api/webrtc', webrtcRoutes); // WebRTC signaling endpoints
+app.use('/api/migrate', migrateRoutes); // TEMPORARY - DELETE AFTER MIGRATION
 
 // Server Entry Point (v180 RESTORED - GOLDEN STATE)(Project Root)
 // FALLBACK: Serve root (for existing monorepo structure)

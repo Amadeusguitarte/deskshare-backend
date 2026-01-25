@@ -70,6 +70,7 @@
             background: linear-gradient(to right, #fff, #a5b4fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 10px;
@@ -229,7 +230,13 @@
                 } else if (status === 'ERROR') {
                     statusText.innerText = "ERROR";
                     statusText.style.color = "var(--error)";
-                    compId.innerText = details.substring(0, 40) + "...";
+                    // Allow full error message
+                    compId.style.whiteSpace = "pre-wrap";
+                    compId.style.wordBreak = "break-word";
+                    compId.innerText = details;
+                } else if (status === 'INSTALLING_ENGINE') {
+                    statusText.innerText = "INSTALANDO MOTOR";
+                    compId.innerText = details;
                 }
             }
         });

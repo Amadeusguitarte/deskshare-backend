@@ -174,216 +174,144 @@ function checkWindowsEdition() {
     });
 }
 
-// === RustDesk P2P INTEGRATION ===
-const RUSTDESK_VERSION = '1.3.7';
-const RUSTDESK_DOWNLOAD_URL = `https://github.com/rustdesk/rustdesk/releases/download/${RUSTDESK_VERSION}/rustdesk-${RUSTDESK_VERSION}-x86_64.exe`;
-let rustdeskProcess;
+// === WebRTC P2P INTEGRATION (DUAL MODE) ===
+let webrtcMode = null; // 'native' or 'browser'
+let broadcasterWindow = null;
 
-async function isRustDeskInstalled() {
-    const possiblePaths = [
-        'C:\\Program Files\\RustDesk\\rustdesk.exe',
-        'C:\\Program Files (x86)\\RustDesk\\rustdesk.exe',
-        path.join(process.env.LOCALAPPDATA || '', 'RustDesk', 'rustdesk.exe'),
-        path.join(app.getPath('userData'), 'bin', 'rustdesk.exe')
-    ];
+// Detect WebRTC capabilities
+function detectWebRTCCapabilities() {
+    const capabilities = {
+        webrtcNative: false,
+        webrtcBrowser: true // Always available (uses Chromium)
+    };
 
-    for (const p of possiblePaths) {
-        if (fs.existsSync(p)) {
-            log(`RustDesk found at: ${p}`, 'info');
-            return p;
-        }
+    // Try to load native modules
+    try {
+        require('wrtc');
+        require('robotjs');
+        capabilities.webrtcNative = true;
+        log('WebRTC Native mode available (ultra-fast)', 'success');
+    } catch (e) {
+        log('WebRTC Native not available (missing dependencies), using Browser mode', 'info');
     }
-    return null;
+
+    return capabilities;
 }
 
-async function downloadRustDesk() {
-    const binPath = path.join(app.getPath('userData'), 'bin', 'rustdesk.exe');
-
-    if (fs.existsSync(binPath)) {
-        log('RustDesk already downloaded', 'info');
-        return binPath;
-    }
-
-    log('Downloading RustDesk...', 'info');
-    if (mainWindow) mainWindow.webContents.send('status-update', { status: 'DOWNLOADING', details: 'Downloading RustDesk P2P...' });
-
-    fs.mkdirSync(path.dirname(binPath), { recursive: true });
-
+// Setup WebRTC (Browser-based mode)
+async function setupWebRTCBrowser() {
     try {
-        const response = await axios({ method: 'get', url: RUSTDESK_DOWNLOAD_URL, responseType: 'stream' });
-        const writer = fs.createWriteStream(binPath);
-        response.data.pipe(writer);
+        log('Starting WebRTC Browser mode...', 'info');
 
-        return new Promise((resolve, reject) => {
-            writer.on('finish', () => {
-                log('RustDesk downloaded successfully', 'success');
-                resolve(binPath);
-            });
-            writer.on('error', reject);
+        // Create hidden browser window for broadcasting
+        broadcasterWindow = new BrowserWindow({
+            width: 400,
+            height: 300,
+            show: false, // Hidden by default
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: path.join(__dirname, 'preload.js')
+            }
         });
+
+        // Wait for session creation from backend
+        // For now, we'll register capability and wait for viewer connection
+        await registerWebRTCCapability('browser');
+
+        log('WebRTC Browser broadcaster ready', 'success');
+        webrtcMode = 'browser';
+        return true;
+
     } catch (e) {
-        log(`RustDesk download failed: ${e.message}`, 'error');
+        log(`WebRTC Browser setup failed: ${e.message}`, 'error');
         throw e;
     }
 }
 
-async function installRustDesk() {
-    let rustdeskPath = await isRustDeskInstalled();
-
-    if (rustdeskPath) {
-        return rustdeskPath;
-    }
-
-    log('Installing RustDesk silently...', 'info');
-    if (mainWindow) mainWindow.webContents.send('status-update', { status: 'INSTALLING', details: 'Installing RustDesk...' });
-
-    const installerPath = await downloadRustDesk();
-
-    return new Promise((resolve, reject) => {
-        // Run silent install
-        const child = spawn(installerPath, ['--silent-install'], {
-            stdio: 'ignore',
-            detached: true
-        });
-
-        child.on('close', async (code) => {
-            log(`RustDesk installer exited with code: ${code}`, code === 0 ? 'success' : 'warning');
-
-            // Wait a bit for installation to complete
-            await new Promise(r => setTimeout(r, 3000));
-
-            const installed = await isRustDeskInstalled();
-            if (installed) {
-                resolve(installed);
-            } else {
-                // Fallback: use portable version
-                log('Using portable RustDesk', 'info');
-                resolve(installerPath);
-            }
-        });
-
-        child.on('error', (e) => {
-            log(`RustDesk install error: ${e.message}`, 'error');
-            reject(e);
-        });
-    });
-}
-
-async function getRustDeskId() {
-    // RustDesk stores config at %APPDATA%\RustDesk\config\RustDesk.toml
-    const configPath = path.join(process.env.APPDATA || '', 'RustDesk', 'config', 'RustDesk.toml');
-
-    // Also check for ID file
-    const idPath = path.join(process.env.APPDATA || '', 'RustDesk', 'config', 'RustDesk2.toml');
-
-    for (const cp of [configPath, idPath]) {
-        if (fs.existsSync(cp)) {
-            try {
-                const content = fs.readFileSync(cp, 'utf8');
-                // Look for id = "XXXXXXXXX" pattern
-                const match = content.match(/id\s*=\s*["']?(\d+)["']?/);
-                if (match) {
-                    log(`RustDesk ID found: ${match[1]}`, 'success');
-                    return match[1];
-                }
-            } catch (e) {
-                log(`Error reading RustDesk config: ${e.message}`, 'warning');
-            }
-        }
-    }
-
-    // Try running rustdesk --get-id
-    return new Promise((resolve) => {
-        exec('rustdesk --get-id', (err, stdout) => {
-            if (!err && stdout.trim()) {
-                log(`RustDesk ID from CLI: ${stdout.trim()}`, 'success');
-                resolve(stdout.trim());
-            } else {
-                log('Could not get RustDesk ID', 'error');
-                resolve(null);
-            }
-        });
-    });
-}
-
-async function setRustDeskPassword(password) {
-    return new Promise((resolve) => {
-        exec(`rustdesk --password ${password}`, (err) => {
-            if (!err) {
-                log('RustDesk password set', 'success');
-            }
-            resolve(!err);
-        });
-    });
-}
-
-async function startRustDeskService(rustdeskPath) {
-    log('Starting RustDesk service...', 'info');
-
-    // Start RustDesk in service mode
-    rustdeskProcess = spawn(rustdeskPath, ['--service'], {
-        stdio: 'ignore',
-        detached: true
-    });
-
-    rustdeskProcess.unref();
-
-    // Wait for it to start
-    await new Promise(r => setTimeout(r, 2000));
-
-    return true;
-}
-
-async function registerRustDesk(rustdeskId, password) {
-    log(`Registering RustDesk ID: ${rustdeskId}`, 'info');
-
+// Setup WebRTC (Native mode)
+async function setupWebRTCNative() {
     try {
-        await axios.post(`${BACKEND_URL}/api/tunnels/rustdesk`, {
+        log('Starting WebRTC Native mode...', 'info');
+
+        const webrtc = require('./webrtc-broadcaster');
+        await webrtc.registerWebRTCCapability(config.computerId, config.token);
+
+        log('WebRTC Native broadcaster ready (ultra-fast)', 'success');
+        webrtcMode = 'native';
+        return true;
+
+    } catch (e) {
+        log(`WebRTC Native setup failed: ${e.message}`, 'error');
+        throw e;
+    }
+}
+
+// Start broadcaster window when session is created
+async function startBroadcasterWindow(sessionId) {
+    if (!broadcasterWindow) return;
+
+    const broadcasterUrl = `file://${path.join(__dirname, 'broadcaster.html')}?sessionId=${sessionId}&token=${config.token}`;
+
+    log(`Loading broadcaster: ${broadcasterUrl}`, 'info');
+    broadcasterWindow.loadURL(broadcasterUrl);
+
+    // Show window for debugging (optional)
+    // broadcasterWindow.show();
+}
+
+// Register WebRTC capability
+async function registerWebRTCCapability(mode) {
+    try {
+        await axios.post(`${BACKEND_URL}/api/webrtc/register`, {
             computerId: config.computerId,
-            rustdeskId: rustdeskId,
-            rustdeskPassword: password
+            mode: mode // 'native' or 'browser'
         }, {
             headers: { 'Authorization': `Bearer ${config.token}` }
         });
 
-        log('RustDesk registered with backend', 'success');
+        log(`WebRTC capability registered (${mode})`, 'success');
         return true;
     } catch (e) {
-        log(`RustDesk registration error: ${e.message}`, 'error');
-        throw e;
+        log(`WebRTC registration failed: ${e.message}`, 'error');
+        return false;
     }
 }
 
-async function setupRustDesk() {
+// Main WebRTC setup (tries native first, falls back to browser)
+async function setupWebRTC() {
+    const capabilities = detectWebRTCCapabilities();
+
     try {
-        // 1. Install RustDesk if not present
-        const rustdeskPath = await installRustDesk();
-
-        // 2. Start service
-        await startRustDeskService(rustdeskPath);
-
-        // 3. Get ID
-        const rustdeskId = await getRustDeskId();
-        if (!rustdeskId) {
-            throw new Error('Could not get RustDesk ID');
+        if (capabilities.webrtcNative) {
+            // Try native mode first (fastest)
+            await setupWebRTCNative();
+        } else {
+            // Fallback to browser mode (always works)
+            await setupWebRTCBrowser();
         }
 
-        // 4. Set password
-        const password = Math.random().toString(36).substring(2, 10); // Random 8-char
-        await setRustDeskPassword(password);
-
-        // 5. Register with backend
-        await registerRustDesk(rustdeskId, password);
-
-        return { rustdeskId, password };
+        return true;
     } catch (e) {
-        log(`RustDesk setup failed: ${e.message}`, 'error');
+        log(`WebRTC setup failed: ${e.message}`, 'error');
         throw e;
     }
 }
 
+// Listen for session creation requests from backend
+ipcMain.on('start-webrtc-session', async (event, sessionId) => {
+    log(`Starting WebRTC session: ${sessionId}`, 'info');
+
+    if (webrtcMode === 'browser') {
+        await startBroadcasterWindow(sessionId);
+    } else if (webrtcMode === 'native') {
+        const webrtc = require('./webrtc-broadcaster');
+        await webrtc.startBroadcasting(sessionId, config.token);
+    }
+});
+
 // ==========================================
-// MAIN AGENT START - Uses RustDesk FIRST
+// MAIN AGENT START - Uses WebRTC FIRST
 // ==========================================
 async function startAgent() {
     loadConfig();
@@ -397,24 +325,24 @@ async function startAgent() {
     if (mainWindow) mainWindow.webContents.send('status-update', { status: 'STARTING', details: 'Initializing services...' });
 
     try {
-        // === TRY RUSTDESK FIRST (P2P - LOW LATENCY) ===
-        log('Setting up RustDesk P2P...', 'info');
-        if (mainWindow) mainWindow.webContents.send('status-update', { status: 'CONFIGURING', details: 'Setting up RustDesk P2P...' });
+        // === TRY WEBRTC FIRST (P2P - LOW LATENCY) ===
+        log('Setting up WebRTC P2P...', 'info');
+        if (mainWindow) mainWindow.webContents.send('status-update', { status: 'CONFIGURING', details: 'Setting up WebRTC P2P...' });
 
-        const { rustdeskId, password } = await setupRustDesk();
+        await setupWebRTC();
 
         // Start heartbeat
         if (global.heartbeatInt) clearInterval(global.heartbeatInt);
         global.heartbeatInt = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
 
-        log('Agent is FULLY ONLINE with RustDesk P2P!', 'success');
+        log('Agent is FULLY ONLINE with WebRTC P2P!', 'success');
         if (mainWindow) mainWindow.webContents.send('status-update', {
             status: 'ONLINE',
-            details: `ID: ${config.computerId} | RustDesk: ${rustdeskId} | Mode: P2P`
+            details: `ID: ${config.computerId} | Mode: WebRTC P2P (Ultra Low Latency)`
         });
 
-    } catch (rustdeskError) {
-        log(`RustDesk failed, falling back to VNC/Tunnel: ${rustdeskError.message}`, 'warning');
+    } catch (webrtcError) {
+        log(`WebRTC failed, falling back to VNC/Tunnel: ${webrtcError.message}`, 'warning');
 
         // === FALLBACK: VNC + CLOUDFLARE TUNNEL ===
         await startAgentFallback();

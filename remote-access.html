@@ -154,8 +154,8 @@
 
                 <div class="toggle-container">
                     <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Nativo</button>
-                    <button class="toggle-btn" onclick="switchMode('rustdesk')" id="btn-rustdesk"
-                        style="display:none;">RustDesk (P2P)</button>
+                    <button class="toggle-btn" onclick="switchMode('webrtc')" id="btn-webrtc"
+                        style="display:none;">WebRTC (Rápido)</button>
                     <button class="toggle-btn" onclick="switchMode('parsec')" id="btn-parsec">Parsec</button>
                 </div>
             </div>
@@ -276,41 +276,31 @@
                 startTime = new Date(); // Reset timer to now
                 startTimer();
 
-                // === CHECK FOR RUSTDESK (P2P - LOW LATENCY) ===
-                const rustdeskId = booking.computer?.rustdeskId;
-                const rustdeskPassword = booking.computer?.rustdeskPassword;
+                // === CHECK FOR WEBRTC (P2P - LOW LATENCY) ===
+                const webrtcCapable = booking.computer?.webrtcCapable;
+                const webrtcMode = booking.computer?.webrtcMode; // 'native' or 'browser'
 
-                if (rustdeskId) {
-                    console.log('[RUSTDESK] P2P connection available:', rustdeskId);
+                if (webrtcCapable) {
+                    console.log('[WEBRTC] P2P connection available (mode:', webrtcMode, ')');
 
-                    // SHOW BUTTON
-                    const btnRustdesk = document.getElementById('btn-rustdesk');
-                    if (btnRustdesk) btnRustdesk.style.display = 'flex'; // Or inline-flex
+                    // SHOW BUTTON with appropriate label
+                    const btnWebrtc = document.getElementById('btn-webrtc');
+                    if (btnWebrtc) {
+                        if (webrtcMode === 'native') {
+                            btnWebrtc.textContent = 'WebRTC Ultra ⚡';
+                            btnWebrtc.title = 'Modo ultra-rápido (Native)';
+                        } else {
+                            btnWebrtc.textContent = 'WebRTC (Rápido)';
+                            btnWebrtc.title = 'Modo P2P basado en browser';
+                        }
+                        btnWebrtc.style.display = 'flex';
+                    }
 
                     const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                    debugOverlay.innerHTML += `<div style="color:lime;">🚀 RustDesk P2P: ${rustdeskId}</div>`;
-
-                    // Try to connect via RustDesk
-                    connectRustDesk(rustdeskId, rustdeskPassword);
-                    // allow fallback to run? No, we need to choose one.
-                    // For now, let's NOT return, but let the user choose. 
-                    // Actually, simpler: Let's make RustDesk a "Mode" like Native/Parsec.
-
-                    // But to respect user request "deja la de guacamole funcionando":
-                    // We will NOT return here. We will let Guacamole load, but maybe overlay RustDesk info?
-                    // Or better: Only use RustDesk if mode selected?
-
-                    // Let's CHANGE strategy:
-                    // If RustDesk exists, we show a notification but let Guacamole load as default for now
-                    // UNLESS we want to force P2P.
-                    // User said "Guacamole no funciona".
-
-                    // Let's COMMENT OUT the return for now, so Guacamole loads, 
-                    // and we just show RustDesk as an option/overlay.
-                    // return; 
+                    debugOverlay.innerHTML += `<div style="color:lime;">🚀 WebRTC P2P: ${webrtcMode}</div>`;
                 }
 
-                // === FALLBACK: GUACAMOLE (VNC/RDP) ===
+                // === CONNECT GUACAMOLE (FALLBACK/DEFAULT) ===
                 const guacToken = data.guacamoleToken;
                 if (guacToken) {
                     // Show small notification about upgrade

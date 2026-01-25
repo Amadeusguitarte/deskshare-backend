@@ -68,6 +68,11 @@ model Computer {
   rustdeskId       String?   @map("rustdesk_id") // RustDesk unique ID
   rustdeskPassword String?   @map("rustdesk_password") // Temp access password
   
+  // WebRTC P2P Integration
+  webrtcCapable    Boolean?  @default(false) @map("webrtc_capable") // Can broadcast via WebRTC
+  webrtcMode       String?   @map("webrtc_mode") // 'native' (ultra-fast) or 'browser' (always works)
+  webrtcSessionId  String?   @map("webrtc_session_id") // Current active session ID
+  
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   

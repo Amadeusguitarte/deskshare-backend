@@ -1,1 +1,44 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+dist-*/
+build/
+*.exe
+*.zip
+*.msi
+
+# Agent builds (VERY IMPORTANT)
+agent/dist*/
+agent/node_modules/
+agent/out/
+agent/*.exe
+
+# Electron cache
+.electron/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Backups
 _BACKUPS/
+
+# Backend large files
+backend/public/downloads/
+backend/node_modules/
