@@ -185,6 +185,8 @@ router.post('/:id/start', auth, async (req, res, next) => {
                 settings: settings
             };
             guacamoleToken = encryptConnection(connectionParams);
+            console.log('[BOOKING] Generated guacamole token:', guacamoleToken.substring(0, 50) + '...');
+            console.log('[BOOKING] Connection params:', JSON.stringify({ ...connectionParams, settings: { ...connectionParams.settings, password: '***' } }));
         }
 
         // Update booking
