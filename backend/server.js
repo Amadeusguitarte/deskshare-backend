@@ -103,6 +103,29 @@ app.get('/health', (req, res) => {
     });
 });
 
+// DEBUG: Production Environment Diagnostics
+app.get('/debug-env', async (req, res) => {
+    const { execSync } = require('child_process');
+    let report = {
+        timestamp: new Date().toISOString(),
+        cloudflared: 'missing',
+        guacd: 'dead',
+        path: process.env.PATH,
+        user: process.env.USER || 'unknown'
+    };
+
+    try { report.cloudflared = execSync('which cloudflared').toString().trim(); } catch (e) { }
+    try {
+        const guacStatus = execSync('ps aux | grep guacd').toString();
+        if (guacStatus.includes('/usr/sbin/guacd') || guacStatus.includes('guacd')) {
+            report.guacd = 'running';
+            report.guacd_raw = guacStatus;
+        }
+    } catch (e) { }
+
+    res.json(report);
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', googleAuthRoutes);
