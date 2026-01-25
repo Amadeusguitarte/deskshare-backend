@@ -304,7 +304,32 @@
             // Error handlers
             guacClient.onerror = function (error) {
                 console.error('Guacamole Client Error:', error);
-                // alert('Connection error: ' + error.message);
+                const msg = error.message || error.toString();
+                // Show error on screen
+                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                debugOverlay.innerHTML += `<div style="color:red">Error: ${msg}</div>`;
+                alert('Guacamole Error: ' + msg);
+            };
+
+            // State Change Handler
+            guacClient.onstatechange = function (state) {
+                const states = {
+                    0: 'IDLE',
+                    1: 'CONNECTING',
+                    2: 'WAITING',
+                    3: 'CONNECTED',
+                    4: 'DISCONNECTING',
+                    5: 'DISCONNECTED'
+                };
+                const stateStr = states[state] || state;
+                console.log('Guacamole State:', stateStr);
+
+                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                debugOverlay.innerHTML += `<div>State: ${stateStr}</div>`;
+
+                if (state === 3) { // CONNECTED
+                    debugOverlay.style.display = 'none'; // Hide debug on success
+                }
             };
 
             // Get Display
@@ -316,6 +341,15 @@
             guacClient.connect();
 
             // === INPUT HANDLING ===
+            // ... (rest of input handling)
+
+            function createDebugOverlay() {
+                const div = document.createElement('div');
+                div.id = 'debug-overlay';
+                div.style.cssText = 'position:fixed; top:60px; left:10px; background:rgba(0,0,0,0.8); color:#0f0; padding:10px; border:1px solid #0f0; font-family:monospace; z-index:9999; max-width:300px; pointer-events:none;';
+                document.body.appendChild(div);
+                return div;
+            }
 
             // Mouse
             mouse = new Guacamole.Mouse(element);
