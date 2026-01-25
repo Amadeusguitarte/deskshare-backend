@@ -173,9 +173,11 @@ router.post('/:id/start', auth, async (req, res, next) => {
                     'resize-method': 'display-update'
                 });
             } else if (protocol === 'vnc') {
-                // VNC specific settings - Minimal (let VNC auto-negotiate)
+                // VNC optimized settings for LOW LATENCY
                 Object.assign(settings, {
+                    'color-depth': '16',              // 16-bit = less data
                     'cursor': 'remote',
+                    'encodings': 'zlib copyrect hextile', // Fast encodings
                     'autoretry': '5'
                 });
             }
