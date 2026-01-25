@@ -4,7 +4,12 @@
   "description": "DeskShare backend API - Computer rental platform",
   "main": "server.js",
   "scripts": {
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "start": "npx prisma db push --accept-data-loss && node server.js",
+    "dev": "nodemon server.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:seed": "node prisma/seed.js"
   },
   "keywords": [
     "deskshare",
