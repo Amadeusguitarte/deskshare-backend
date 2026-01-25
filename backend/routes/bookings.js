@@ -124,8 +124,11 @@ router.post('/:id/start', auth, async (req, res, next) => {
         let rdpHost = booking.computer.rdpHost;
         let rdpPort = booking.computer.rdpPort || 3389;
 
-        // If computer has an active Cloudflare Tunnel, bridge it!
-        if (booking.computer.tunnelStatus === 'online' && booking.computer.tunnelUrl) {
+        // If computer has a Tunnel URL, force bridge (Status might be stale)
+        let connectionStrategy = 'DIRECT_IP';
+        let connectionDebug = `Target: ${rdpHost}:${rdpPort}`;
+
+        if (booking.computer.tunnelUrl) {
             try {
                 console.log(`[Session] Bridging tunnel for ${booking.computer.name}...`);
                 const localPort = await tunnelManager.bridgeTunnel(booking.computer.tunnelUrl, booking.id);
@@ -133,10 +136,13 @@ router.post('/:id/start', auth, async (req, res, next) => {
                 // Override connection params to point to local bridge
                 rdpHost = 'localhost';
                 rdpPort = localPort;
+                connectionStrategy = 'CLOUDFLARE_TUNNEL';
+                connectionDebug = `Bridged: localhost:${localPort} -> ${booking.computer.tunnelUrl}`;
                 console.log(`[Session] Tunnel bridged to localhost:${localPort}`);
             } catch (err) {
                 console.error('[Session] Failed to bridge tunnel:', err);
-                // Fallback to original execution (might fail if behind NAT)
+                connectionStrategy = 'BRIDGE_FAILED_FALLBACK';
+                connectionDebug = `Bridge Failed (${err.message}). Fallback to ${rdpHost}:${rdpPort}`;
             }
         }
 
@@ -182,10 +188,12 @@ router.post('/:id/start', auth, async (req, res, next) => {
         });
 
         res.json({
-            message: 'Session started successfully',
+            success: true,
             booking: updated,
             accessToken,
-            guacamoleToken // Send to frontend
+            guacamoleToken, // Only if RDP/VNC
+            connectionStrategy, // Debug
+            connectionDebug    // Debug
         });
     } catch (error) {
         next(error);
