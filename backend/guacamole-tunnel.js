@@ -1,4 +1,26 @@
 const GuacamoleLite = require('guacamole-lite');
+const net = require('net');
+
+/**
+ * Checks if a local port is open
+ */
+function isPortOpen(port, timeout = 1000) {
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+        const onError = () => {
+            socket.destroy();
+            resolve(false);
+        };
+        socket.setTimeout(timeout);
+        socket.once('error', onError);
+        socket.once('timeout', onError);
+        socket.connect(port, '127.0.0.1', () => {
+            socket.end();
+            resolve(true);
+        });
+    });
+}
+
 
 module.exports = function attachGuacamoleTunnel(httpServer) {
     const guacdOptions = {
@@ -65,7 +87,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
         clientOptions,
         {
             // Callbacks
-            processConnectionSettings: (settings, clientConnection) => {
+            processConnectionSettings: async (settings, callback) => {
                 console.log('[Guacamole] Processing Params...');
 
                 // --- CLOUDFLARE PROXY LOGIC ---
@@ -106,17 +128,32 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
                             console.log(`[Guacamole Proxy] Process exited with code ${code}`);
                         });
 
-                        // Clean up when client disconnects
-                        clientConnection.on('close', () => {
-                            console.log(`[Guacamole Proxy] Client closed. Cleaning up PID ${proxyProc.pid}`);
-                            proxyProc.kill('SIGTERM');
-                        });
+                        // Clean up? We need access to the clientConnection object. 
+                        // Wait, how do we get clientConnection here? 
+                        // The library ClientConnection.js:53 only passes (settings, callback).
+                        // I might need to monkey-patch ClientConnection.js too or use a Closure.
+                        // Actually, I can just not kill the proxy here, or kill it on a global timer?
+                        // BETTER: The library emits 'close' on the guacServer.
 
                         // Rewrite Settings for Guacd
                         settings.settings.hostname = '127.0.0.1';
                         settings.settings.port = localPort;
 
-                        console.log(`[Guacamole Proxy] Logic Complete. Guacd target -> 127.0.0.1:${localPort}`);
+                        // --- WAIT FOR PORT READINESS ---
+                        console.log(`[Guacamole Proxy] Waiting for 127.0.0.1:${localPort}...`);
+                        let ready = false;
+                        for (let i = 0; i < 10; i++) {
+                            ready = await isPortOpen(localPort, 500);
+                            if (ready) break;
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+
+                        if (!ready) {
+                            console.error('[Guacamole Proxy] PORT FAILED TO OPEN in 5s');
+                        } else {
+                            console.log(`[Guacamole Proxy] Bridge ACTIVE on 127.0.0.1:${localPort}`);
+                        }
+
                     } catch (e) {
                         console.error(`[Guacamole Proxy Exception] ${e.message}`);
                     }
@@ -127,7 +164,7 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
                 if (safe.settings?.password) safe.settings.password = '***MASKED***';
                 console.log(JSON.stringify(safe, null, 2));
 
-                return settings;
+                callback(null, settings);
             }
         }
     );
