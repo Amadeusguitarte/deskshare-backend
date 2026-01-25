@@ -148,16 +148,28 @@ router.post('/:id/start', auth, async (req, res, next) => {
 
         // Only generate if we have host/port
         if (rdpHost) {
-            const connectionParams = {
-                type: booking.computer.accessMethod || 'rdp',
-                settings: {
-                    hostname: rdpHost,
-                    port: rdpPort,
-                    password: booking.computer.accessPassword || '', // TODO: Decrypt if stored encrypted
+            const protocol = booking.computer.accessMethod || 'rdp';
+
+            let settings = {
+                hostname: rdpHost,
+                port: rdpPort,
+                password: booking.computer.accessPassword || ''
+            };
+
+            if (protocol === 'rdp') {
+                Object.assign(settings, {
                     'ignore-cert': 'true',
                     security: 'any',
                     'resize-method': 'display-update'
-                }
+                });
+            } else if (protocol === 'vnc') {
+                // VNC specific settings if needed
+                // Guacamole VNC doesn't use ignore-cert
+            }
+
+            const connectionParams = {
+                type: protocol,
+                settings: settings
             };
             guacamoleToken = encryptConnection(connectionParams);
         }
