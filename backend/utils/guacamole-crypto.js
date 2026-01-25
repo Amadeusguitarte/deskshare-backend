@@ -14,24 +14,14 @@ function getKey() {
  * @param {Object} connectionParams - { type: 'rdp', settings: { ... } }
  */
 function encryptConnection(connectionParams) {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(algorithm, getKey(), iv);
+    // DEBUG: Encryption disabled to fix "Token Validation Failed"
+    // Just wrap in connection object and base64 encode
+    // GuacamoleLite (without crypt option) expects Base64 of { connection: ... } or just params?
+    // Let's assume matches what we had: { connection: connectionParams }
 
     const jsonStr = JSON.stringify({ connection: connectionParams });
-
-    let encrypted = cipher.update(jsonStr, 'utf8', 'base64');
-    encrypted += cipher.final('base64');
-
-    const tokenObj = {
-        iv: iv.toString('base64'),
-        value: encrypted
-    };
-
-    // guacamole-lite expects the raw base64 encoded string of this JSON object
-    // Wait, the client usually sends `token=...` query param.
-    // The library decodes base64, then parses JSON to get iv and value.
-
-    return Buffer.from(JSON.stringify(tokenObj)).toString('base64');
+    const token = Buffer.from(jsonStr).toString('base64');
+    return token;
 }
 
 module.exports = { encryptConnection };

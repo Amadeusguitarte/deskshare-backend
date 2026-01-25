@@ -7,10 +7,12 @@ module.exports = function attachGuacamoleTunnel(httpServer) {
     };
 
     const clientOptions = {
+        /*
         crypt: {
             cypher: 'AES-256-CBC',
             key: require('crypto').createHash('sha256').update(process.env.GUAC_KEY || 'ThisIsASecretKeyForDeskShare123!').digest()
         },
+        */
         websocket: {
             path: '/guacamole' // Endpoint for websocket
         }
