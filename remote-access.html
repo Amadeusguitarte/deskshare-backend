@@ -320,11 +320,6 @@
 
                     const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
                     debugOverlay.innerHTML += `<div style="color:lime;">🚀 WebRTC P2P: ${webrtcMode}</div>`;
-
-                    // AUTO-SWITCH TO WEBRTC TO AVOID GUACAMOLE ERRORS
-                    console.log('[WEBRTC] Auto-switching to WebRTC mode...');
-                    switchMode('webrtc');
-                    return; // EXIT HERE: Do not connect Guacamole
                 }
 
                 // ALWAYS SHOW WEBRTC BUTTON FOR DEBUGGING (Development)
