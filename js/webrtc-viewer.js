@@ -87,10 +87,12 @@ class WebRTCViewer {
             const data = JSON.parse(e.data);
             if (data.type === 'init-host') { this.hostRes = data.res; }
             else if (data.type === 'pong') {
-                const lat = Date.now() - data.ts;
+                const lat = Math.round(performance.now() - data.ts);
                 if (this.latencyTarget) this.latencyTarget.innerText = lat + ' ms';
                 const dot = document.getElementById('latency-dot');
-                if (dot) dot.style.background = lat < 100 ? '#0f0' : '#f00';
+                if (dot) {
+                    dot.style.background = lat < 100 ? '#0f0' : (lat < 250 ? '#ff0' : '#f00');
+                }
             }
         };
     }
@@ -98,7 +100,7 @@ class WebRTCViewer {
     startPingLoop() {
         setInterval(() => {
             if (this.dataChannel && this.dataChannel.readyState === 'open') {
-                this.dataChannel.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+                this.dataChannel.send(JSON.stringify({ type: 'ping', ts: performance.now() }));
             }
         }, 1000);
     }
