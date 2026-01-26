@@ -451,19 +451,23 @@
                 }
             });
 
-            // Latency Tick (Simulated for robustness if ack not available)
+            // Real Latency (via Socket.IO)
             setInterval(() => {
-                const latencyDos = document.getElementById('latency-dot');
-                const latencyVal = document.getElementById('latency-value');
+                const start = Date.now();
+                if (window.chatManager && window.chatManager.socket && window.chatManager.socket.connected) {
+                    window.chatManager.socket.emit('ping', () => {
+                        const latency = Date.now() - start;
+                        const latencyVal = document.getElementById('latency-value');
+                        const latencyDos = document.getElementById('latency-dot');
 
-                if (latencyDos && syncCount > 0) {
-                    // Simulate healthy latency if we are receiving frames
-                    const fakeLatency = Math.floor(Math.random() * (45 - 20 + 1) + 20); // 20-45ms
-                    latencyVal.textContent = fakeLatency + ' ms';
-                    latencyDos.style.backgroundColor = '#00ff00';
-                } else {
-                    latencyVal.textContent = '-- ms';
-                    if (latencyDos) latencyDos.style.backgroundColor = '#666';
+                        if (latencyVal) latencyVal.textContent = latency + ' ms';
+
+                        if (latencyDos) {
+                            if (latency < 100) latencyDos.style.backgroundColor = '#00ff00'; // Green
+                            else if (latency < 300) latencyDos.style.backgroundColor = '#ffff00'; // Yellow
+                            else latencyDos.style.backgroundColor = '#ff0000'; // Red
+                        }
+                    });
                 }
             }, 2000);
         }
