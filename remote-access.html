@@ -175,10 +175,8 @@
                     <strong id="computerName">Cargando...</strong>
                 </div>
 
-                <div class="toggle-container">
-                    <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Guacamole</button>
-                    <button class="toggle-btn" onclick="switchMode('webrtc')" id="btn-webrtc">WebRTC</button>
-                    <button class="toggle-btn" onclick="switchMode('parsec')" id="btn-parsec">Parsec</button>
+                <div class="toggle-container" style="display: none;">
+                    <button class="toggle-btn active" onclick="switchMode('webrtc')" id="btn-webrtc">WebRTC</button>
                 </div>
             </div>
 
@@ -205,10 +203,6 @@
         <!-- WORKSPACE -->
         <div class="workspace">
 
-            <!-- VIEW 1: GUACAMOLE (Default) -->
-            <div id="guacamole-view">
-                <div id="display"></div>
-            </div>
 
             <!-- VIEW 2: WEBRTC -->
             <div id="webrtc-view">
@@ -315,42 +309,8 @@
                 startTime = new Date(); // Reset timer to now
                 startTimer();
 
-                // === CHECK FOR WEBRTC (P2P - LOW LATENCY) ===
-                const webrtcCapable = booking.computer?.webrtcCapable;
-                const webrtcMode = booking.computer?.webrtcMode;
-
-                if (webrtcCapable) {
-                    console.log('[WEBRTC] P2P connection available (mode:', webrtcMode, ')');
-
-                    const btnWebrtc = document.getElementById('btn-webrtc');
-                    if (btnWebrtc) {
-                        btnWebrtc.style.display = 'flex';
-                        btnWebrtc.textContent = 'WebRTC';
-                    }
-
-                    const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                    debugOverlay.innerHTML += `<div style="color:lime;">🚀 WebRTC P2P: ${webrtcMode}</div>`;
-                }
-
-                // ALWAYS SHOW WEBRTC BUTTON FOR DEBUGGING (Development)
-                document.getElementById('btn-webrtc').style.display = 'flex';
-
-
-                // === CONNECT GUACAMOLE (FALLBACK/DEFAULT) ===
-                const guacToken = data.guacamoleToken;
-                if (guacToken) {
-                    connectGuacamole(guacToken);
-                } else {
-                    // If no token (maybe no RDP configured), switch to Parsec
-                    alert('No se detectó configuración RDP/VNC. Cambiando a modo Parsec.');
-                    switchMode('parsec');
-                }
-
-                // 3. Setup Parsec Info (Just in case user switches)
-                if (booking.computer?.parsecPeerId) {
-                    document.getElementById('parsecCode').textContent = booking.accessToken ? 'Ver en Chat' : 'Auto-Connect';
-                    document.getElementById('parsecInfo').style.display = 'block';
-                }
+                // ALWAYS switch to WebRTC Mode (Pure WebRTC Experience)
+                switchMode('webrtc');
 
             } catch (error) {
                 console.error('Critical Session Error:', error);

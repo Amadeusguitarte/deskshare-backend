@@ -321,6 +321,17 @@ router.get('/poll/:sessionId', auth, async (req, res, next) => {
             // Host gets viewer's offer and ICE candidates
             if (session.offer) response.offer = session.offer;
             response.iceCandidates = session.viewerIceCandidates;
+
+            // Include renter name for the Launcher UI
+            try {
+                const renter = await prisma.user.findUnique({
+                    where: { id: session.renterId },
+                    select: { name: true }
+                });
+                response.userName = renter ? renter.name : 'Invitado';
+            } catch (e) {
+                response.userName = 'Invitado';
+            }
         } else {
             // Viewer gets host's answer and ICE candidates
             if (session.answer) response.answer = session.answer;

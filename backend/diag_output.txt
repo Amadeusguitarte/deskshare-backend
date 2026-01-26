@@ -1,0 +1,7 @@
+=== DESKSHARE FULL DIAGNOSIS ===
+[CONFIG] User: 9, Token: YES
+[LOCAL] TvnServer (VNC) is LISTENING on port 5900. ✅
+[LOGS] Latest Tunnel URL:   https://academy-skills-managing-planning.trycloudflare.com
+[BACKEND] Stored Tunnel URL:  https://academy-skills-managing-planning.trycloudflare.com
+✅ URL SYNCED OK.
+================================
