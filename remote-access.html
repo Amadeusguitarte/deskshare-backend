@@ -457,45 +457,29 @@
         // UI Logic
         // ========================================
         function switchMode(mode) {
-            const guacView = document.getElementById('guacamole-view');
-            const parsecView = document.getElementById('parsec-view');
             const webrtcView = document.getElementById('webrtc-view');
-
-            const btnNative = document.getElementById('btn-native');
-            const btnParsec = document.getElementById('btn-parsec');
             const btnWebrtc = document.getElementById('btn-webrtc');
-
-            // Reset all
-            guacView.style.display = 'none';
-            parsecView.style.display = 'none';
-            if (webrtcView) webrtcView.style.display = 'none';
-
             const debugOverlay = document.getElementById('debug-overlay');
+
+            // Hide all potential views (Null-safe)
+            ['guacamole-view', 'parsec-view', 'webrtc-view'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+
             if (debugOverlay) {
                 if (mode === 'webrtc') debugOverlay.classList.add('hidden-force');
                 else debugOverlay.classList.remove('hidden-force');
                 debugOverlay.style.display = 'none';
             }
 
-            btnNative.classList.remove('active');
-            btnParsec.classList.remove('active');
-            if (btnWebrtc) btnWebrtc.classList.remove('active');
+            // Remove active from all potential buttons
+            ['btn-native', 'btn-parsec', 'btn-webrtc'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.remove('active');
+            });
 
-            if (mode === 'native') {
-                guacView.style.display = 'flex';
-                btnNative.classList.add('active');
-                if (window.keyboard) window.keyboard.reset();
-
-                // FORCE RESIZE TRIGGER to fix mouse coordinates
-                setTimeout(() => {
-                    window.dispatchEvent(new Event('resize'));
-                }, 100);
-
-            } else if (mode === 'parsec') {
-                parsecView.style.display = 'flex';
-                btnParsec.classList.add('active');
-
-            } else if (mode === 'webrtc') {
+            if (mode === 'webrtc') {
                 if (webrtcView) webrtcView.style.display = 'flex';
                 if (btnWebrtc) btnWebrtc.classList.add('active');
 
