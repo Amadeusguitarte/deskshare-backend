@@ -508,7 +508,7 @@
 
             btnNative.classList.remove('active');
             btnParsec.classList.remove('active');
-            btnWebrtc.classList.remove('active');
+            if (btnWebrtc) btnWebrtc.classList.remove('active');
 
             if (mode === 'native') {
                 guacView.style.display = 'flex';
@@ -526,7 +526,7 @@
 
             } else if (mode === 'webrtc') {
                 if (webrtcView) webrtcView.style.display = 'flex';
-                btnWebrtc.classList.add('active');
+                if (btnWebrtc) btnWebrtc.classList.add('active');
 
                 // Initialize WebRTC if not already running
                 if (!webrtcViewer && window.currentBooking) {
