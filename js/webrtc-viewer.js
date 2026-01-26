@@ -42,11 +42,14 @@ class WebRTCViewer {
     }
 
     async createSession() {
-        const response = await fetch(`/api/webrtc/session/create`, {
+        // Hardcoded Backend for Production (Railway)
+        const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
+
+        const response = await fetch(`${BACKEND_URL}/webrtc/session/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}` // Fix: use correct token key
             },
             body: JSON.stringify({
                 bookingId: this.booking.id
@@ -115,11 +118,12 @@ class WebRTCViewer {
     }
 
     async sendOffer(offer) {
-        const response = await fetch(`/api/webrtc/offer`, {
+        const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
+        const response = await fetch(`${BACKEND_URL}/webrtc/offer`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             },
             body: JSON.stringify({
                 sessionId: this.sessionId,
@@ -135,12 +139,13 @@ class WebRTCViewer {
     }
 
     async sendIceCandidate(candidate) {
+        const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
         try {
-            await fetch(`/api/webrtc/ice`, {
+            await fetch(`${BACKEND_URL}/webrtc/ice`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
                 body: JSON.stringify({
                     sessionId: this.sessionId,
@@ -154,11 +159,12 @@ class WebRTCViewer {
     }
 
     startPolling() {
+        const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
         this.pollInterval = setInterval(async () => {
             try {
-                const response = await fetch(`/api/webrtc/poll/${this.sessionId}`, {
+                const response = await fetch(`${BACKEND_URL}/webrtc/poll/${this.sessionId}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                     }
                 });
 
