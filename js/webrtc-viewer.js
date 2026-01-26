@@ -1,5 +1,5 @@
 // ========================================
-// WebRTC Viewer Module (v2.3-Fix)
+// WebRTC Viewer Module (v2.4-Transceiver)
 // Client-side WebRTC receiver with canvas rendering
 // ========================================
 
@@ -13,7 +13,8 @@ class WebRTCViewer {
         this.pollInterval = null;
         this.dataChannel = null;
         this.stateTarget = document.getElementById('webrtc-state');
-        this.remoteStream = null;
+        this.videoElement = null;
+        this.lastFrameTime = 0;
     }
 
     updateState(msg) {
@@ -27,13 +28,17 @@ class WebRTCViewer {
             await this.createSession();
             await this.initPeerConnection();
 
+            // IMPORTANT: Explicitly request video reception
+            console.log('[WebRTC Viewer] Requesting video transceiver...');
+            this.peerConnection.addTransceiver('video', { direction: 'recvonly' });
+
             const offer = await this.peerConnection.createOffer();
             await this.peerConnection.setLocalDescription(offer);
 
             await this.sendOffer(offer);
             this.startPolling();
 
-            this.updateState('Esperando respuesta...');
+            this.updateState('Negociando señal...');
         } catch (e) {
             this.updateState('Error: ' + e.message);
             console.error('[WebRTC Viewer] Connection failed:', e);
@@ -73,16 +78,10 @@ class WebRTCViewer {
             }
         };
 
-        // Handle both ontrack (modern) and onaddstream (legacy fallback)
         this.peerConnection.ontrack = (event) => {
             console.log('[WebRTC Viewer] Track recibido ✅', event.track.kind);
             if (event.streams && event.streams[0]) {
                 this.renderStream(event.streams[0]);
-            } else {
-                // If no stream attached to track, create one
-                if (!this.remoteStream) this.remoteStream = new MediaStream();
-                this.remoteStream.addTrack(event.track);
-                this.renderStream(this.remoteStream);
             }
         };
 
@@ -94,7 +93,7 @@ class WebRTCViewer {
         };
 
         this.dataChannel = this.peerConnection.createDataChannel('input');
-        this.dataChannel.onopen = () => { this.setupInputCapture(); };
+        this.dataChannel.onopen = () => { console.log('[WebRTC] Data channel OPEN'); this.setupInputCapture(); };
     }
 
     async sendOffer(offer) {
@@ -150,13 +149,13 @@ class WebRTCViewer {
                     }
                 }
             } catch (e) { }
-        }, 1000);
+        }, 800);
     }
 
     renderStream(stream) {
-        if (this.videoElement) return; // Already rendering
+        if (this.videoElement) return;
 
-        console.log('[WebRTC Viewer] Iniciando renderizado de stream...');
+        console.log('[WebRTC Viewer] Renderizando flujo...');
         const video = document.createElement('video');
         this.videoElement = video;
         video.srcObject = stream;
@@ -166,30 +165,19 @@ class WebRTCViewer {
         video.style.display = 'none';
         document.body.appendChild(video);
 
-        video.onloadedmetadata = () => {
-            console.log(`[WebRTC Viewer] Video metadatos listos: ${video.videoWidth}x${video.videoHeight}`);
-            this.canvas.width = video.videoWidth;
-            this.canvas.height = video.videoHeight;
-        };
-
         const renderFrame = () => {
-            if (video.readyState >= video.HAVE_CURRENT_DATA) {
-                // Auto-resize canvas if dimensions change
+            if (video.readyState >= 2) { // HAVE_CURRENT_DATA
                 if (this.canvas.width !== video.videoWidth || this.canvas.height !== video.videoHeight) {
                     this.canvas.width = video.videoWidth;
                     this.canvas.height = video.videoHeight;
                 }
                 this.ctx.drawImage(video, 0, 0);
             }
-            if (this.peerConnection) {
-                requestAnimationFrame(renderFrame);
-            }
+            if (this.peerConnection) requestAnimationFrame(renderFrame);
         };
 
-        // Start render loop immediately to catch frames as they arrive
         requestAnimationFrame(renderFrame);
-
-        video.play().catch(e => console.warn('Video play failed:', e));
+        video.play().catch(e => console.warn('Video blocked:', e));
     }
 
     setupInputCapture() {
@@ -199,8 +187,8 @@ class WebRTCViewer {
             const y = ((e.clientY - rect.top) / rect.height) * this.canvas.height;
             this.sendInput({ type: 'mousemove', x, y });
         });
-        this.canvas.addEventListener('mousedown', (e) => this.sendInput({ type: 'mousedown', button: e.button === 0 ? 'left' : 'right' }));
-        this.canvas.addEventListener('mouseup', (e) => this.sendInput({ type: 'mouseup', button: e.button === 0 ? 'left' : 'right' }));
+        this.canvas.addEventListener('mousedown', (e) => this.sendInput({ type: 'mousedown', x: -1, y: -1, button: e.button === 0 ? 'left' : 'right' }));
+        this.canvas.addEventListener('mouseup', (e) => this.sendInput({ type: 'mouseup', x: -1, y: -1, button: e.button === 0 ? 'left' : 'right' }));
     }
 
     sendInput(input) {
@@ -211,8 +199,7 @@ class WebRTCViewer {
 
     onConnected() {
         this.updateState('CONECTADO ✅');
-        const statusEl = document.getElementById('connection-status');
-        if (statusEl) statusEl.style.color = '#0f0';
+        if (this.stateTarget) this.stateTarget.style.color = '#0f0';
     }
 
     onDisconnected() {
@@ -222,16 +209,8 @@ class WebRTCViewer {
 
     disconnect() {
         if (this.pollInterval) clearInterval(this.pollInterval);
-        if (this.peerConnection) {
-            this.peerConnection.close();
-            this.peerConnection = null;
-        }
-        if (this.videoElement) {
-            this.videoElement.srcObject = null;
-            this.videoElement.remove();
-            this.videoElement = null;
-        }
-        console.log('[WebRTC Viewer] Disconnected');
+        if (this.peerConnection) { this.peerConnection.close(); this.peerConnection = null; }
+        if (this.videoElement) { this.videoElement.srcObject = null; this.videoElement.remove(); this.videoElement = null; }
     }
 }
 
