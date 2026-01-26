@@ -171,7 +171,8 @@
 
                 <div class="toggle-container">
                     <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Guacamole</button>
-                    <button class="toggle-btn" onclick="switchMode('webrtc')" id="btn-webrtc">WebRTC</button>
+                    <!-- WebRTC HIDDEN: Not yet implemented -->
+                    <!-- <button class="toggle-btn" onclick="switchMode('webrtc')" id="btn-webrtc">WebRTC</button> -->
                     <button class="toggle-btn" onclick="switchMode('parsec')" id="btn-parsec">Parsec</button>
                 </div>
             </div>
@@ -451,25 +452,28 @@
                 }
             });
 
-            // Real Latency (via Socket.IO)
-            setInterval(() => {
-                const start = Date.now();
-                if (window.chatManager && window.chatManager.socket && window.chatManager.socket.connected) {
-                    window.chatManager.socket.emit('ping', () => {
-                        const latency = Date.now() - start;
-                        const latencyVal = document.getElementById('latency-value');
-                        const latencyDos = document.getElementById('latency-dot');
+            // Real Latency (via HTTP Ping to Backend)
+            setInterval(async () => {
+                const latencyVal = document.getElementById('latency-value');
+                const latencyDot = document.getElementById('latency-dot');
 
-                        if (latencyVal) latencyVal.textContent = latency + ' ms';
+                try {
+                    const start = Date.now();
+                    await fetch('https://deskshare-backend-production.up.railway.app/api/health', { cache: 'no-store' });
+                    const latency = Date.now() - start;
 
-                        if (latencyDos) {
-                            if (latency < 100) latencyDos.style.backgroundColor = '#00ff00'; // Green
-                            else if (latency < 300) latencyDos.style.backgroundColor = '#ffff00'; // Yellow
-                            else latencyDos.style.backgroundColor = '#ff0000'; // Red
-                        }
-                    });
+                    if (latencyVal) latencyVal.textContent = latency + ' ms';
+
+                    if (latencyDot) {
+                        if (latency < 150) latencyDot.style.backgroundColor = '#00ff00';
+                        else if (latency < 400) latencyDot.style.backgroundColor = '#ffff00';
+                        else latencyDot.style.backgroundColor = '#ff0000';
+                    }
+                } catch (e) {
+                    if (latencyVal) latencyVal.textContent = '-- ms';
+                    if (latencyDot) latencyDot.style.backgroundColor = '#666';
                 }
-            }, 2000);
+            }, 3000);
         }
 
         // ========================================
