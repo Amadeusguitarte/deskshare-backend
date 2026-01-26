@@ -7,6 +7,7 @@
     <title>Sesión Remota - DeskShare</title>
     <!-- Guacamole Client Library - v1.3.0 for guacamole-lite 1.2.0 compatibility -->
     <script src="https://cdn.jsdelivr.net/npm/guacamole-common-js@1.3.0/dist/guacamole-common.min.js"></script>
+    <script src="js/webrtc-viewer.js"></script> <!-- NEW: WebRTC Viewer Module -->
     <link rel="stylesheet" href="styles.css">
     <style>
         .remote-container {
@@ -107,6 +108,22 @@
             justify-content: center;
         }
 
+        /* WEBRTC */
+        #webrtc-view {
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+        }
+
+        #webrtc-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
         /* PARSEC */
         #parsec-view {
             width: 100%;
@@ -153,9 +170,8 @@
                 </div>
 
                 <div class="toggle-container">
-                    <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Nativo</button>
-                    <button class="toggle-btn" onclick="switchMode('webrtc')" id="btn-webrtc"
-                        style="display:none;">WebRTC (Rápido)</button>
+                    <button class="toggle-btn active" onclick="switchMode('native')" id="btn-native">Guacamole</button>
+                    <button class="toggle-btn" onclick="switchMode('webrtc')" id="btn-webrtc">WebRTC</button>
                     <button class="toggle-btn" onclick="switchMode('parsec')" id="btn-parsec">Parsec</button>
                 </div>
             </div>
@@ -188,7 +204,16 @@
                 <div id="display"></div>
             </div>
 
-            <!-- VIEW 2: PARSEC -->
+            <!-- VIEW 2: WEBRTC -->
+            <div id="webrtc-view">
+                <canvas id="webrtc-canvas"></canvas>
+                <div id="connection-status"
+                    style="position: absolute; top: 10px; left: 10px; color: yellow; background: rgba(0,0,0,0.5); padding: 5px;">
+                    Esperando conexión...
+                </div>
+            </div>
+
+            <!-- VIEW 3: PARSEC -->
             <div id="parsec-view">
                 <div class="connection-instructions">
                     <div style="font-size: 3rem; margin-bottom: 10px;">🚀</div>
@@ -219,6 +244,9 @@
         let guacDisplay = null;
         let mouse = null;
         let keyboard = null;
+
+        // WebRTC Vars
+        let webrtcViewer = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (!checkAuth()) return; // script.js function
@@ -277,41 +305,31 @@
                 startTimer();
 
                 // === CHECK FOR WEBRTC (P2P - LOW LATENCY) ===
+                // NOTE: We now enable WebRTC button properly if capable
                 const webrtcCapable = booking.computer?.webrtcCapable;
                 const webrtcMode = booking.computer?.webrtcMode; // 'native' or 'browser'
 
                 if (webrtcCapable) {
                     console.log('[WEBRTC] P2P connection available (mode:', webrtcMode, ')');
 
-                    // SHOW BUTTON with appropriate label
                     const btnWebrtc = document.getElementById('btn-webrtc');
                     if (btnWebrtc) {
-                        if (webrtcMode === 'native') {
-                            btnWebrtc.textContent = 'WebRTC Ultra ⚡';
-                            btnWebrtc.title = 'Modo ultra-rápido (Native)';
-                        } else {
-                            btnWebrtc.textContent = 'WebRTC (Rápido)';
-                            btnWebrtc.title = 'Modo P2P basado en browser';
-                        }
                         btnWebrtc.style.display = 'flex';
+                        // Keep label simple as per user request
+                        btnWebrtc.textContent = 'WebRTC';
                     }
 
                     const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
                     debugOverlay.innerHTML += `<div style="color:lime;">🚀 WebRTC P2P: ${webrtcMode}</div>`;
                 }
 
+                // ALWAYS SHOW WEBRTC BUTTON FOR DEBUGGING (Development)
+                document.getElementById('btn-webrtc').style.display = 'flex';
+
+
                 // === CONNECT GUACAMOLE (FALLBACK/DEFAULT) ===
                 const guacToken = data.guacamoleToken;
                 if (guacToken) {
-                    // Show small notification about upgrade
-                    const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                    debugOverlay.innerHTML += `
-                        <div style="background: rgba(102, 126, 234, 0.2); padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #667eea;">
-                            <strong style="color: #fff;">💡 Tip:</strong> Baja latencia disponible.<br>
-                            <a href="https://deskshare-backend-production.up.railway.app/downloads/DeskShareSetup.exe" target="_blank" style="color: #667eea;">Descargar Nuevo Launcher</a> para usar modo Rápido.
-                        </div>
-                    `;
-
                     connectGuacamole(guacToken);
                 } else {
                     // If no token (maybe no RDP configured), switch to Parsec
@@ -332,263 +350,47 @@
         }
 
         // ========================================
-        // RustDesk P2P Connection
-        // ========================================
-        function connectRustDesk(rustdeskId, password) {
-            const displayContainer = document.getElementById('display');
-
-            // Show connection info
-            displayContainer.innerHTML = `
-                <div style="text-align: center; color: white; padding: 40px;">
-                    <h2>🚀 Conectando via RustDesk P2P</h2>
-                    <p style="opacity: 0.7;">Latencia ultra-baja (~20-50ms)</p>
-                    <div style="background: rgba(0,255,0,0.1); border: 1px solid #0f0; border-radius: 10px; padding: 20px; margin: 20px auto; max-width: 400px;">
-                        <p style="margin: 0 0 10px 0;">ID: <strong>${rustdeskId}</strong></p>
-                        <p style="margin: 0;">Password: <strong>${password || 'Auto'}</strong></p>
-                    </div>
-                    <p style="font-size: 0.9rem; opacity: 0.7;">Abriendo RustDesk...</p>
-                    <button onclick="openRustDeskApp('${rustdeskId}', '${password}')" 
-                            style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 10px;">
-                        Abrir RustDesk App
-                    </button>
-                    <div style="margin-top: 20px;">
-                        <a href="https://rustdesk.com/download" target="_blank" style="color: #667eea; font-size: 0.9rem;">
-                            ¿No tienes RustDesk? Descargar aquí
-                        </a>
-                    </div>
-                </div>
-            `;
-
-            // Try to open RustDesk automatically
-            setTimeout(() => {
-                openRustDeskApp(rustdeskId, password);
-            }, 1500);
-        }
-
-        function openRustDeskApp(rustdeskId, password) {
-            // RustDesk protocol handler
-            const rustdeskUrl = `rustdesk://connection/new/${rustdeskId}${password ? '?password=' + encodeURIComponent(password) : ''}`;
-            console.log('[RUSTDESK] Opening:', rustdeskUrl);
-
-            // Try to open
-            window.location.href = rustdeskUrl;
-        }
-
-        // ========================================
-        // Guacamole Logic
-        // ========================================
-        function connectGuacamole(token) {
-            const displayContainer = document.getElementById('display');
-
-            // Create Tunnel
-            // We use HTTPTunnel or WebSocketTunnel. standard guacamole-lite uses WebSocket at the path we defined.
-            // Our backend path is attached to server, so 'ws://HOST/guacamole'
-            // We must pass the token in the query string or protocol. guacamole-lite connection options usually expect a query param.
-
-            // FIX: Point to Backend, not Frontend (Netlify)
-            // const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // const tunnelUrl = `${protocol}//${window.location.host}/guacamole`;
-
-            // Hardcoded Backend for Production (Railway)
-            const tunnelUrl = 'wss://deskshare-backend-production.up.railway.app/guacamole';
-
-            // IMPORTANT: guacamole-common-js tunnel constructor is different depending on version.
-            // For WebSocketTunnel, we pass the URL.
-            // But we need to pass the TOKEN. guacamole-lite reads 'token' from query string.
-            const tunnel = new Guacamole.WebSocketTunnel(`${tunnelUrl}?token=${token}`);
-
-            // Create Client
-            guacClient = new Guacamole.Client(tunnel);
-
-            // Error handlers
-            guacClient.onerror = function (error) {
-                console.error('Guacamole Client Error:', error);
-                const msg = error.message || error.toString();
-                // Show error on screen
-                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                debugOverlay.innerHTML += `<div style="color:red">Error: ${msg}</div>`;
-                alert('Guacamole Error: ' + msg);
-            };
-
-            // State Change Handler
-            guacClient.onstatechange = function (state) {
-                const states = {
-                    0: 'IDLE',
-                    1: 'CONNECTING',
-                    2: 'WAITING',
-                    3: 'CONNECTED',
-                    4: 'DISCONNECTING',
-                    5: 'DISCONNECTED'
-                };
-                const stateStr = states[state] || state;
-                console.log('Guacamole State:', stateStr);
-
-                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                debugOverlay.innerHTML += `<div>State: ${stateStr}</div>`;
-
-                if (state === 3) { // CONNECTED
-                    debugOverlay.style.display = 'none'; // Hide debug on success
-                }
-            };
-
-            // Get Display
-            guacDisplay = guacClient.getDisplay();
-            const element = guacDisplay.getElement();
-            displayContainer.appendChild(element);
-
-            // === CRITICAL: Handle display sync/updates ===
-            let syncCount = 0;
-            guacClient.onsync = function () {
-                syncCount++;
-                // Called when display updates
-                const displayWidth = guacDisplay.getWidth();
-                const displayHeight = guacDisplay.getHeight();
-
-                // Log every 10th sync to avoid spam
-                if (syncCount === 1 || syncCount % 10 === 0) {
-                    console.log(`[GUAC] onsync #${syncCount} - Display: ${displayWidth}x${displayHeight}`);
-                }
-
-                if (displayWidth > 0 && displayHeight > 0) {
-                    // Auto-scale to fit container
-                    const containerWidth = displayContainer.offsetWidth;
-                    const containerHeight = displayContainer.offsetHeight;
-                    const scaleX = containerWidth / displayWidth;
-                    const scaleY = containerHeight / displayHeight;
-                    const scale = Math.min(scaleX, scaleY, 1);
-                    guacDisplay.scale(scale);
-                }
-            };
-
-            // Connect
-            guacClient.connect();
-
-            // === INPUT HANDLING ===
-            // ... (rest of input handling)
-
-
-
-            // Mouse
-            mouse = new Guacamole.Mouse(element);
-            mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
-                // Scale mouse events if display is scaled
-                const scale = guacDisplay.getScale();
-                mouseState.x = mouseState.x / scale;
-                mouseState.y = mouseState.y / scale;
-                guacClient.sendMouseState(mouseState);
-            };
-
-            // Keyboard
-            keyboard = new Guacamole.Keyboard(document);
-            keyboard.onkeydown = function (keysym) {
-                guacClient.sendKeyEvent(1, keysym);
-            };
-            keyboard.onkeyup = function (keysym) {
-                guacClient.sendKeyEvent(0, keysym);
-            };
-
-            // Handle window focus for keyboard
-            window.onblur = function () { keyboard.reset(); };
-
-            // Resize listener (Auto-scale on window resize)
-            window.addEventListener('resize', () => {
-                if (guacDisplay && guacDisplay.getWidth() > 0) {
-                    const containerWidth = displayContainer.offsetWidth;
-                    const containerHeight = displayContainer.offsetHeight;
-                    const displayWidth = guacDisplay.getWidth();
-                    const displayHeight = guacDisplay.getHeight();
-                    const scaleX = containerWidth / displayWidth;
-                    const scaleY = containerHeight / displayHeight;
-                    const scale = Math.min(scaleX, scaleY, 1);
-                    guacDisplay.scale(scale);
-                }
-            });
-
-            // === LATENCY MEASUREMENT ===
-            let lastPingTime = Date.now();
-            let latencySamples = [];
-
-            // Measure latency based on sync frequency
-            setInterval(() => {
-                const now = Date.now();
-                const sinceLast = now - lastPingTime;
-
-                // Only update if we've gotten syncs recently
-                if (syncCount > 0) {
-                    latencySamples.push(sinceLast);
-                    if (latencySamples.length > 10) latencySamples.shift();
-
-                    const avgLatency = Math.round(latencySamples.reduce((a, b) => a + b, 0) / latencySamples.length);
-
-                    const latencyValue = document.getElementById('latency-value');
-                    const latencyDot = document.getElementById('latency-dot');
-
-                    latencyValue.textContent = avgLatency + ' ms';
-
-                    // Color based on latency
-                    if (avgLatency < 100) {
-                        latencyDot.style.background = '#00ff00'; // Green - excellent
-                    } else if (avgLatency < 200) {
-                        latencyDot.style.background = '#ffff00'; // Yellow - good
-                    } else if (avgLatency < 400) {
-                        latencyDot.style.background = '#ffa500'; // Orange - fair
-                    } else {
-                        latencyDot.style.background = '#ff0000'; // Red - poor
-                    }
-                }
-                lastPingTime = now;
-            }, 1000);
-        }
-
-        // ========================================
         // UI Logic
         // ========================================
         function switchMode(mode) {
             const guacView = document.getElementById('guacamole-view');
             const parsecView = document.getElementById('parsec-view');
-            // Check if RustDesk view exists (we might need to create it dynamically)
-            let rustdeskView = document.getElementById('rustdesk-view');
-
-            if (mode === 'rustdesk' && !rustdeskView) {
-                // Create container if not exists
-                rustdeskView = document.createElement('div');
-                rustdeskView.id = 'rustdesk-view';
-                rustdeskView.className = 'connection-instructions';
-                document.querySelector('.workspace').appendChild(rustdeskView);
-            }
+            const webrtcView = document.getElementById('webrtc-view');
 
             const btnNative = document.getElementById('btn-native');
             const btnParsec = document.getElementById('btn-parsec');
-            const btnRustdesk = document.getElementById('btn-rustdesk');
+            const btnWebrtc = document.getElementById('btn-webrtc');
 
             // Reset all
             guacView.style.display = 'none';
             parsecView.style.display = 'none';
-            if (rustdeskView) rustdeskView.style.display = 'none';
+            if (webrtcView) webrtcView.style.display = 'none';
 
             btnNative.classList.remove('active');
             btnParsec.classList.remove('active');
-            if (btnRustdesk) btnRustdesk.classList.remove('active');
+            btnWebrtc.classList.remove('active');
 
             if (mode === 'native') {
                 guacView.style.display = 'flex';
                 btnNative.classList.add('active');
-                // Re-focus keyboard
                 if (window.keyboard) window.keyboard.reset();
+
             } else if (mode === 'parsec') {
                 parsecView.style.display = 'flex';
                 btnParsec.classList.add('active');
-            } else if (mode === 'rustdesk') {
-                if (rustdeskView) rustdeskView.style.display = 'flex';
-                if (btnRustdesk) btnRustdesk.classList.add('active');
 
-                // Show content if empty
-                if (rustdeskView && !rustdeskView.innerHTML) {
-                    // Logic handled by initSession, or we re-render here
-                    const booking = window.currentBooking; // We need to store this
-                    if (booking && booking.computer?.rustdeskId) {
-                        connectRustDesk(booking.computer.rustdeskId, booking.computer.rustdeskPassword);
-                    }
+            } else if (mode === 'webrtc') {
+                if (webrtcView) webrtcView.style.display = 'flex';
+                btnWebrtc.classList.add('active');
+
+                // Initialize WebRTC if not already running
+                if (!webrtcViewer && window.currentBooking) {
+                    console.log('Initializing WebRTC Viewer...');
+                    webrtcViewer = new WebRTCViewer('webrtc-canvas', window.currentBooking);
+                    webrtcViewer.connect().catch(err => {
+                        console.error('WebRTC Start Failed:', err);
+                        alert('Error iniciando WebRTC: ' + err.message);
+                    });
                 }
             }
         }

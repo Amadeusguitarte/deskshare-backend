@@ -19,25 +19,14 @@ let cloudflaredProcess;
 let vncProcess; // For VNC Server
 let config = {};
 
-// VNC Config
-const VNC_PASS_HEX = "F0E43164F6C2E373"; // "12345678" (TightVNC DES)
-const VNC_PASS_PLAIN = "12345678";
-
-// ==========================================
-// Logging
-// ==========================================
-function log(msg, type = 'info') {
-    const timestamp = new Date().toISOString();
-    const logLine = `[${timestamp}] [${type.toUpperCase()}] ${msg}\n`;
-
+// Safe send helper
+function safeSend(win, channel, data) {
     try {
-        fs.appendFileSync(LOG_FILE, logLine);
-    } catch (e) { }
-
-    console.log(`[${type}] ${msg}`);
-
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('log-update', { msg, type });
+        if (win && !win.isDestroyed()) {
+            win.webContents.send(channel, data);
+        }
+    } catch (e) {
+        // Silently fail for UI updates if window is gone
     }
 }
 
@@ -318,34 +307,34 @@ async function startAgent() {
 
     if (!config.computerId || !config.token) {
         log('Waiting for configuration...', 'warning');
-        if (mainWindow) mainWindow.webContents.send('status-update', { status: 'WAITING', details: 'Launch from website to configure' });
+        safeSend(mainWindow, 'status-update', { status: 'WAITING', details: 'Launch from website to configure' });
         return;
     }
 
-    if (mainWindow) mainWindow.webContents.send('status-update', { status: 'STARTING', details: 'Initializing services...' });
+    safeSend(mainWindow, 'status-update', { status: 'STARTING', details: 'Initializing services...' });
 
+    // 1. Setup WebRTC (P2P)
     try {
-        // === TRY WEBRTC FIRST (P2P - LOW LATENCY) ===
         log('Setting up WebRTC P2P...', 'info');
-        if (mainWindow) mainWindow.webContents.send('status-update', { status: 'CONFIGURING', details: 'Setting up WebRTC P2P...' });
-
+        safeSend(mainWindow, 'status-update', { status: 'CONFIGURING', details: 'Setting up WebRTC P2P...' });
         await setupWebRTC();
 
-        // Start heartbeat
-        if (global.heartbeatInt) clearInterval(global.heartbeatInt);
-        global.heartbeatInt = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
-
-        log('Agent is FULLY ONLINE with WebRTC P2P!', 'success');
-        if (mainWindow) mainWindow.webContents.send('status-update', {
+        safeSend(mainWindow, 'status-update', {
             status: 'ONLINE',
-            details: `ID: ${config.computerId} | Mode: WebRTC P2P (Ultra Low Latency)`
+            details: `ID: ${config.computerId} | WebRTC: READY`
         });
-
     } catch (webrtcError) {
-        log(`WebRTC failed, falling back to VNC/Tunnel: ${webrtcError.message}`, 'warning');
+        log(`WebRTC setup warning: ${webrtcError.message}`, 'warning');
+    }
 
-        // === FALLBACK: VNC + CLOUDFLARE TUNNEL ===
+    // 2. Setup VNC/Tunnel (Guacamole/Standard) - ALWAYS RUN THIS
+    log('Starting Standard Connection (VNC/Tunnel)...', 'info');
+    safeSend(mainWindow, 'status-update', { status: 'CONFIGURING', details: 'Starting VNC & Tunnel...' });
+
+    try {
         await startAgentFallback();
+    } catch (e) {
+        log(`Standard connection failed: ${e.message}`, 'error');
     }
 }
 
