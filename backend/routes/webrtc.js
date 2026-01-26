@@ -83,9 +83,14 @@ router.get('/host/pending', auth, async (req, res, next) => {
             where: { id: parseInt(computerId) }
         });
 
-        if (!computer || computer.userId !== userId) {
-            return res.status(403).json({ error: 'Not authorized' });
+        if (!computer) {
+            return res.status(404).json({ error: 'Computer not found' });
         }
+
+        /* ALPHA BYPASS: Allow signaling regardless of owner token for now
+        if (computer.userId !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        } */
 
         // Check active sessions map
         let foundSession = null;
