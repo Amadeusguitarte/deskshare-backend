@@ -1,0 +1,318 @@
+const { app, BrowserWindow, ipcMain, desktopCapturer, screen } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const { spawn } = require('child_process');
+const axios = require('axios');
+
+let mainWindow;
+let config = {};
+let inputProcess = null;
+
+function startInputController() {
+    const psPath = path.join(__dirname, 'input_controller.ps1');
+    inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
+    console.log('PowerShell Input Controller started');
+}
+
+function sendToController(cmd) {
+    if (inputProcess && inputProcess.stdin.writable) {
+        inputProcess.stdin.write(cmd + "\n");
+    }
+}
+
+app.whenReady().then(() => {
+    startInputController();
+    createWindow();
+});
+
+function createWindow() {
+    mainWindow = new BrowserWindow({
+        width: 500, height: 750,
+        webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false },
+        autoHideMenuBar: true, backgroundColor: '#050507',
+        title: "DeskShare Alpha Inmortal"
+    });
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --bg: #050507; --card: #121216; --success: #10b981; --success-glow: rgba(16, 185, 129, 0.4); --accent: #3b82f6; --text: #ffffff; --text-dim: #71717a;
+            }
+            body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; margin:0; }
+            .container { text-align: center; width: 100%; max-width: 400px; padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+            .app-title { font-size: 2rem; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 2px; }
+            
+            .icon-box { 
+                width: 150px; height: 150px; background: var(--card); border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                border: 2px solid #333; transition: all 0.5s ease; position: relative; 
+            }
+            .icon-box svg { width: 60px; height: 60px; color: #333; transition: all 0.5s ease; }
+            .pulse { position: absolute; width:100%; height:100%; border-radius:50%; border:2px solid transparent; }
+            
+            .status-badge { 
+                padding: 12px 24px; background: #1a1a1a; border-radius: 50px; font-size: 1.1rem; font-weight: 700; 
+                color: #555; border: 1px solid #333; transition: all 0.4s ease; text-transform: uppercase; display: flex; align-items: center; gap: 10px; 
+            }
+            .dot { width: 10px; height: 10px; background: #333; border-radius: 50%; }
+
+            /* ONLINE READY STATE */
+            body.ready .icon-box { border-color: var(--success); box-shadow: 0 0 50px var(--success-glow); }
+            body.ready .icon-box svg { color: var(--success); filter: drop-shadow(0 0 10px var(--success)); }
+            body.ready .status-badge { color: var(--success); border-color: var(--success); background: rgba(16, 185, 129, 0.1); }
+            body.ready .dot { background: var(--success); box-shadow: 0 0 10px var(--success); }
+            body.ready .pulse { border-color: var(--success); animation: pulse 2s infinite; }
+
+            /* CONNECTED STATE */
+            body.connected .status-badge { color: var(--accent); border-color: var(--accent); background: rgba(59, 130, 246, 0.1); animation: blink 1s infinite alternate; }
+            body.connected .icon-box { border-color: var(--accent); box-shadow: 0 0 50px rgba(59, 130, 246, 0.4); }
+            body.connected .icon-box svg { color: var(--accent); }
+            body.connected .dot { background: var(--accent); }
+            body.connected .pulse { border-color: var(--accent); }
+
+            @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+            @keyframes blink { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+
+            .info { font-size: 0.8rem; color: var(--text-dim); margin-top: 15px; font-family: monospace; }
+            #timer { font-size: 1.5rem; font-weight: bold; color: var(--accent); margin-top: 5px; display:none; }
+        </style>
+    </head>
+    <body class="ready">
+        <div class="container">
+            <div class="app-title">DeskShare</div>
+            <div class="icon-box">
+                <div class="pulse"></div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+            </div>
+            <div class="status-badge">
+                <div class="dot"></div>
+                <span id="stText">EN LÍNEA</span>
+            </div>
+            <div id="timer">00:00:00</div>
+            <div id="userLabel" style="font-size: 0.9rem; color: #aaa; margin-top: 5px;"></div>
+            <div id="logs" class="info">Iniciando sistema...</div>
+        </div>
+
+        <script>
+            const { ipcRenderer } = require('electron');
+            const axios = require('axios');
+            const stText = document.getElementById('stText');
+            const logs = document.getElementById('logs');
+            const timer = document.getElementById('timer');
+            const userLabel = document.getElementById('userLabel');
+            const body = document.body;
+
+            let config = null;
+            let activeSessionId = null;
+            let peerConnection = null;
+            let hostRes = { w: 1920, h: 1080 };
+            let startTime = null;
+            let timerInt = null;
+            let currentUserName = "";
+
+            function log(msg) { logs.innerText = msg; }
+
+            function updateTimer() {
+                const now = new Date();
+                const diff = Math.floor((now - startTime) / 1000);
+                const hrs = String(Math.floor(diff / 3600)).padStart(2, '0');
+                const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                const secs = String(diff % 60).padStart(2, '0');
+                timer.innerText = hrs + ":" + mins + ":" + secs;
+            }
+
+            ipcRenderer.send('renderer-ready');
+            ipcRenderer.on('init-config', (e, data) => {
+                config = data.config; hostRes = data.res;
+                log("Agente identificado: ID " + config.computerId);
+                startPolling();
+            });
+
+            function startPolling() {
+                body.classList.add('online');
+                stText.innerText = "EN LÍNEA";
+                setInterval(async () => {
+                    await checkForPending();
+                    if (activeSessionId) await pollActiveSession();
+                }, 1500);
+            }
+
+            async function checkForPending() {
+                try {
+                    const url = "https://deskshare-backend-production.up.railway.app/api/webrtc/host/pending?computerId=" + config.computerId;
+                    const res = await axios.get(url, { headers: { 'Authorization': 'Bearer ' + config.token } });
+                    if (res.data.sessionId) {
+                        if (res.data.sessionId !== activeSessionId) {
+                            log("Nueva petición: " + res.data.sessionId);
+                            reset();
+                            activeSessionId = res.data.sessionId;
+                            const pollRes = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
+                                headers: { 'Authorization': 'Bearer ' + config.token }
+                            });
+                            if (pollRes.data.offer) { 
+                                currentUserName = pollRes.data.userName || "Invitado";
+                                await handleOffer(pollRes.data.offer); 
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            async function pollActiveSession() {
+                try {
+                    const res = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
+                        headers: { 'Authorization': 'Bearer ' + config.token }
+                    });
+                    
+                    // Update username if it becomes available or changes
+                    if (res.data.userName && res.data.userName !== "Invitado") {
+                        if (currentUserName !== res.data.userName) {
+                            currentUserName = res.data.userName;
+                            userLabel.innerText = currentUserName.toUpperCase();
+                            log("Usuario identificado: " + currentUserName);
+                        }
+                    }
+
+                    if (res.data.iceCandidates) {
+                        for (const cand of res.data.iceCandidates) {
+                            if (peerConnection && peerConnection.remoteDescription) {
+                                try { await peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch(e) {}
+                            }
+                        }
+                    }
+                } catch (e) {
+                    if (e.response && e.response.status === 404) reset();
+                }
+            }
+
+            async function handleOffer(sdp) {
+                try {
+                    stText.innerText = "NEGOCIANDO...";
+                    peerConnection = new RTCPeerConnection({
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
+                    });
+
+                    peerConnection.ondatachannel = (event) => {
+                        const channel = event.channel;
+                        channel.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            if (data.type === 'ping') {
+                                channel.send(JSON.stringify({ type: 'pong', ts: data.ts }));
+                            } else {
+                                ipcRenderer.send('remote-input', data);
+                            }
+                        };
+                        channel.onopen = () => channel.send(JSON.stringify({ type: 'init-host', res: hostRes }));
+                    };
+
+                    peerConnection.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/ice", {
+                                sessionId: activeSessionId, candidate: event.candidate, isHost: true
+                            }, { headers: { 'Authorization': 'Bearer ' + config.token }});
+                        }
+                    };
+
+                    peerConnection.onconnectionstatechange = () => {
+                        const state = peerConnection.connectionState;
+                        if (state === 'connected') {
+                            body.classList.remove('ready');
+                            body.classList.add('connected');
+                            stText.innerText = "CONECTADO";
+                            userLabel.innerText = currentUserName.toUpperCase();
+                            startTime = new Date();
+                            timer.style.display = 'block';
+                            timerInt = setInterval(updateTimer, 1000);
+                            log("Sesión activa con " + currentUserName);
+                        } else if (state === 'failed' || state === 'closed' || state === 'disconnected') {
+                            reset();
+                        }
+                    };
+
+                    const sources = await ipcRenderer.invoke('get-sources');
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: false, video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sources[0].id, minFrameRate: 30, maxFrameRate: 60 } }
+                    });
+                    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+
+                    await axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/answer", {
+                        sessionId: activeSessionId, sdp: answer
+                    }, { headers: { 'Authorization': 'Bearer ' + config.token }});
+                } catch (err) { reset(); }
+            }
+
+            function reset() {
+                activeSessionId = null;
+                if (peerConnection) {
+                    peerConnection.onconnectionstatechange = null;
+                    peerConnection.close();
+                }
+                peerConnection = null;
+                clearInterval(timerInt);
+                timer.style.display = 'none';
+                userLabel.innerText = "";
+                stText.innerText = "EN LÍNEA";
+                body.classList.remove('connected');
+                body.classList.add('ready');
+                log("Esperando nueva conexión...");
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    const uiPath = path.join(__dirname, 'webrtc_alpha_ui.html');
+    fs.writeFileSync(uiPath, htmlContent);
+    mainWindow.loadFile(uiPath);
+}
+
+ipcMain.on('renderer-ready', (event) => {
+    try {
+        const APPDATA = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
+        const configPath = path.join(APPDATA, 'deskshare-launcher', 'config.json');
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenW, height: screenH } = primaryDisplay.size;
+        if (fs.existsSync(configPath)) {
+            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            event.reply('init-config', { config, res: { w: screenW, h: screenH } });
+        }
+    } catch (e) { }
+});
+
+ipcMain.handle('get-sources', async () => {
+    return await desktopCapturer.getSources({ types: ['screen'] });
+});
+
+ipcMain.on('remote-input', (event, data) => {
+    try {
+        const scaleFactor = screen.getPrimaryDisplay().scaleFactor;
+        const x = Math.round(data.x * scaleFactor);
+        const y = Math.round(data.y * scaleFactor);
+
+        if (data.type === 'mousemove') { sendToController(`MOVE ${x} ${y}`); }
+        else if (data.type === 'mousedown') {
+            if (data.x !== -1) sendToController(`MOVE ${x} ${y}`);
+            sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
+        } else if (data.type === 'mouseup') { sendToController(`CLICK ${data.button.toUpperCase()} UP`); }
+    } catch (e) { }
+});
+
+app.on('window-all-closed', () => { if (inputProcess) inputProcess.kill(); app.quit(); });
+function sendHeartbeat() {
+    if (!config.computerId) return;
+    axios.post("https://deskshare-backend-production.up.railway.app/api/tunnels/heartbeat", { computerId: config.computerId }, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
+}
+setInterval(sendHeartbeat, 60000);

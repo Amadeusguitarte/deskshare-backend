@@ -187,70 +187,15 @@ class WebRTCViewer {
     }
 
     setupInputCapture() {
-        // 1. Mouse Movement & Clicks
-        const handleMouse = (e, type) => {
+        const handle = (e, type) => {
             const rect = this.canvas.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * this.hostRes.w;
             const y = ((e.clientY - rect.top) / rect.height) * this.hostRes.h;
             this.sendInput({ type, x, y, button: e.button === 0 ? 'left' : 'right' });
         };
-        this.canvas.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
-        this.canvas.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
-        this.canvas.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
-        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-
-        // 2. Mouse Wheel (Universal Scroll)
-        this.canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            this.sendInput({ type: 'wheel', deltaY: e.deltaY });
-        }, { passive: false });
-
-        // 3. Universal Keyboard Interceptor
-        const handleKey = (e) => {
-            // Prevent system shortcuts while focused (F5, Ctrl+R, etc)
-            if (e.ctrlKey || e.metaKey || e.code === 'F5') {
-                // Keep some keys for escape
-            } else {
-                e.preventDefault();
-            }
-
-            const vkCode = this.getWin32VK(e.code);
-            if (vkCode) {
-                this.sendInput({ type: e.type, vkCode });
-            }
-        };
-        window.addEventListener('keydown', handleKey);
-        window.addEventListener('keyup', handleKey);
-
-        // 4. HID/Gamepad Scanner (Freedom Mode)
-        this.startGamepadLoop();
-    }
-
-    getWin32VK(code) {
-        const mapping = {
-            'KeyA': 0x41, 'KeyB': 0x42, 'KeyC': 0x43, 'KeyD': 0x44, 'KeyE': 0x45, 'KeyF': 0x46, 'KeyG': 0x47, 'KeyH': 0x48, 'KeyI': 0x49, 'KeyJ': 0x4A, 'KeyK': 0x4B, 'KeyL': 0x4C, 'KeyM': 0x4D, 'KeyN': 0x4E, 'KeyO': 0x4F, 'KeyP': 0x50, 'KeyQ': 0x51, 'KeyR': 0x52, 'KeyS': 0x53, 'KeyT': 0x54, 'KeyU': 0x55, 'KeyV': 0x56, 'KeyW': 0x57, 'KeyX': 0x58, 'KeyY': 0x59, 'KeyZ': 0x5A,
-            'Digit0': 0x30, 'Digit1': 0x31, 'Digit2': 0x32, 'Digit3': 0x33, 'Digit4': 0x34, 'Digit5': 0x35, 'Digit6': 0x36, 'Digit7': 0x37, 'Digit8': 0x38, 'Digit9': 0x39,
-            'Enter': 0x0D, 'Escape': 0x1B, 'Space': 0x20, 'Tab': 0x09, 'Backspace': 0x08, 'Delete': 0x2E,
-            'ArrowLeft': 0x25, 'ArrowUp': 0x26, 'ArrowRight': 0x27, 'ArrowDown': 0x28,
-            'ControlLeft': 0x11, 'ControlRight': 0x11, 'ShiftLeft': 0x10, 'ShiftRight': 0x10, 'AltLeft': 0x12, 'AltRight': 0x12
-        };
-        return mapping[code] || null;
-    }
-
-    startGamepadLoop() {
-        setInterval(() => {
-            const gamepads = navigator.getGamepads();
-            for (const gp of gamepads) {
-                if (!gp) continue;
-                // Simple mapping: Left stick moves mouse, Button 0 is Click
-                const deadzone = 0.2;
-                if (Math.abs(gp.axes[0]) > deadzone || Math.abs(gp.axes[1]) > deadzone) {
-                    // This is handled by a local cursor or mapped to deltas
-                    // For now, let's notify the agent of raw gamepad data
-                    this.sendInput({ type: 'gamepad', axes: gp.axes, buttons: gp.buttons.map(b => b.pressed) });
-                }
-            }
-        }, 50);
+        this.canvas.addEventListener('mousemove', (e) => handle(e, 'mousemove'));
+        this.canvas.addEventListener('mousedown', (e) => handle(e, 'mousedown'));
+        this.canvas.addEventListener('mouseup', (e) => handle(e, 'mouseup'));
     }
 
     sendInput(data) {
