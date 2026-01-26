@@ -104,6 +104,17 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// DEBUG: Computer Mapping
+app.get('/api/debug/computer-info', async (req, res) => {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    try {
+        const comps = await prisma.computer.findMany({ select: { id: true, name: true } });
+        res.json(comps);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+    finally { await prisma.$disconnect(); }
+});
+
 // DEBUG: Production Environment Diagnostics
 app.get('/api/debug-env', async (req, res) => {
     const { execSync } = require('child_process');
