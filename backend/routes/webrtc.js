@@ -13,6 +13,11 @@ const prisma = new PrismaClient();
 // In-memory session store (could move to Redis for scale)
 const activeSessions = new Map();
 
+// DEBUG: Dump active sessions
+router.get('/debug/sessions', async (req, res) => {
+    res.json(Array.from(activeSessions.entries()));
+});
+
 // ========================================
 // POST /api/webrtc/register
 // Launcher registers WebRTC capability
