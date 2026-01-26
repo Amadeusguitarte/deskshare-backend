@@ -28,7 +28,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.InputStream} stream The stream that data will be read
  *                                       from.
  */
-Guacamole.ArrayBufferReader = function(stream) {
+Guacamole.ArrayBufferReader = function (stream) {
 
     /**
      * Reference to this Guacamole.InputStream.
@@ -37,14 +37,14 @@ Guacamole.ArrayBufferReader = function(stream) {
     var guac_reader = this;
 
     // Receive blobs as array buffers
-    stream.onblob = function(data) {
+    stream.onblob = function (data) {
 
         // Convert to ArrayBuffer
         var binary = window.atob(data);
         var arrayBuffer = new ArrayBuffer(binary.length);
         var bufferView = new Uint8Array(arrayBuffer);
 
-        for (var i=0; i<binary.length; i++)
+        for (var i = 0; i < binary.length; i++)
             bufferView[i] = binary.charCodeAt(i);
 
         // Call handler, if present
@@ -54,7 +54,7 @@ Guacamole.ArrayBufferReader = function(stream) {
     };
 
     // Simply call onend when end received
-    stream.onend = function() {
+    stream.onend = function () {
         if (guac_reader.onend)
             guac_reader.onend();
     };
@@ -103,7 +103,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.OutputStream} stream The stream that data will be written
  *                                        to.
  */
-Guacamole.ArrayBufferWriter = function(stream) {
+Guacamole.ArrayBufferWriter = function (stream) {
 
     /**
      * Reference to this Guacamole.StringWriter.
@@ -112,7 +112,7 @@ Guacamole.ArrayBufferWriter = function(stream) {
     var guac_writer = this;
 
     // Simply call onack for acknowledgements
-    stream.onack = function(status) {
+    stream.onack = function (status) {
         if (guac_writer.onack)
             guac_writer.onack(status);
     };
@@ -129,7 +129,7 @@ Guacamole.ArrayBufferWriter = function(stream) {
         var binary = "";
 
         // Produce binary string from bytes in buffer
-        for (var i=0; i<bytes.byteLength; i++)
+        for (var i = 0; i < bytes.byteLength; i++)
             binary += String.fromCharCode(bytes[i]);
 
         // Send as base64
@@ -156,7 +156,7 @@ Guacamole.ArrayBufferWriter = function(stream) {
      * 
      * @param {ArrayBuffer|TypedArray} data The data to send.
      */
-    this.sendData = function(data) {
+    this.sendData = function (data) {
 
         var bytes = new Uint8Array(data);
 
@@ -166,7 +166,7 @@ Guacamole.ArrayBufferWriter = function(stream) {
 
         // Otherwise, send as multiple instructions
         else {
-            for (var offset=0; offset<bytes.length; offset += guac_writer.blobLength)
+            for (var offset = 0; offset < bytes.length; offset += guac_writer.blobLength)
                 __send_blob(bytes.subarray(offset, offset + guac_writer.blobLength));
         }
 
@@ -176,7 +176,7 @@ Guacamole.ArrayBufferWriter = function(stream) {
      * Signals that no further text will be sent, effectively closing the
      * stream.
      */
-    this.sendEnd = function() {
+    this.sendEnd = function () {
         stream.sendEnd();
     };
 
@@ -240,7 +240,7 @@ Guacamole.AudioContextFactory = {
      *
      * @type {AudioContext}
      */
-    'singleton' : null,
+    'singleton': null,
 
     /**
      * Returns a singleton instance of a Web Audio API AudioContext object.
@@ -249,7 +249,7 @@ Guacamole.AudioContextFactory = {
      *     A singleton instance of a Web Audio API AudioContext object, or null
      *     if the Web Audio API is not supported.
      */
-    'getAudioContext' : function getAudioContext() {
+    'getAudioContext': function getAudioContext() {
 
         // Fallback to Webkit-specific AudioContext implementation
         var AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -978,9 +978,9 @@ Guacamole.RawAudioRecorder = function RawAudioRecorder(stream, mimetype) {
     // one of the supported legacy methods.
     if (!navigator.mediaDevices.getUserMedia)
         navigator.mediaDevices.getUserMedia = (navigator.getUserMedia
-                || navigator.webkitGetUserMedia
-                || navigator.mozGetUserMedia
-                || navigator.msGetUserMedia).bind(navigator);
+            || navigator.webkitGetUserMedia
+            || navigator.mozGetUserMedia
+            || navigator.msGetUserMedia).bind(navigator);
 
     /**
      * Guacamole.ArrayBufferWriter wrapped around the audio output stream
@@ -1262,7 +1262,7 @@ Guacamole.RawAudioRecorder = function RawAudioRecorder(stream, mimetype) {
 
         // Attempt to retrieve an audio input stream from the browser
         var promise = navigator.mediaDevices.getUserMedia({
-            'audio' : true
+            'audio': true
         }, streamReceived, streamDenied);
 
         // Handle stream creation/rejection via Promise for newer versions of
@@ -1420,7 +1420,7 @@ var Guacamole = Guacamole || {};
  *                                       from.
  * @param {String} mimetype The mimetype of the blob being built.
  */
-Guacamole.BlobReader = function(stream, mimetype) {
+Guacamole.BlobReader = function (stream, mimetype) {
 
     /**
      * Reference to this Guacamole.InputStream.
@@ -1436,35 +1436,35 @@ Guacamole.BlobReader = function(stream, mimetype) {
 
     // Get blob builder
     var blob_builder;
-    if      (window.BlobBuilder)       blob_builder = new BlobBuilder();
+    if (window.BlobBuilder) blob_builder = new BlobBuilder();
     else if (window.WebKitBlobBuilder) blob_builder = new WebKitBlobBuilder();
-    else if (window.MozBlobBuilder)    blob_builder = new MozBlobBuilder();
+    else if (window.MozBlobBuilder) blob_builder = new MozBlobBuilder();
     else
-        blob_builder = new (function() {
+        blob_builder = new (function () {
 
             var blobs = [];
 
             /** @ignore */
-            this.append = function(data) {
-                blobs.push(new Blob([data], {"type": mimetype}));
+            this.append = function (data) {
+                blobs.push(new Blob([data], { "type": mimetype }));
             };
 
             /** @ignore */
-            this.getBlob = function() {
-                return new Blob(blobs, {"type": mimetype});
+            this.getBlob = function () {
+                return new Blob(blobs, { "type": mimetype });
             };
 
         })();
 
     // Append received blobs
-    stream.onblob = function(data) {
+    stream.onblob = function (data) {
 
         // Convert to ArrayBuffer
         var binary = window.atob(data);
         var arrayBuffer = new ArrayBuffer(binary.length);
         var bufferView = new Uint8Array(arrayBuffer);
 
-        for (var i=0; i<binary.length; i++)
+        for (var i = 0; i < binary.length; i++)
             bufferView[i] = binary.charCodeAt(i);
 
         blob_builder.append(arrayBuffer);
@@ -1480,7 +1480,7 @@ Guacamole.BlobReader = function(stream, mimetype) {
     };
 
     // Simply call onend when end received
-    stream.onend = function() {
+    stream.onend = function () {
         if (guac_reader.onend)
             guac_reader.onend();
     };
@@ -1489,7 +1489,7 @@ Guacamole.BlobReader = function(stream, mimetype) {
      * Returns the current length of this Guacamole.InputStream, in bytes.
      * @return {Number} The current length of this Guacamole.InputStream.
      */
-    this.getLength = function() {
+    this.getLength = function () {
         return length;
     };
 
@@ -1497,7 +1497,7 @@ Guacamole.BlobReader = function(stream, mimetype) {
      * Returns the contents of this Guacamole.BlobReader as a Blob.
      * @return {Blob} The contents of this Guacamole.BlobReader.
      */
-    this.getBlob = function() {
+    this.getBlob = function () {
         return blob_builder.getBlob();
     };
 
@@ -1565,7 +1565,7 @@ Guacamole.BlobWriter = function BlobWriter(stream) {
     var arrayBufferWriter = new Guacamole.ArrayBufferWriter(stream);
 
     // Initially, simply call onack for acknowledgements
-    arrayBufferWriter.onack = function(status) {
+    arrayBufferWriter.onack = function (status) {
         if (guacWriter.onack)
             guacWriter.onack(status);
     };
@@ -1593,9 +1593,9 @@ Guacamole.BlobWriter = function BlobWriter(stream) {
 
         // Use prefixed implementations if necessary
         var sliceImplementation = (
-                blob.slice
-             || blob.webkitSlice
-             || blob.mozSlice
+            blob.slice
+            || blob.webkitSlice
+            || blob.mozSlice
         ).bind(blob);
 
         var length = end - start;
@@ -1792,19 +1792,19 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.Tunnel} tunnel The tunnel to use to send and receive
  *                                  Guacamole instructions.
  */
-Guacamole.Client = function(tunnel) {
+Guacamole.Client = function (tunnel) {
 
     var guac_client = this;
 
-    var STATE_IDLE          = 0;
-    var STATE_CONNECTING    = 1;
-    var STATE_WAITING       = 2;
-    var STATE_CONNECTED     = 3;
+    var STATE_IDLE = 0;
+    var STATE_CONNECTING = 1;
+    var STATE_WAITING = 2;
+    var STATE_CONNECTED = 3;
     var STATE_DISCONNECTING = 4;
-    var STATE_DISCONNECTED  = 5;
+    var STATE_DISCONNECTED = 5;
 
     var currentState = STATE_IDLE;
-    
+
     var currentTimestamp = 0;
     var pingInterval = null;
 
@@ -1843,7 +1843,7 @@ Guacamole.Client = function(tunnel) {
      * @type {Object.<Number, (Guacamole.Display.VisibleLayer|Guacamole.Layer)>}
      */
     var layers = {};
-    
+
     /**
      * All audio players currently in use by the client. Initially, this will
      * be empty, but audio players may be allocated by the server upon request.
@@ -1912,9 +1912,9 @@ Guacamole.Client = function(tunnel) {
 
         // Start with empty state
         var state = {
-            'currentState' : currentState,
-            'currentTimestamp' : currentTimestamp,
-            'layers' : {}
+            'currentState': currentState,
+            'currentTimestamp': currentTimestamp,
+            'layers': {}
         };
 
         var layersSnapshot = {};
@@ -1936,8 +1936,8 @@ Guacamole.Client = function(tunnel) {
 
                 // Store layer/buffer dimensions
                 var exportLayer = {
-                    'width'  : layer.width,
-                    'height' : layer.height
+                    'width': layer.width,
+                    'height': layer.height
                 };
 
                 // Store layer/buffer image data, if it can be generated
@@ -2047,7 +2047,7 @@ Guacamole.Client = function(tunnel) {
      * @return {Guacamole.Display} The underlying display of this
      *                             Guacamole.Client.
      */
-    this.getDisplay = function() {
+    this.getDisplay = function () {
         return display;
     };
 
@@ -2057,7 +2057,7 @@ Guacamole.Client = function(tunnel) {
      * @param {Number} width The width of the screen.
      * @param {Number} height The height of the screen.
      */
-    this.sendSize = function(width, height) {
+    this.sendSize = function (width, height) {
 
         // Do not send requests if not connected
         if (!isConnected())
@@ -2075,7 +2075,7 @@ Guacamole.Client = function(tunnel) {
      *                          (false).
      * @param {Number} keysym The keysym of the key being pressed or released.
      */
-    this.sendKeyEvent = function(pressed, keysym) {
+    this.sendKeyEvent = function (pressed, keysym) {
         // Do not send requests if not connected
         if (!isConnected())
             return;
@@ -2090,7 +2090,7 @@ Guacamole.Client = function(tunnel) {
      * @param {Guacamole.Mouse.State} mouseState The state of the mouse to send
      *                                           in the mouse event.
      */
-    this.sendMouseState = function(mouseState) {
+    this.sendMouseState = function (mouseState) {
 
         // Do not send requests if not connected
         if (!isConnected())
@@ -2104,11 +2104,11 @@ Guacamole.Client = function(tunnel) {
 
         // Build mask
         var buttonMask = 0;
-        if (mouseState.left)   buttonMask |= 1;
+        if (mouseState.left) buttonMask |= 1;
         if (mouseState.middle) buttonMask |= 2;
-        if (mouseState.right)  buttonMask |= 4;
-        if (mouseState.up)     buttonMask |= 8;
-        if (mouseState.down)   buttonMask |= 16;
+        if (mouseState.right) buttonMask |= 4;
+        if (mouseState.up) buttonMask |= 8;
+        if (mouseState.down) buttonMask |= 16;
 
         // Send message
         tunnel.sendMessage("mouse", Math.floor(mouseState.x), Math.floor(mouseState.y), buttonMask);
@@ -2150,7 +2150,7 @@ Guacamole.Client = function(tunnel) {
      * @return {Guacamole.OutputStream}
      *     The created audio stream.
      */
-    this.createAudioStream = function(mimetype) {
+    this.createAudioStream = function (mimetype) {
 
         // Allocate and associate stream with audio metadata
         var stream = guac_client.createOutputStream();
@@ -2168,7 +2168,7 @@ Guacamole.Client = function(tunnel) {
      * @param {String} filename The filename of the file being sent.
      * @return {Guacamole.OutputStream} The created file stream.
      */
-    this.createFileStream = function(mimetype, filename) {
+    this.createFileStream = function (mimetype, filename) {
 
         // Allocate and associate stream with file metadata
         var stream = guac_client.createOutputStream();
@@ -2185,7 +2185,7 @@ Guacamole.Client = function(tunnel) {
      * @param {String} name The name of the pipe.
      * @return {Guacamole.OutputStream} The created file stream.
      */
-    this.createPipeStream = function(mimetype, name) {
+    this.createPipeStream = function (mimetype, name) {
 
         // Allocate and associate stream with pipe metadata
         var stream = guac_client.createOutputStream();
@@ -2202,7 +2202,7 @@ Guacamole.Client = function(tunnel) {
      * @param {String} name The name of the pipe.
      * @return {Guacamole.OutputStream} The created file stream.
      */
-    this.createClipboardStream = function(mimetype) {
+    this.createClipboardStream = function (mimetype) {
 
         // Allocate and associate stream with clipboard metadata
         var stream = guac_client.createOutputStream();
@@ -2294,7 +2294,7 @@ Guacamole.Client = function(tunnel) {
      *                         or status.
      * @param {Number} code The error code, if any, or 0 for success.
      */
-    this.sendAck = function(index, message, code) {
+    this.sendAck = function (index, message, code) {
 
         // Do not send requests if not connected
         if (!isConnected())
@@ -2309,7 +2309,7 @@ Guacamole.Client = function(tunnel) {
      * @param {Number} index The index of the file to write to.
      * @param {String} data Base64-encoded data to write to the file.
      */
-    this.sendBlob = function(index, data) {
+    this.sendBlob = function (index, data) {
 
         // Do not send requests if not connected
         if (!isConnected())
@@ -2327,7 +2327,7 @@ Guacamole.Client = function(tunnel) {
      * @param {Number} index
      *     The index of the stream to end.
      */
-    this.endStream = function(index) {
+    this.endStream = function (index) {
 
         // Do not send requests if not connected
         if (!isConnected())
@@ -2477,7 +2477,7 @@ Guacamole.Client = function(tunnel) {
      * @param {String} name The name of the pipe.
      */
     this.onpipe = null;
-    
+
     /**
      * Fired when a "required" instruction is received. A required instruction
      * indicates that additional parameters are required for the connection to
@@ -2526,7 +2526,7 @@ Guacamole.Client = function(tunnel) {
                 layer = display.createLayer();
             else
                 layer = display.createBuffer();
-                
+
             // Add new layer
             layers[index] = layer;
 
@@ -2587,12 +2587,12 @@ Guacamole.Client = function(tunnel) {
      */
     var layerPropertyHandlers = {
 
-        "miter-limit": function(layer, value) {
+        "miter-limit": function (layer, value) {
             display.setMiterLimit(layer, parseFloat(value));
         }
 
     };
-    
+
     /**
      * Handlers for all instruction opcodes receivable by a Guacamole protocol
      * client.
@@ -2600,7 +2600,7 @@ Guacamole.Client = function(tunnel) {
      */
     var instructionHandlers = {
 
-        "ack": function(parameters) {
+        "ack": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var reason = parameters[1];
@@ -2625,7 +2625,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "arc": function(parameters) {
+        "arc": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
             var x = parseInt(parameters[1]);
@@ -2639,7 +2639,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "argv": function(parameters) {
+        "argv": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var mimetype = parameters[1];
@@ -2657,14 +2657,14 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "audio": function(parameters) {
+        "audio": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var mimetype = parameters[1];
 
             // Create stream 
             var stream = streams[stream_index] =
-                    new Guacamole.InputStream(guac_client, stream_index);
+                new Guacamole.InputStream(guac_client, stream_index);
 
             // Get player instance via callback
             var audioPlayer = null;
@@ -2687,7 +2687,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "blob": function(parameters) {
+        "blob": function (parameters) {
 
             // Get stream 
             var stream_index = parseInt(parameters[0]);
@@ -2700,7 +2700,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "body" : function handleBody(parameters) {
+        "body": function handleBody(parameters) {
 
             // Get object
             var objectIndex = parseInt(parameters[0]);
@@ -2722,7 +2722,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "cfill": function(parameters) {
+        "cfill": function (parameters) {
 
             var channelMask = parseInt(parameters[0]);
             var layer = getLayer(parseInt(parameters[1]));
@@ -2736,7 +2736,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "clip": function(parameters) {
+        "clip": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
 
@@ -2744,7 +2744,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "clipboard": function(parameters) {
+        "clipboard": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var mimetype = parameters[1];
@@ -2761,7 +2761,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "close": function(parameters) {
+        "close": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
 
@@ -2769,7 +2769,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "copy": function(parameters) {
+        "copy": function (parameters) {
 
             var srcL = getLayer(parseInt(parameters[0]));
             var srcX = parseInt(parameters[1]);
@@ -2782,12 +2782,12 @@ Guacamole.Client = function(tunnel) {
             var dstY = parseInt(parameters[8]);
 
             display.setChannelMask(dstL, channelMask);
-            display.copy(srcL, srcX, srcY, srcWidth, srcHeight, 
-                         dstL, dstX, dstY);
+            display.copy(srcL, srcX, srcY, srcWidth, srcHeight,
+                dstL, dstX, dstY);
 
         },
 
-        "cstroke": function(parameters) {
+        "cstroke": function (parameters) {
 
             var channelMask = parseInt(parameters[0]);
             var layer = getLayer(parseInt(parameters[1]));
@@ -2804,7 +2804,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "cursor": function(parameters) {
+        "cursor": function (parameters) {
 
             var cursorHotspotX = parseInt(parameters[0]);
             var cursorHotspotY = parseInt(parameters[1]);
@@ -2815,11 +2815,11 @@ Guacamole.Client = function(tunnel) {
             var srcHeight = parseInt(parameters[6]);
 
             display.setCursor(cursorHotspotX, cursorHotspotY,
-                              srcL, srcX, srcY, srcWidth, srcHeight);
+                srcL, srcX, srcY, srcWidth, srcHeight);
 
         },
 
-        "curve": function(parameters) {
+        "curve": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
             var cp1x = parseInt(parameters[1]);
@@ -2833,15 +2833,15 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "disconnect" : function handleDisconnect(parameters) {
+        "disconnect": function handleDisconnect(parameters) {
 
             // Explicitly tear down connection
             guac_client.disconnect();
 
         },
 
-        "dispose": function(parameters) {
-            
+        "dispose": function (parameters) {
+
             var layer_index = parseInt(parameters[0]);
 
             // If visible layer, remove from parent
@@ -2864,7 +2864,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "distort": function(parameters) {
+        "distort": function (parameters) {
 
             var layer_index = parseInt(parameters[0]);
             var a = parseFloat(parameters[1]);
@@ -2881,8 +2881,8 @@ Guacamole.Client = function(tunnel) {
             }
 
         },
- 
-        "error": function(parameters) {
+
+        "error": function (parameters) {
 
             var reason = parameters[0];
             var code = parseInt(parameters[1]);
@@ -2895,7 +2895,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "end": function(parameters) {
+        "end": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
 
@@ -2914,7 +2914,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "file": function(parameters) {
+        "file": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var mimetype = parameters[1];
@@ -2932,7 +2932,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "filesystem" : function handleFilesystem(parameters) {
+        "filesystem": function handleFilesystem(parameters) {
 
             var objectIndex = parseInt(parameters[0]);
             var name = parameters[1];
@@ -2947,7 +2947,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "identity": function(parameters) {
+        "identity": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
 
@@ -2955,7 +2955,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "img": function(parameters) {
+        "img": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var channelMask = parseInt(parameters[1]);
@@ -2973,7 +2973,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "jpeg": function(parameters) {
+        "jpeg": function (parameters) {
 
             var channelMask = parseInt(parameters[0]);
             var layer = getLayer(parseInt(parameters[1]));
@@ -2986,7 +2986,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "lfill": function(parameters) {
+        "lfill": function (parameters) {
 
             var channelMask = parseInt(parameters[0]);
             var layer = getLayer(parseInt(parameters[1]));
@@ -2997,7 +2997,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "line": function(parameters) {
+        "line": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
             var x = parseInt(parameters[1]);
@@ -3007,7 +3007,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "lstroke": function(parameters) {
+        "lstroke": function (parameters) {
 
             var channelMask = parseInt(parameters[0]);
             var layer = getLayer(parseInt(parameters[1]));
@@ -3018,7 +3018,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "mouse" : function handleMouse(parameters) {
+        "mouse": function handleMouse(parameters) {
 
             var x = parseInt(parameters[0]);
             var y = parseInt(parameters[1]);
@@ -3029,8 +3029,8 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "move": function(parameters) {
-            
+        "move": function (parameters) {
+
             var layer_index = parseInt(parameters[0]);
             var parent_index = parseInt(parameters[1]);
             var x = parseInt(parameters[2]);
@@ -3046,16 +3046,16 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "name": function(parameters) {
+        "name": function (parameters) {
             if (guac_client.onname) guac_client.onname(parameters[0]);
         },
 
-        "nest": function(parameters) {
+        "nest": function (parameters) {
             var parser = getParser(parseInt(parameters[0]));
             parser.receive(parameters[1]);
         },
 
-        "pipe": function(parameters) {
+        "pipe": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var mimetype = parameters[1];
@@ -3073,7 +3073,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "png": function(parameters) {
+        "png": function (parameters) {
 
             var channelMask = parseInt(parameters[0]);
             var layer = getLayer(parseInt(parameters[1]));
@@ -3086,7 +3086,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "pop": function(parameters) {
+        "pop": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
 
@@ -3094,15 +3094,15 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "push": function(parameters) {
+        "push": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
 
             display.push(layer);
 
         },
- 
-        "rect": function(parameters) {
+
+        "rect": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
             var x = parseInt(parameters[1]);
@@ -3113,20 +3113,20 @@ Guacamole.Client = function(tunnel) {
             display.rect(layer, x, y, w, h);
 
         },
-                
+
         "required": function required(parameters) {
             if (guac_client.onrequired) guac_client.onrequired(parameters);
         },
-        
-        "reset": function(parameters) {
+
+        "reset": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
 
             display.reset(layer);
 
         },
-        
-        "set": function(parameters) {
+
+        "set": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
             var name = parameters[1];
@@ -3139,8 +3139,8 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "shade": function(parameters) {
-            
+        "shade": function (parameters) {
+
             var layer_index = parseInt(parameters[0]);
             var a = parseInt(parameters[1]);
 
@@ -3152,7 +3152,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "size": function(parameters) {
+        "size": function (parameters) {
 
             var layer_index = parseInt(parameters[0]);
             var layer = getLayer(layer_index);
@@ -3162,8 +3162,8 @@ Guacamole.Client = function(tunnel) {
             display.resize(layer, width, height);
 
         },
-        
-        "start": function(parameters) {
+
+        "start": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
             var x = parseInt(parameters[1]);
@@ -3173,7 +3173,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "sync": function(parameters) {
+        "sync": function (parameters) {
 
             var timestamp = parseInt(parameters[0]);
 
@@ -3205,7 +3205,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "transfer": function(parameters) {
+        "transfer": function (parameters) {
 
             var srcL = getLayer(parseInt(parameters[0]));
             var srcX = parseInt(parameters[1]);
@@ -3219,17 +3219,17 @@ Guacamole.Client = function(tunnel) {
 
             /* SRC */
             if (function_index === 0x3)
-                display.put(srcL, srcX, srcY, srcWidth, srcHeight, 
+                display.put(srcL, srcX, srcY, srcWidth, srcHeight,
                     dstL, dstX, dstY);
 
             /* Anything else that isn't a NO-OP */
             else if (function_index !== 0x5)
-                display.transfer(srcL, srcX, srcY, srcWidth, srcHeight, 
+                display.transfer(srcL, srcX, srcY, srcWidth, srcHeight,
                     dstL, dstX, dstY, Guacamole.Client.DefaultTransferFunction[function_index]);
 
         },
 
-        "transform": function(parameters) {
+        "transform": function (parameters) {
 
             var layer = getLayer(parseInt(parameters[0]));
             var a = parseFloat(parameters[1]);
@@ -3243,7 +3243,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "undefine" : function handleUndefine(parameters) {
+        "undefine": function handleUndefine(parameters) {
 
             // Get object
             var objectIndex = parseInt(parameters[0]);
@@ -3255,7 +3255,7 @@ Guacamole.Client = function(tunnel) {
 
         },
 
-        "video": function(parameters) {
+        "video": function (parameters) {
 
             var stream_index = parseInt(parameters[0]);
             var layer = getLayer(parseInt(parameters[1]));
@@ -3263,7 +3263,7 @@ Guacamole.Client = function(tunnel) {
 
             // Create stream
             var stream = streams[stream_index] =
-                    new Guacamole.InputStream(guac_client, stream_index);
+                new Guacamole.InputStream(guac_client, stream_index);
 
             // Get player instance via callback
             var videoPlayer = null;
@@ -3288,7 +3288,7 @@ Guacamole.Client = function(tunnel) {
 
     };
 
-    tunnel.oninstruction = function(opcode, parameters) {
+    tunnel.oninstruction = function (opcode, parameters) {
 
         var handler = instructionHandlers[opcode];
         if (handler)
@@ -3299,11 +3299,11 @@ Guacamole.Client = function(tunnel) {
     /**
      * Sends a disconnect instruction to the server and closes the tunnel.
      */
-    this.disconnect = function() {
+    this.disconnect = function () {
 
         // Only attempt disconnection not disconnected.
         if (currentState != STATE_DISCONNECTED
-                && currentState != STATE_DISCONNECTING) {
+            && currentState != STATE_DISCONNECTING) {
 
             setState(STATE_DISCONNECTING);
 
@@ -3319,7 +3319,7 @@ Guacamole.Client = function(tunnel) {
         }
 
     };
-    
+
     /**
      * Connects the underlying tunnel of this Guacamole.Client, passing the
      * given arbitrary data to the tunnel during the connection process.
@@ -3328,7 +3328,7 @@ Guacamole.Client = function(tunnel) {
      *             tunnel during the connection process.
      * @throws {Guacamole.Status} If an error occurs during connection.
      */
-    this.connect = function(data) {
+    this.connect = function (data) {
 
         setState(STATE_CONNECTING);
 
@@ -3341,7 +3341,7 @@ Guacamole.Client = function(tunnel) {
         }
 
         // Ping every 5 seconds (ensure connection alive)
-        pingInterval = window.setInterval(function() {
+        pingInterval = window.setInterval(function () {
             tunnel.sendMessage("nop");
         }, 5000);
 
@@ -3368,9 +3368,9 @@ Guacamole.Client.DefaultTransferFunction = {
 
     /* SRC */
     0x3: function (src, dst) {
-        dst.red   = src.red;
+        dst.red = src.red;
         dst.green = src.green;
-        dst.blue  = src.blue;
+        dst.blue = src.blue;
         dst.alpha = src.alpha;
     },
 
@@ -3381,87 +3381,87 @@ Guacamole.Client.DefaultTransferFunction = {
 
     /* Invert SRC */
     0xC: function (src, dst) {
-        dst.red   = 0xFF & ~src.red;
+        dst.red = 0xFF & ~src.red;
         dst.green = 0xFF & ~src.green;
-        dst.blue  = 0xFF & ~src.blue;
-        dst.alpha =  src.alpha;
+        dst.blue = 0xFF & ~src.blue;
+        dst.alpha = src.alpha;
     },
-    
+
     /* Invert DEST */
     0xA: function (src, dst) {
-        dst.red   = 0xFF & ~dst.red;
+        dst.red = 0xFF & ~dst.red;
         dst.green = 0xFF & ~dst.green;
-        dst.blue  = 0xFF & ~dst.blue;
+        dst.blue = 0xFF & ~dst.blue;
     },
 
     /* AND */
     0x1: function (src, dst) {
-        dst.red   =  ( src.red   &  dst.red);
-        dst.green =  ( src.green &  dst.green);
-        dst.blue  =  ( src.blue  &  dst.blue);
+        dst.red = (src.red & dst.red);
+        dst.green = (src.green & dst.green);
+        dst.blue = (src.blue & dst.blue);
     },
 
     /* NAND */
     0xE: function (src, dst) {
-        dst.red   = 0xFF & ~( src.red   &  dst.red);
-        dst.green = 0xFF & ~( src.green &  dst.green);
-        dst.blue  = 0xFF & ~( src.blue  &  dst.blue);
+        dst.red = 0xFF & ~(src.red & dst.red);
+        dst.green = 0xFF & ~(src.green & dst.green);
+        dst.blue = 0xFF & ~(src.blue & dst.blue);
     },
 
     /* OR */
     0x7: function (src, dst) {
-        dst.red   =  ( src.red   |  dst.red);
-        dst.green =  ( src.green |  dst.green);
-        dst.blue  =  ( src.blue  |  dst.blue);
+        dst.red = (src.red | dst.red);
+        dst.green = (src.green | dst.green);
+        dst.blue = (src.blue | dst.blue);
     },
 
     /* NOR */
     0x8: function (src, dst) {
-        dst.red   = 0xFF & ~( src.red   |  dst.red);
-        dst.green = 0xFF & ~( src.green |  dst.green);
-        dst.blue  = 0xFF & ~( src.blue  |  dst.blue);
+        dst.red = 0xFF & ~(src.red | dst.red);
+        dst.green = 0xFF & ~(src.green | dst.green);
+        dst.blue = 0xFF & ~(src.blue | dst.blue);
     },
 
     /* XOR */
     0x6: function (src, dst) {
-        dst.red   =  ( src.red   ^  dst.red);
-        dst.green =  ( src.green ^  dst.green);
-        dst.blue  =  ( src.blue  ^  dst.blue);
+        dst.red = (src.red ^ dst.red);
+        dst.green = (src.green ^ dst.green);
+        dst.blue = (src.blue ^ dst.blue);
     },
 
     /* XNOR */
     0x9: function (src, dst) {
-        dst.red   = 0xFF & ~( src.red   ^  dst.red);
-        dst.green = 0xFF & ~( src.green ^  dst.green);
-        dst.blue  = 0xFF & ~( src.blue  ^  dst.blue);
+        dst.red = 0xFF & ~(src.red ^ dst.red);
+        dst.green = 0xFF & ~(src.green ^ dst.green);
+        dst.blue = 0xFF & ~(src.blue ^ dst.blue);
     },
 
     /* AND inverted source */
     0x4: function (src, dst) {
-        dst.red   =  0xFF & (~src.red   &  dst.red);
-        dst.green =  0xFF & (~src.green &  dst.green);
-        dst.blue  =  0xFF & (~src.blue  &  dst.blue);
+        dst.red = 0xFF & (~src.red & dst.red);
+        dst.green = 0xFF & (~src.green & dst.green);
+        dst.blue = 0xFF & (~src.blue & dst.blue);
     },
 
     /* OR inverted source */
     0xD: function (src, dst) {
-        dst.red   =  0xFF & (~src.red   |  dst.red);
-        dst.green =  0xFF & (~src.green |  dst.green);
-        dst.blue  =  0xFF & (~src.blue  |  dst.blue);
+        dst.red = 0xFF & (~src.red | dst.red);
+        dst.green = 0xFF & (~src.green | dst.green);
+        dst.blue = 0xFF & (~src.blue | dst.blue);
     },
 
     /* AND inverted destination */
     0x2: function (src, dst) {
-        dst.red   =  0xFF & ( src.red   & ~dst.red);
-        dst.green =  0xFF & ( src.green & ~dst.green);
-        dst.blue  =  0xFF & ( src.blue  & ~dst.blue);
+        dst.red = 0xFF & (src.red & ~dst.red);
+        dst.green = 0xFF & (src.green & ~dst.green);
+        dst.blue = 0xFF & (src.blue & ~dst.blue);
     },
 
     /* OR inverted destination */
     0xB: function (src, dst) {
-        dst.red   =  0xFF & ( src.red   | ~dst.red);
-        dst.green =  0xFF & ( src.green | ~dst.green);
-        dst.blue  =  0xFF & ( src.blue  | ~dst.blue);
+        dst.red = 0xFF & (src.red | ~dst.red);
+        dst.green = 0xFF & (src.green | ~dst.green);
+        dst.blue = 0xFF & (src.blue | ~dst.blue);
     }
 
 };
@@ -3497,7 +3497,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.InputStream} stream
  *     The stream that data will be read from.
  */
-Guacamole.DataURIReader = function(stream, mimetype) {
+Guacamole.DataURIReader = function (stream, mimetype) {
 
     /**
      * Reference to this Guacamole.DataURIReader.
@@ -3580,7 +3580,7 @@ var Guacamole = Guacamole || {};
  * 
  * @constructor
  */
-Guacamole.Display = function() {
+Guacamole.Display = function () {
 
     /**
      * Reference to this Guacamole.Display.
@@ -3600,10 +3600,10 @@ Guacamole.Display = function() {
 
     // Ensure transformations on display originate at 0,0
     display.style.transformOrigin =
-    display.style.webkitTransformOrigin =
-    display.style.MozTransformOrigin =
-    display.style.OTransformOrigin =
-    display.style.msTransformOrigin =
+        display.style.webkitTransformOrigin =
+        display.style.MozTransformOrigin =
+        display.style.OTransformOrigin =
+        display.style.msTransformOrigin =
         "0 0";
 
     // Create default layer
@@ -3620,8 +3620,8 @@ Guacamole.Display = function() {
     // Create bounding div 
     var bounds = document.createElement("div");
     bounds.style.position = "relative";
-    bounds.style.width = (displayWidth*displayScale) + "px";
-    bounds.style.height = (displayHeight*displayScale) + "px";
+    bounds.style.width = (displayWidth * displayScale) + "px";
+    bounds.style.height = (displayHeight * displayScale) + "px";
 
     // Add display to bounds
     bounds.appendChild(display);
@@ -3722,7 +3722,7 @@ Guacamole.Display = function() {
             frame.flush();
             rendered_frames++;
 
-        } 
+        }
 
         // Remove rendered frames from array
         frames.splice(0, rendered_frames);
@@ -3749,10 +3749,10 @@ Guacamole.Display = function() {
          * @returns {Boolean} true if all underlying tasks are unblocked,
          *                    false otherwise.
          */
-        this.isReady = function() {
+        this.isReady = function () {
 
             // Search for blocked tasks
-            for (var i=0; i < tasks.length; i++) {
+            for (var i = 0; i < tasks.length; i++) {
                 if (tasks[i].blocked)
                     return false;
             }
@@ -3768,10 +3768,10 @@ Guacamole.Display = function() {
          * blocked tasks exist. Calling this function with blocked tasks
          * will result in undefined behavior.
          */
-        this.flush = function() {
+        this.flush = function () {
 
             // Draw all pending tasks.
-            for (var i=0; i < tasks.length; i++)
+            for (var i = 0; i < tasks.length; i++)
                 tasks[i].execute();
 
             // Call callback
@@ -3794,9 +3794,9 @@ Guacamole.Display = function() {
      * @param {boolean} blocked Whether this task should start blocked.
      */
     function Task(taskHandler, blocked) {
-       
+
         var task = this;
-       
+
         /**
          * Whether this Task is blocked.
          * 
@@ -3807,7 +3807,7 @@ Guacamole.Display = function() {
         /**
          * Unblocks this Task, allowing it to run.
          */
-        this.unblock = function() {
+        this.unblock = function () {
             if (task.blocked) {
                 task.blocked = false;
                 __flush_frames();
@@ -3819,7 +3819,7 @@ Guacamole.Display = function() {
          * function does not track whether this task is marked as blocked.
          * Enforcing the blocked status of tasks is up to the caller.
          */
-        this.execute = function() {
+        this.execute = function () {
             if (taskHandler) taskHandler();
         };
 
@@ -3848,7 +3848,7 @@ Guacamole.Display = function() {
      * 
      * @return {Element} The element containing the Guacamole display.
      */
-    this.getElement = function() {
+    this.getElement = function () {
         return bounds;
     };
 
@@ -3857,7 +3857,7 @@ Guacamole.Display = function() {
      * 
      * @return {Number} The width of this display;
      */
-    this.getWidth = function() {
+    this.getWidth = function () {
         return displayWidth;
     };
 
@@ -3866,7 +3866,7 @@ Guacamole.Display = function() {
      * 
      * @return {Number} The height of this display;
      */
-    this.getHeight = function() {
+    this.getHeight = function () {
         return displayHeight;
     };
 
@@ -3878,7 +3878,7 @@ Guacamole.Display = function() {
      * 
      * @return {Guacamole.Display.VisibleLayer} The default layer.
      */
-    this.getDefaultLayer = function() {
+    this.getDefaultLayer = function () {
         return default_layer;
     };
 
@@ -3889,7 +3889,7 @@ Guacamole.Display = function() {
      * 
      * @return {Guacamole.Display.VisibleLayer} The cursor layer.
      */
-    this.getCursorLayer = function() {
+    this.getCursorLayer = function () {
         return cursor;
     };
 
@@ -3900,7 +3900,7 @@ Guacamole.Display = function() {
      * 
      * @return {Guacamole.Display.VisibleLayer} The newly-created layer.
      */
-    this.createLayer = function() {
+    this.createLayer = function () {
         var layer = new Guacamole.Display.VisibleLayer(displayWidth, displayHeight);
         layer.move(default_layer, 0, 0, 0);
         return layer;
@@ -3913,7 +3913,7 @@ Guacamole.Display = function() {
      * 
      * @return {Guacamole.Layer} The newly-created buffer.
      */
-    this.createBuffer = function() {
+    this.createBuffer = function () {
         var buffer = new Guacamole.Layer(0, 0);
         buffer.autosize = 1;
         return buffer;
@@ -3928,7 +3928,7 @@ Guacamole.Display = function() {
      *                            flushed. This may happen immediately, or
      *                            later when blocked tasks become unblocked.
      */
-    this.flush = function(callback) {
+    this.flush = function (callback) {
 
         // Add frame, reset tasks
         frames.push(new Frame(callback, tasks));
@@ -3959,7 +3959,7 @@ Guacamole.Display = function() {
      *                      layer's coordinate space to copy data from.
 
      */
-    this.setCursor = function(hotspotX, hotspotY, layer, srcx, srcy, srcw, srch) {
+    this.setCursor = function (hotspotX, hotspotY, layer, srcx, srcy, srcw, srch) {
         scheduleTask(function __display_set_cursor() {
 
             // Set hotspot
@@ -3987,7 +3987,7 @@ Guacamole.Display = function() {
      *
      * @param {Boolean} [shown=true] Whether to show the software cursor.
      */
-    this.showCursor = function(shown) {
+    this.showCursor = function (shown) {
 
         var element = cursor.getElement();
         var parent = element.parentNode;
@@ -4012,11 +4012,11 @@ Guacamole.Display = function() {
      * @param {Number} x The X coordinate to move the cursor to.
      * @param {Number} y The Y coordinate to move the cursor to.
      */
-    this.moveCursor = function(x, y) {
+    this.moveCursor = function (x, y) {
 
         // Move cursor layer
         cursor.translate(x - guac_display.cursorHotspotX,
-                         y - guac_display.cursorHotspotY);
+            y - guac_display.cursorHotspotY);
 
         // Update stored position
         guac_display.cursorX = x;
@@ -4033,7 +4033,7 @@ Guacamole.Display = function() {
      * @param {Number} width The new width.
      * @param {Number} height The new height.
      */
-    this.resize = function(layer, width, height) {
+    this.resize = function (layer, width, height) {
         scheduleTask(function __display_resize() {
 
             layer.resize(width, height);
@@ -4048,8 +4048,8 @@ Guacamole.Display = function() {
                 display.style.height = displayHeight + "px";
 
                 // Update bounds size
-                bounds.style.width = (displayWidth*displayScale) + "px";
-                bounds.style.height = (displayHeight*displayScale) + "px";
+                bounds.style.width = (displayWidth * displayScale) + "px";
+                bounds.style.height = (displayHeight * displayScale) + "px";
 
                 // Notify of resize
                 if (guac_display.onresize)
@@ -4076,7 +4076,7 @@ Guacamole.Display = function() {
      * @param {CanvasImageSource} image
      *     The image to draw. Note that this not a URL.
      */
-    this.drawImage = function(layer, x, y, image) {
+    this.drawImage = function (layer, x, y, image) {
         scheduleTask(function __display_drawImage() {
             layer.drawImage(x, y, image);
         });
@@ -4099,7 +4099,7 @@ Guacamole.Display = function() {
      * @param {Blob} blob
      *     The Blob containing the image data to draw.
      */
-    this.drawBlob = function(layer, x, y, blob) {
+    this.drawBlob = function (layer, x, y, blob) {
 
         var task;
 
@@ -4205,7 +4205,7 @@ Guacamole.Display = function() {
      * @param {Number} y The destination Y coordinate.
      * @param {String} url The URL of the image to draw.
      */
-    this.draw = function(layer, x, y, url) {
+    this.draw = function (layer, x, y, url) {
 
         var task = scheduleTask(function __display_draw() {
 
@@ -4233,7 +4233,7 @@ Guacamole.Display = function() {
      * @param {Number} duration The duration of the video in milliseconds.
      * @param {String} url The URL of the video to play.
      */
-    this.play = function(layer, mimetype, duration, url) {
+    this.play = function (layer, mimetype, duration, url) {
 
         // Start loading the video
         var video = document.createElement("video");
@@ -4241,16 +4241,16 @@ Guacamole.Display = function() {
         video.src = url;
 
         // Start copying frames when playing
-        video.addEventListener("play", function() {
-            
+        video.addEventListener("play", function () {
+
             function render_callback() {
                 layer.drawImage(0, 0, video);
                 if (!video.ended)
                     window.setTimeout(render_callback, 20);
             }
-            
+
             render_callback();
-            
+
         }, false);
 
         scheduleTask(video.play);
@@ -4279,7 +4279,7 @@ Guacamole.Display = function() {
      *                                    transfer data from source to
      *                                    destination.
      */
-    this.transfer = function(srcLayer, srcx, srcy, srcw, srch, dstLayer, x, y, transferFunction) {
+    this.transfer = function (srcLayer, srcx, srcy, srcw, srch, dstLayer, x, y, transferFunction) {
         scheduleTask(function __display_transfer() {
             dstLayer.transfer(srcLayer, srcx, srcy, srcw, srch, x, y, transferFunction);
         });
@@ -4304,7 +4304,7 @@ Guacamole.Display = function() {
      * @param {Number} x The destination X coordinate.
      * @param {Number} y The destination Y coordinate.
      */
-    this.put = function(srcLayer, srcx, srcy, srcw, srch, dstLayer, x, y) {
+    this.put = function (srcLayer, srcx, srcy, srcw, srch, dstLayer, x, y) {
         scheduleTask(function __display_put() {
             dstLayer.put(srcLayer, srcx, srcy, srcw, srch, x, y);
         });
@@ -4332,7 +4332,7 @@ Guacamole.Display = function() {
      * @param {Number} x The destination X coordinate.
      * @param {Number} y The destination Y coordinate.
      */
-    this.copy = function(srcLayer, srcx, srcy, srcw, srch, dstLayer, x, y) {
+    this.copy = function (srcLayer, srcx, srcy, srcw, srch, dstLayer, x, y) {
         scheduleTask(function __display_copy() {
             dstLayer.copy(srcLayer, srcx, srcy, srcw, srch, x, y);
         });
@@ -4345,7 +4345,7 @@ Guacamole.Display = function() {
      * @param {Number} x The X coordinate of the point to draw.
      * @param {Number} y The Y coordinate of the point to draw.
      */
-    this.moveTo = function(layer, x, y) {
+    this.moveTo = function (layer, x, y) {
         scheduleTask(function __display_moveTo() {
             layer.moveTo(x, y);
         });
@@ -4358,7 +4358,7 @@ Guacamole.Display = function() {
      * @param {Number} x The X coordinate of the endpoint of the line to draw.
      * @param {Number} y The Y coordinate of the endpoint of the line to draw.
      */
-    this.lineTo = function(layer, x, y) {
+    this.lineTo = function (layer, x, y) {
         scheduleTask(function __display_lineTo() {
             layer.lineTo(x, y);
         });
@@ -4378,7 +4378,7 @@ Guacamole.Display = function() {
      * @param {Boolean} negative Whether the arc should be drawn in order of
      *                           decreasing angle.
      */
-    this.arc = function(layer, x, y, radius, startAngle, endAngle, negative) {
+    this.arc = function (layer, x, y, radius, startAngle, endAngle, negative) {
         scheduleTask(function __display_arc() {
             layer.arc(x, y, radius, startAngle, endAngle, negative);
         });
@@ -4395,7 +4395,7 @@ Guacamole.Display = function() {
      * @param {Number} x The X coordinate of the endpoint of the curve.
      * @param {Number} y The Y coordinate of the endpoint of the curve.
      */
-    this.curveTo = function(layer, cp1x, cp1y, cp2x, cp2y, x, y) {
+    this.curveTo = function (layer, cp1x, cp1y, cp2x, cp2y, x, y) {
         scheduleTask(function __display_curveTo() {
             layer.curveTo(cp1x, cp1y, cp2x, cp2y, x, y);
         });
@@ -4407,7 +4407,7 @@ Guacamole.Display = function() {
      * 
      * @param {Guacamole.Layer} layer The layer to draw upon.
      */
-    this.close = function(layer) {
+    this.close = function (layer) {
         scheduleTask(function __display_close() {
             layer.close();
         });
@@ -4424,7 +4424,7 @@ Guacamole.Display = function() {
      * @param {Number} w The width of the rectangle to draw.
      * @param {Number} h The height of the rectangle to draw.
      */
-    this.rect = function(layer, x, y, w, h) {
+    this.rect = function (layer, x, y, w, h) {
         scheduleTask(function __display_rect() {
             layer.rect(x, y, w, h);
         });
@@ -4438,7 +4438,7 @@ Guacamole.Display = function() {
      * 
      * @param {Guacamole.Layer} layer The layer to affect.
      */
-    this.clip = function(layer) {
+    this.clip = function (layer) {
         scheduleTask(function __display_clip() {
             layer.clip();
         });
@@ -4461,7 +4461,7 @@ Guacamole.Display = function() {
      * @param {Number} b The blue component of the color to fill.
      * @param {Number} a The alpha component of the color to fill.
      */
-    this.strokeColor = function(layer, cap, join, thickness, r, g, b, a) {
+    this.strokeColor = function (layer, cap, join, thickness, r, g, b, a) {
         scheduleTask(function __display_strokeColor() {
             layer.strokeColor(cap, join, thickness, r, g, b, a);
         });
@@ -4479,7 +4479,7 @@ Guacamole.Display = function() {
      * @param {Number} b The blue component of the color to fill.
      * @param {Number} a The alpha component of the color to fill.
      */
-    this.fillColor = function(layer, r, g, b, a) {
+    this.fillColor = function (layer, r, g, b, a) {
         scheduleTask(function __display_fillColor() {
             layer.fillColor(r, g, b, a);
         });
@@ -4501,7 +4501,7 @@ Guacamole.Display = function() {
      * @param {Guacamole.Layer} srcLayer The layer to use as a repeating pattern
      *                                   within the stroke.
      */
-    this.strokeLayer = function(layer, cap, join, thickness, srcLayer) {
+    this.strokeLayer = function (layer, cap, join, thickness, srcLayer) {
         scheduleTask(function __display_strokeLayer() {
             layer.strokeLayer(cap, join, thickness, srcLayer);
         });
@@ -4518,7 +4518,7 @@ Guacamole.Display = function() {
      * @param {Guacamole.Layer} srcLayer The layer to use as a repeating pattern
      *                                   within the fill.
      */
-    this.fillLayer = function(layer, srcLayer) {
+    this.fillLayer = function (layer, srcLayer) {
         scheduleTask(function __display_fillLayer() {
             layer.fillLayer(srcLayer);
         });
@@ -4529,7 +4529,7 @@ Guacamole.Display = function() {
      * 
      * @param {Guacamole.Layer} layer The layer to draw upon.
      */
-    this.push = function(layer) {
+    this.push = function (layer) {
         scheduleTask(function __display_push() {
             layer.push();
         });
@@ -4540,7 +4540,7 @@ Guacamole.Display = function() {
      * 
      * @param {Guacamole.Layer} layer The layer to draw upon.
      */
-    this.pop = function(layer) {
+    this.pop = function (layer) {
         scheduleTask(function __display_pop() {
             layer.pop();
         });
@@ -4552,7 +4552,7 @@ Guacamole.Display = function() {
      * 
      * @param {Guacamole.Layer} layer The layer to draw upon.
      */
-    this.reset = function(layer) {
+    this.reset = function (layer) {
         scheduleTask(function __display_reset() {
             layer.reset();
         });
@@ -4570,7 +4570,7 @@ Guacamole.Display = function() {
      * @param {Number} e The fifth value in the affine transform's matrix.
      * @param {Number} f The sixth value in the affine transform's matrix.
      */
-    this.setTransform = function(layer, a, b, c, d, e, f) {
+    this.setTransform = function (layer, a, b, c, d, e, f) {
         scheduleTask(function __display_setTransform() {
             layer.setTransform(a, b, c, d, e, f);
         });
@@ -4588,7 +4588,7 @@ Guacamole.Display = function() {
      * @param {Number} e The fifth value in the affine transform's matrix.
      * @param {Number} f The sixth value in the affine transform's matrix.
      */
-    this.transform = function(layer, a, b, c, d, e, f) {
+    this.transform = function (layer, a, b, c, d, e, f) {
         scheduleTask(function __display_transform() {
             layer.transform(a, b, c, d, e, f);
         });
@@ -4607,7 +4607,7 @@ Guacamole.Display = function() {
      * @param {Number} mask The channel mask for future operations on this
      *                      Layer.
      */
-    this.setChannelMask = function(layer, mask) {
+    this.setChannelMask = function (layer, mask) {
         scheduleTask(function __display_setChannelMask() {
             layer.setChannelMask(mask);
         });
@@ -4623,7 +4623,7 @@ Guacamole.Display = function() {
      * @param {Number} limit The miter limit for stroke operations using the
      *                       miter join.
      */
-    this.setMiterLimit = function(layer, limit) {
+    this.setMiterLimit = function (layer, limit) {
         scheduleTask(function __display_setMiterLimit() {
             layer.setMiterLimit(limit);
         });
@@ -4723,21 +4723,21 @@ Guacamole.Display = function() {
      * @param {Number} scale The scale to resize to, where 1.0 is normal
      *                       size (1:1 scale).
      */
-    this.scale = function(scale) {
+    this.scale = function (scale) {
 
         display.style.transform =
-        display.style.WebkitTransform =
-        display.style.MozTransform =
-        display.style.OTransform =
-        display.style.msTransform =
+            display.style.WebkitTransform =
+            display.style.MozTransform =
+            display.style.OTransform =
+            display.style.msTransform =
 
             "scale(" + scale + "," + scale + ")";
 
         displayScale = scale;
 
         // Update bounds size
-        bounds.style.width = (displayWidth*displayScale) + "px";
-        bounds.style.height = (displayHeight*displayScale) + "px";
+        bounds.style.width = (displayWidth * displayScale) + "px";
+        bounds.style.height = (displayHeight * displayScale) + "px";
 
     };
 
@@ -4746,7 +4746,7 @@ Guacamole.Display = function() {
      *
      * @return {Number} The scale of the display.
      */
-    this.getScale = function() {
+    this.getScale = function () {
         return displayScale;
     };
 
@@ -4757,8 +4757,8 @@ Guacamole.Display = function() {
      * @return {HTMLCanvasElement} A new canvas element containing a copy of
      *                             the display.
      */
-    this.flatten = function() {
-       
+    this.flatten = function () {
+
         // Get destination canvas
         var canvas = document.createElement("canvas");
         canvas.width = default_layer.width;
@@ -4788,7 +4788,7 @@ Guacamole.Display = function() {
                 var position = b_element.compareDocumentPosition(a_element);
 
                 if (position & Node.DOCUMENT_POSITION_PRECEDING) return -1;
-                if (position & Node.DOCUMENT_POSITION_FOLLOWING) return  1;
+                if (position & Node.DOCUMENT_POSITION_FOLLOWING) return 1;
 
                 // Otherwise, assume same
                 return 0;
@@ -4815,7 +4815,7 @@ Guacamole.Display = function() {
 
                 // Draw all children
                 var children = get_children(layer);
-                for (var i=0; i<children.length; i++) {
+                for (var i = 0; i < children.length; i++) {
                     var child = children[i];
                     draw_layer(child, x + child.x, y + child.y);
                 }
@@ -4832,7 +4832,7 @@ Guacamole.Display = function() {
 
         // Return new canvas copy
         return canvas;
-        
+
     };
 
 };
@@ -4849,7 +4849,7 @@ Guacamole.Display = function() {
  * @param {Number} height The height of the Layer, in pixels. The canvas element
  *                        backing this Layer will be given this height.
  */
-Guacamole.Display.VisibleLayer = function(width, height) {
+Guacamole.Display.VisibleLayer = function (width, height) {
 
     Guacamole.Layer.apply(this, [width, height]);
 
@@ -4939,7 +4939,7 @@ Guacamole.Display.VisibleLayer = function(width, height) {
      */
     var __super_resize = this.resize;
 
-    this.resize = function(width, height) {
+    this.resize = function (width, height) {
 
         // Resize containing div
         div.style.width = width + "px";
@@ -4948,13 +4948,13 @@ Guacamole.Display.VisibleLayer = function(width, height) {
         __super_resize(width, height);
 
     };
-  
+
     /**
      * Returns the element containing the canvas and any other elements
      * associated with this layer.
      * @returns {Element} The element containing this layer's canvas.
      */
-    this.getElement = function() {
+    this.getElement = function () {
         return div;
     };
 
@@ -4977,22 +4977,22 @@ Guacamole.Display.VisibleLayer = function(width, height) {
      * @param {Number} x The X coordinate to move to.
      * @param {Number} y The Y coordinate to move to.
      */
-    this.translate = function(x, y) {
+    this.translate = function (x, y) {
 
         layer.x = x;
         layer.y = y;
 
         // Generate translation
         translate = "translate("
-                        + x + "px,"
-                        + y + "px)";
+            + x + "px,"
+            + y + "px)";
 
         // Set layer transform 
         div.style.transform =
-        div.style.WebkitTransform =
-        div.style.MozTransform =
-        div.style.OTransform =
-        div.style.msTransform =
+            div.style.WebkitTransform =
+            div.style.MozTransform =
+            div.style.OTransform =
+            div.style.msTransform =
 
             translate + " " + matrix;
 
@@ -5008,7 +5008,7 @@ Guacamole.Display.VisibleLayer = function(width, height) {
      * @param {Number} y The Y coordinate to move to.
      * @param {Number} z The Z coordinate to move to.
      */
-    this.move = function(parent, x, y, z) {
+    this.move = function (parent, x, y, z) {
 
         // Set parent if necessary
         if (layer.parent !== parent) {
@@ -5038,16 +5038,16 @@ Guacamole.Display.VisibleLayer = function(width, height) {
      * 
      * @param {Number} a The opacity to set.
      */
-    this.shade = function(a) {
+    this.shade = function (a) {
         layer.alpha = a;
-        div.style.opacity = a/255.0;
+        div.style.opacity = a / 255.0;
     };
 
     /**
      * Removes this layer container entirely, such that it is no longer
      * contained within its parent layer, if any.
      */
-    this.dispose = function() {
+    this.dispose = function () {
 
         // Remove from parent container
         if (layer.parent) {
@@ -5058,7 +5058,7 @@ Guacamole.Display.VisibleLayer = function(width, height) {
         // Remove from parent element
         if (div.parentNode)
             div.parentNode.removeChild(div);
-        
+
     };
 
     /**
@@ -5072,7 +5072,7 @@ Guacamole.Display.VisibleLayer = function(width, height) {
      * @param {Number} e The fifth value in the affine transform's matrix.
      * @param {Number} f The sixth value in the affine transform's matrix.
      */
-    this.distort = function(a, b, c, d, e, f) {
+    this.distort = function (a, b, c, d, e, f) {
 
         // Store matrix
         layer.matrix = [a, b, c, d, e, f];
@@ -5084,15 +5084,15 @@ Guacamole.Display.VisibleLayer = function(width, height) {
              * b d f
              * 0 0 1
              */
-    
+
             "matrix(" + a + "," + b + "," + c + "," + d + "," + e + "," + f + ")";
 
         // Set layer transform 
         div.style.transform =
-        div.style.WebkitTransform =
-        div.style.MozTransform =
-        div.style.OTransform =
-        div.style.msTransform =
+            div.style.WebkitTransform =
+            div.style.MozTransform =
+            div.style.OTransform =
+            div.style.msTransform =
 
             translate + " " + matrix;
 
@@ -5158,18 +5158,18 @@ Guacamole.InputSink = function InputSink() {
      * @type {Element}
      */
     var field = document.createElement('textarea');
-    field.style.position   = 'fixed';
-    field.style.outline    = 'none';
-    field.style.border     = 'none';
-    field.style.margin     = '0';
-    field.style.padding    = '0';
-    field.style.height     = '0';
-    field.style.width      = '0';
-    field.style.left       = '0';
-    field.style.bottom     = '0';
-    field.style.resize     = 'none';
+    field.style.position = 'fixed';
+    field.style.outline = 'none';
+    field.style.border = 'none';
+    field.style.margin = '0';
+    field.style.padding = '0';
+    field.style.height = '0';
+    field.style.width = '0';
+    field.style.left = '0';
+    field.style.bottom = '0';
+    field.style.resize = 'none';
     field.style.background = 'transparent';
-    field.style.color      = 'transparent';
+    field.style.color = 'transparent';
 
     // Keep field clear when modified via normal keypresses
     field.addEventListener("keypress", function clearKeypress(e) {
@@ -5268,7 +5268,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.Client} client The client owning this stream.
  * @param {Number} index The index of this stream.
  */
-Guacamole.InputStream = function(client, index) {
+Guacamole.InputStream = function (client, index) {
 
     /**
      * Reference to this stream.
@@ -5304,7 +5304,7 @@ Guacamole.InputStream = function(client, index) {
      *                         or status.
      * @param {Number} code The error code, if any, or 0 for success.
      */
-    this.sendAck = function(message, code) {
+    this.sendAck = function (message, code) {
         client.sendAck(guac_stream.index, message, code);
     };
 
@@ -5336,7 +5336,7 @@ var Guacamole = Guacamole || {};
  * are in use, and previously-used integers when possible.
  * @constructor 
  */
-Guacamole.IntegerPool = function() {
+Guacamole.IntegerPool = function () {
 
     /**
      * Reference to this integer pool.
@@ -5365,7 +5365,7 @@ Guacamole.IntegerPool = function() {
      * 
      * @return {Number} The next available integer.
      */
-    this.next = function() {
+    this.next = function () {
 
         // If free'd integers exist, return one of those
         if (pool.length > 0)
@@ -5381,7 +5381,7 @@ Guacamole.IntegerPool = function() {
      * 
      * @param {Number} integer The integer to free.
      */
-    this.free = function(integer) {
+    this.free = function (integer) {
         pool.push(integer);
     };
 
@@ -5641,7 +5641,7 @@ Guacamole.Keyboard = function Keyboard(element) {
      * @private
      * @constructor
      */
-    var KeyEvent = function() {
+    var KeyEvent = function () {
 
         /**
          * Reference to this key event.
@@ -5688,7 +5688,7 @@ Guacamole.Keyboard = function Keyboard(element) {
          * @return {Number} The number of milliseconds elapsed since this
          *                  event was received.
          */
-        this.getAge = function() {
+        this.getAge = function () {
             return new Date().getTime() - key_event.timestamp;
         };
 
@@ -5712,7 +5712,7 @@ Guacamole.Keyboard = function Keyboard(element) {
      *                          the key pressed, as defined at:
      *                          http://www.w3.org/TR/DOM-Level-3-Events/#events-KeyboardEvent
      */
-    var KeydownEvent = function(keyCode, keyIdentifier, key, location) {
+    var KeydownEvent = function (keyCode, keyIdentifier, key, location) {
 
         // We extend KeyEvent
         KeyEvent.apply(this);
@@ -5750,8 +5750,8 @@ Guacamole.Keyboard = function Keyboard(element) {
         this.location = location;
 
         // If key is known from keyCode or DOM3 alone, use that
-        this.keysym =  keysym_from_key_identifier(key, location)
-                    || keysym_from_keycode(keyCode, location);
+        this.keysym = keysym_from_key_identifier(key, location)
+            || keysym_from_keycode(keyCode, location);
 
         /**
          * Whether the keyup following this keydown event is known to be
@@ -5788,9 +5788,9 @@ Guacamole.Keyboard = function Keyboard(element) {
         // We must rely on the (potentially buggy) keyIdentifier if preventing
         // the default action is important
         if ((prevent_ctrl && guac_keyboard.modifiers.ctrl)
-         || (prevent_alt  && guac_keyboard.modifiers.alt)
-         || guac_keyboard.modifiers.meta
-         || guac_keyboard.modifiers.hyper)
+            || (prevent_alt && guac_keyboard.modifiers.alt)
+            || guac_keyboard.modifiers.meta
+            || guac_keyboard.modifiers.hyper)
             this.reliable = true;
 
         // Record most recently known keysym by associated key code
@@ -5811,7 +5811,7 @@ Guacamole.Keyboard = function Keyboard(element) {
      * @param {Number} charCode The Unicode codepoint of the character that
      *                          would be typed by the key pressed.
      */
-    var KeypressEvent = function(charCode) {
+    var KeypressEvent = function (charCode) {
 
         // We extend KeyEvent
         KeyEvent.apply(this);
@@ -5852,7 +5852,7 @@ Guacamole.Keyboard = function Keyboard(element) {
      *                          the key released, as defined at:
      *                          http://www.w3.org/TR/DOM-Level-3-Events/#events-KeyboardEvent
      */
-    var KeyupEvent = function(keyCode, keyIdentifier, key, location) {
+    var KeyupEvent = function (keyCode, keyIdentifier, key, location) {
 
         // We extend KeyEvent
         KeyEvent.apply(this);
@@ -5890,8 +5890,8 @@ Guacamole.Keyboard = function Keyboard(element) {
         this.location = location;
 
         // If key is known from keyCode or DOM3 alone, use that
-        this.keysym =  keysym_from_keycode(keyCode, location)
-                    || keysym_from_key_identifier(key, location); // keyCode is still more reliable for keyup when dead keys are in use
+        this.keysym = keysym_from_keycode(keyCode, location)
+            || keysym_from_key_identifier(key, location); // keyCode is still more reliable for keyup when dead keys are in use
 
         // Fall back to the most recently pressed keysym associated with the
         // keyCode if the inferred key doesn't seem to actually be pressed
@@ -5920,34 +5920,34 @@ Guacamole.Keyboard = function Keyboard(element) {
      * @private
      */
     var keycodeKeysyms = {
-        8:   [0xFF08], // backspace
-        9:   [0xFF09], // tab
-        12:  [0xFF0B, 0xFF0B, 0xFF0B, 0xFFB5], // clear       / KP 5
-        13:  [0xFF0D], // enter
-        16:  [0xFFE1, 0xFFE1, 0xFFE2], // shift
-        17:  [0xFFE3, 0xFFE3, 0xFFE4], // ctrl
-        18:  [0xFFE9, 0xFFE9, 0xFE03], // alt
-        19:  [0xFF13], // pause/break
-        20:  [0xFFE5], // caps lock
-        27:  [0xFF1B], // escape
-        32:  [0x0020], // space
-        33:  [0xFF55, 0xFF55, 0xFF55, 0xFFB9], // page up     / KP 9
-        34:  [0xFF56, 0xFF56, 0xFF56, 0xFFB3], // page down   / KP 3
-        35:  [0xFF57, 0xFF57, 0xFF57, 0xFFB1], // end         / KP 1
-        36:  [0xFF50, 0xFF50, 0xFF50, 0xFFB7], // home        / KP 7
-        37:  [0xFF51, 0xFF51, 0xFF51, 0xFFB4], // left arrow  / KP 4
-        38:  [0xFF52, 0xFF52, 0xFF52, 0xFFB8], // up arrow    / KP 8
-        39:  [0xFF53, 0xFF53, 0xFF53, 0xFFB6], // right arrow / KP 6
-        40:  [0xFF54, 0xFF54, 0xFF54, 0xFFB2], // down arrow  / KP 2
-        45:  [0xFF63, 0xFF63, 0xFF63, 0xFFB0], // insert      / KP 0
-        46:  [0xFFFF, 0xFFFF, 0xFFFF, 0xFFAE], // delete      / KP decimal
-        91:  [0xFFEB], // left window key (hyper_l)
-        92:  [0xFF67], // right window key (menu key?)
-        93:  null,     // select key
-        96:  [0xFFB0], // KP 0
-        97:  [0xFFB1], // KP 1
-        98:  [0xFFB2], // KP 2
-        99:  [0xFFB3], // KP 3
+        8: [0xFF08], // backspace
+        9: [0xFF09], // tab
+        12: [0xFF0B, 0xFF0B, 0xFF0B, 0xFFB5], // clear       / KP 5
+        13: [0xFF0D], // enter
+        16: [0xFFE1, 0xFFE1, 0xFFE2], // shift
+        17: [0xFFE3, 0xFFE3, 0xFFE4], // ctrl
+        18: [0xFFE9, 0xFFE9, 0xFE03], // alt
+        19: [0xFF13], // pause/break
+        20: [0xFFE5], // caps lock
+        27: [0xFF1B], // escape
+        32: [0x0020], // space
+        33: [0xFF55, 0xFF55, 0xFF55, 0xFFB9], // page up     / KP 9
+        34: [0xFF56, 0xFF56, 0xFF56, 0xFFB3], // page down   / KP 3
+        35: [0xFF57, 0xFF57, 0xFF57, 0xFFB1], // end         / KP 1
+        36: [0xFF50, 0xFF50, 0xFF50, 0xFFB7], // home        / KP 7
+        37: [0xFF51, 0xFF51, 0xFF51, 0xFFB4], // left arrow  / KP 4
+        38: [0xFF52, 0xFF52, 0xFF52, 0xFFB8], // up arrow    / KP 8
+        39: [0xFF53, 0xFF53, 0xFF53, 0xFFB6], // right arrow / KP 6
+        40: [0xFF54, 0xFF54, 0xFF54, 0xFFB2], // down arrow  / KP 2
+        45: [0xFF63, 0xFF63, 0xFF63, 0xFFB0], // insert      / KP 0
+        46: [0xFFFF, 0xFFFF, 0xFFFF, 0xFFAE], // delete      / KP decimal
+        91: [0xFFEB], // left window key (hyper_l)
+        92: [0xFF67], // right window key (menu key?)
+        93: null,     // select key
+        96: [0xFFB0], // KP 0
+        97: [0xFFB1], // KP 1
+        98: [0xFFB2], // KP 2
+        99: [0xFFB3], // KP 3
         100: [0xFFB4], // KP 4
         101: [0xFFB5], // KP 5
         102: [0xFFB6], // KP 6
@@ -6115,7 +6115,7 @@ Guacamole.Keyboard = function Keyboard(element) {
      * All modifiers and their states.
      */
     this.modifiers = new Guacamole.Keyboard.ModifierState();
-        
+
     /**
      * The state of every key, indexed by keysym. If a particular key is
      * pressed, the value of pressed for that keysym will be true. If a key
@@ -6219,7 +6219,7 @@ Guacamole.Keyboard = function Keyboard(element) {
         // If identifier is U+xxxx, decode Unicode character 
         var unicodePrefixLocation = identifier.indexOf("U+");
         if (unicodePrefixLocation >= 0) {
-            var hex = identifier.substring(unicodePrefixLocation+2);
+            var hex = identifier.substring(unicodePrefixLocation + 2);
             typedCharacter = String.fromCharCode(parseInt(hex, 16));
         }
 
@@ -6299,7 +6299,7 @@ Guacamole.Keyboard = function Keyboard(element) {
 
         // If the Unicode codepoint isn't identical to the keyCode,
         // then the identifier is likely correct
-        var codepoint = parseInt(keyIdentifier.substring(unicodePrefixLocation+2), 16);
+        var codepoint = parseInt(keyIdentifier.substring(unicodePrefixLocation + 2), 16);
         if (keyCode !== codepoint)
             return true;
 
@@ -6322,7 +6322,7 @@ Guacamole.Keyboard = function Keyboard(element) {
      * @param {Number} keysym The keysym of the key to press.
      * @return {Boolean} true if event should NOT be canceled, false otherwise.
      */
-    this.press = function(keysym) {
+    this.press = function (keysym) {
 
         // Don't bother with pressing the key if the key is unknown
         if (keysym === null) return;
@@ -6344,8 +6344,8 @@ Guacamole.Keyboard = function Keyboard(element) {
 
                 // Repeat after a delay as long as pressed
                 if (!no_repeat[keysym])
-                    key_repeat_timeout = window.setTimeout(function() {
-                        key_repeat_interval = window.setInterval(function() {
+                    key_repeat_timeout = window.setTimeout(function () {
+                        key_repeat_interval = window.setInterval(function () {
                             guac_keyboard.onkeyup(keysym);
                             guac_keyboard.onkeydown(keysym);
                         }, 50);
@@ -6365,11 +6365,11 @@ Guacamole.Keyboard = function Keyboard(element) {
      * 
      * @param {Number} keysym The keysym of the key to release.
      */
-    this.release = function(keysym) {
+    this.release = function (keysym) {
 
         // Only release if pressed
         if (guac_keyboard.pressed[keysym]) {
-            
+
             // Mark key as released
             delete guac_keyboard.pressed[keysym];
             delete implicitlyPressed[keysym];
@@ -6414,7 +6414,7 @@ Guacamole.Keyboard = function Keyboard(element) {
      * Resets the state of this keyboard, releasing all keys, and firing keyup
      * events for each released key.
      */
-    this.reset = function() {
+    this.reset = function () {
 
         // Release all pressed keys
         for (var keysym in guac_keyboard.pressed)
@@ -6688,7 +6688,7 @@ Guacamole.Keyboard = function Keyboard(element) {
                         guac_keyboard.release(keysym);
 
                     // Record whether default was prevented
-                    for (var i=0; i<accepted_events.length; i++)
+                    for (var i = 0; i < accepted_events.length; i++)
                         accepted_events[i].defaultPrevented = defaultPrevented;
 
                 }
@@ -6796,7 +6796,7 @@ Guacamole.Keyboard = function Keyboard(element) {
     this.listenTo = function listenTo(element) {
 
         // When key pressed
-        element.addEventListener("keydown", function(e) {
+        element.addEventListener("keydown", function (e) {
 
             // Only intercept if handler set
             if (!guac_keyboard.onkeydown) return;
@@ -6827,7 +6827,7 @@ Guacamole.Keyboard = function Keyboard(element) {
         }, true);
 
         // When key pressed
-        element.addEventListener("keypress", function(e) {
+        element.addEventListener("keypress", function (e) {
 
             // Only intercept if handler set
             if (!guac_keyboard.onkeydown && !guac_keyboard.onkeyup) return;
@@ -6853,7 +6853,7 @@ Guacamole.Keyboard = function Keyboard(element) {
         }, true);
 
         // When key released
-        element.addEventListener("keyup", function(e) {
+        element.addEventListener("keyup", function (e) {
 
             // Only intercept if handler set
             if (!guac_keyboard.onkeyup) return;
@@ -6953,26 +6953,26 @@ Guacamole.Keyboard._nextID = 0;
  * The state of all supported keyboard modifiers.
  * @constructor
  */
-Guacamole.Keyboard.ModifierState = function() {
-    
+Guacamole.Keyboard.ModifierState = function () {
+
     /**
      * Whether shift is currently pressed.
      * @type {Boolean}
      */
     this.shift = false;
-    
+
     /**
      * Whether ctrl is currently pressed.
      * @type {Boolean}
      */
     this.ctrl = false;
-    
+
     /**
      * Whether alt is currently pressed.
      * @type {Boolean}
      */
     this.alt = false;
-    
+
     /**
      * Whether meta (apple key) is currently pressed.
      * @type {Boolean}
@@ -6984,7 +6984,7 @@ Guacamole.Keyboard.ModifierState = function() {
      * @type {Boolean}
      */
     this.hyper = false;
-    
+
 };
 
 /**
@@ -6994,26 +6994,26 @@ Guacamole.Keyboard.ModifierState = function() {
  * @returns {Guacamole.Keyboard.ModifierState} The current state of keyboard
  *                                             modifiers.
  */
-Guacamole.Keyboard.ModifierState.fromKeyboardEvent = function(e) {
-    
+Guacamole.Keyboard.ModifierState.fromKeyboardEvent = function (e) {
+
     var state = new Guacamole.Keyboard.ModifierState();
 
     // Assign states from old flags
     state.shift = e.shiftKey;
-    state.ctrl  = e.ctrlKey;
-    state.alt   = e.altKey;
-    state.meta  = e.metaKey;
+    state.ctrl = e.ctrlKey;
+    state.alt = e.altKey;
+    state.meta = e.metaKey;
 
     // Use DOM3 getModifierState() for others
     if (e.getModifierState) {
         state.hyper = e.getModifierState("OS")
-                   || e.getModifierState("Super")
-                   || e.getModifierState("Hyper")
-                   || e.getModifierState("Win");
+            || e.getModifierState("Super")
+            || e.getModifierState("Hyper")
+            || e.getModifierState("Win");
     }
 
     return state;
-    
+
 };
 
 /*
@@ -7052,7 +7052,7 @@ var Guacamole = Guacamole || {};
  * @param {Number} height The height of the Layer, in pixels. The canvas element
  *                        backing this Layer will be given this height.
  */
-Guacamole.Layer = function(width, height) {
+Guacamole.Layer = function (width, height) {
 
     /**
      * Reference to this Layer.
@@ -7118,20 +7118,20 @@ Guacamole.Layer = function(width, height) {
      * @private
      */
     var compositeOperation = {
-     /* 0x0 NOT IMPLEMENTED */
+        /* 0x0 NOT IMPLEMENTED */
         0x1: "destination-in",
         0x2: "destination-out",
-     /* 0x3 NOT IMPLEMENTED */
+        /* 0x3 NOT IMPLEMENTED */
         0x4: "source-in",
-     /* 0x5 NOT IMPLEMENTED */
+        /* 0x5 NOT IMPLEMENTED */
         0x6: "source-atop",
-     /* 0x7 NOT IMPLEMENTED */
+        /* 0x7 NOT IMPLEMENTED */
         0x8: "source-out",
         0x9: "destination-atop",
         0xA: "xor",
         0xB: "destination-over",
         0xC: "copy",
-     /* 0xD NOT IMPLEMENTED */
+        /* 0xD NOT IMPLEMENTED */
         0xE: "source-over",
         0xF: "lighter"
     };
@@ -7154,7 +7154,7 @@ Guacamole.Layer = function(width, height) {
         newHeight = newHeight || 0;
 
         // Calculate new dimensions of internal canvas
-        var canvasWidth  = Math.ceil(newWidth  / CANVAS_SIZE_FACTOR) * CANVAS_SIZE_FACTOR;
+        var canvasWidth = Math.ceil(newWidth / CANVAS_SIZE_FACTOR) * CANVAS_SIZE_FACTOR;
         var canvasHeight = Math.ceil(newHeight / CANVAS_SIZE_FACTOR) * CANVAS_SIZE_FACTOR;
 
         // Resize only if canvas dimensions are actually changing
@@ -7173,8 +7173,8 @@ Guacamole.Layer = function(width, height) {
 
                 // Copy image data from current
                 oldDataContext.drawImage(canvas,
-                        0, 0, oldData.width, oldData.height,
-                        0, 0, oldData.width, oldData.height);
+                    0, 0, oldData.width, oldData.height,
+                    0, 0, oldData.width, oldData.height);
 
             }
 
@@ -7227,11 +7227,11 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} h The height of the the rectangle to fit.
      */
     function fitRect(x, y, w, h) {
-        
+
         // Calculate bounds
         var opBoundX = w + x;
         var opBoundY = h + y;
-        
+
         // Determine max width
         var resizeWidth;
         if (opBoundX > layer.width)
@@ -7328,7 +7328,7 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} newWidth The new width to assign to this Layer.
      * @param {Number} newHeight The new height to assign to this Layer.
      */
-    this.resize = function(newWidth, newHeight) {
+    this.resize = function (newWidth, newHeight) {
         if (newWidth !== layer.width || newHeight !== layer.height)
             resize(newWidth, newHeight);
     };
@@ -7346,7 +7346,7 @@ Guacamole.Layer = function(width, height) {
      * @param {CanvasImageSource} image
      *     The image to draw. Note that this is not a URL.
      */
-    this.drawImage = function(x, y, image) {
+    this.drawImage = function (x, y, image) {
         if (layer.autosize) fitRect(x, y, image.width, image.height);
         context.drawImage(image, x, y);
         empty = false;
@@ -7373,7 +7373,7 @@ Guacamole.Layer = function(width, height) {
      *                                    transfer data from source to
      *                                    destination.
      */
-    this.transfer = function(srcLayer, srcx, srcy, srcw, srch, x, y, transferFunction) {
+    this.transfer = function (srcLayer, srcx, srcy, srcw, srch, x, y, transferFunction) {
 
         var srcCanvas = srcLayer.getCanvas();
 
@@ -7394,35 +7394,35 @@ Guacamole.Layer = function(width, height) {
 
         // Get image data from src and dst
         var src = srcLayer.getCanvas().getContext("2d").getImageData(srcx, srcy, srcw, srch);
-        var dst = context.getImageData(x , y, srcw, srch);
+        var dst = context.getImageData(x, y, srcw, srch);
 
         // Apply transfer for each pixel
-        for (var i=0; i<srcw*srch*4; i+=4) {
+        for (var i = 0; i < srcw * srch * 4; i += 4) {
 
             // Get source pixel environment
             var src_pixel = new Guacamole.Layer.Pixel(
                 src.data[i],
-                src.data[i+1],
-                src.data[i+2],
-                src.data[i+3]
+                src.data[i + 1],
+                src.data[i + 2],
+                src.data[i + 3]
             );
-                
+
             // Get destination pixel environment
             var dst_pixel = new Guacamole.Layer.Pixel(
                 dst.data[i],
-                dst.data[i+1],
-                dst.data[i+2],
-                dst.data[i+3]
+                dst.data[i + 1],
+                dst.data[i + 2],
+                dst.data[i + 3]
             );
 
             // Apply transfer function
             transferFunction(src_pixel, dst_pixel);
 
             // Save pixel data
-            dst.data[i  ] = dst_pixel.red;
-            dst.data[i+1] = dst_pixel.green;
-            dst.data[i+2] = dst_pixel.blue;
-            dst.data[i+3] = dst_pixel.alpha;
+            dst.data[i] = dst_pixel.red;
+            dst.data[i + 1] = dst_pixel.green;
+            dst.data[i + 2] = dst_pixel.blue;
+            dst.data[i + 3] = dst_pixel.alpha;
 
         }
 
@@ -7450,7 +7450,7 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} x The destination X coordinate.
      * @param {Number} y The destination Y coordinate.
      */
-    this.put = function(srcLayer, srcx, srcy, srcw, srch, x, y) {
+    this.put = function (srcLayer, srcx, srcy, srcw, srch, x, y) {
 
         var srcCanvas = srcLayer.getCanvas();
 
@@ -7497,7 +7497,7 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} x The destination X coordinate.
      * @param {Number} y The destination Y coordinate.
      */
-    this.copy = function(srcLayer, srcx, srcy, srcw, srch, x, y) {
+    this.copy = function (srcLayer, srcx, srcy, srcw, srch, x, y) {
 
         var srcCanvas = srcLayer.getCanvas();
 
@@ -7526,14 +7526,14 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} x The X coordinate of the point to draw.
      * @param {Number} y The Y coordinate of the point to draw.
      */
-    this.moveTo = function(x, y) {
-        
+    this.moveTo = function (x, y) {
+
         // Start a new path if current path is closed
         if (pathClosed) {
             context.beginPath();
             pathClosed = false;
         }
-        
+
         if (layer.autosize) fitRect(x, y, 0, 0);
         context.moveTo(x, y);
 
@@ -7545,17 +7545,17 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} x The X coordinate of the endpoint of the line to draw.
      * @param {Number} y The Y coordinate of the endpoint of the line to draw.
      */
-    this.lineTo = function(x, y) {
-        
+    this.lineTo = function (x, y) {
+
         // Start a new path if current path is closed
         if (pathClosed) {
             context.beginPath();
             pathClosed = false;
         }
-        
+
         if (layer.autosize) fitRect(x, y, 0, 0);
         context.lineTo(x, y);
-        
+
     };
 
     /**
@@ -7571,17 +7571,17 @@ Guacamole.Layer = function(width, height) {
      * @param {Boolean} negative Whether the arc should be drawn in order of
      *                           decreasing angle.
      */
-    this.arc = function(x, y, radius, startAngle, endAngle, negative) {
-        
+    this.arc = function (x, y, radius, startAngle, endAngle, negative) {
+
         // Start a new path if current path is closed
         if (pathClosed) {
             context.beginPath();
             pathClosed = false;
         }
-        
+
         if (layer.autosize) fitRect(x, y, 0, 0);
         context.arc(x, y, radius, startAngle, endAngle, negative);
-        
+
     };
 
     /**
@@ -7594,24 +7594,24 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} x The X coordinate of the endpoint of the curve.
      * @param {Number} y The Y coordinate of the endpoint of the curve.
      */
-    this.curveTo = function(cp1x, cp1y, cp2x, cp2y, x, y) {
-        
+    this.curveTo = function (cp1x, cp1y, cp2x, cp2y, x, y) {
+
         // Start a new path if current path is closed
         if (pathClosed) {
             context.beginPath();
             pathClosed = false;
         }
-        
+
         if (layer.autosize) fitRect(x, y, 0, 0);
         context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y);
-        
+
     };
 
     /**
      * Closes the current path by connecting the end point with the start
      * point (if any) with a straight line.
      */
-    this.close = function() {
+    this.close = function () {
         context.closePath();
         pathClosed = true;
     };
@@ -7626,17 +7626,17 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} w The width of the rectangle to draw.
      * @param {Number} h The height of the rectangle to draw.
      */
-    this.rect = function(x, y, w, h) {
-            
+    this.rect = function (x, y, w, h) {
+
         // Start a new path if current path is closed
         if (pathClosed) {
             context.beginPath();
             pathClosed = false;
         }
-        
+
         if (layer.autosize) fitRect(x, y, w, h);
         context.rect(x, y, w, h);
-        
+
     };
 
     /**
@@ -7645,7 +7645,7 @@ Guacamole.Layer = function(width, height) {
      * for other operations (such as fillColor()) but a new path will be started
      * once a path drawing operation (path() or rect()) is used.
      */
-    this.clip = function() {
+    this.clip = function () {
 
         // Set new clipping region
         context.clip();
@@ -7671,13 +7671,13 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} b The blue component of the color to fill.
      * @param {Number} a The alpha component of the color to fill.
      */
-    this.strokeColor = function(cap, join, thickness, r, g, b, a) {
+    this.strokeColor = function (cap, join, thickness, r, g, b, a) {
 
         // Stroke with color
         context.lineCap = cap;
         context.lineJoin = join;
         context.lineWidth = thickness;
-        context.strokeStyle = "rgba(" + r + "," + g + "," + b + "," + a/255.0 + ")";
+        context.strokeStyle = "rgba(" + r + "," + g + "," + b + "," + a / 255.0 + ")";
         context.stroke();
         empty = false;
 
@@ -7697,10 +7697,10 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} b The blue component of the color to fill.
      * @param {Number} a The alpha component of the color to fill.
      */
-    this.fillColor = function(r, g, b, a) {
+    this.fillColor = function (r, g, b, a) {
 
         // Fill with color
-        context.fillStyle = "rgba(" + r + "," + g + "," + b + "," + a/255.0 + ")";
+        context.fillStyle = "rgba(" + r + "," + g + "," + b + "," + a / 255.0 + ")";
         context.fill();
         empty = false;
 
@@ -7724,7 +7724,7 @@ Guacamole.Layer = function(width, height) {
      * @param {Guacamole.Layer} srcLayer The layer to use as a repeating pattern
      *                                   within the stroke.
      */
-    this.strokeLayer = function(cap, join, thickness, srcLayer) {
+    this.strokeLayer = function (cap, join, thickness, srcLayer) {
 
         // Stroke with image data
         context.lineCap = cap;
@@ -7752,7 +7752,7 @@ Guacamole.Layer = function(width, height) {
      * @param {Guacamole.Layer} srcLayer The layer to use as a repeating pattern
      *                                   within the fill.
      */
-    this.fillLayer = function(srcLayer) {
+    this.fillLayer = function (srcLayer) {
 
         // Fill with image data 
         context.fillStyle = context.createPattern(
@@ -7770,7 +7770,7 @@ Guacamole.Layer = function(width, height) {
     /**
      * Push current layer state onto stack.
      */
-    this.push = function() {
+    this.push = function () {
 
         // Save current state onto stack
         context.save();
@@ -7781,7 +7781,7 @@ Guacamole.Layer = function(width, height) {
     /**
      * Pop layer state off stack.
      */
-    this.pop = function() {
+    this.pop = function () {
 
         // Restore current state from stack
         if (stackSize > 0) {
@@ -7795,7 +7795,7 @@ Guacamole.Layer = function(width, height) {
      * Reset the layer, clearing the stack, the current path, and any transform
      * matrix.
      */
-    this.reset = function() {
+    this.reset = function () {
 
         // Clear stack
         while (stackSize > 0) {
@@ -7824,11 +7824,11 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} e The fifth value in the affine transform's matrix.
      * @param {Number} f The sixth value in the affine transform's matrix.
      */
-    this.setTransform = function(a, b, c, d, e, f) {
+    this.setTransform = function (a, b, c, d, e, f) {
         context.setTransform(
             a, b, c,
             d, e, f
-          /*0, 0, 1*/
+            /*0, 0, 1*/
         );
     };
 
@@ -7843,11 +7843,11 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} e The fifth value in the affine transform's matrix.
      * @param {Number} f The sixth value in the affine transform's matrix.
      */
-    this.transform = function(a, b, c, d, e, f) {
+    this.transform = function (a, b, c, d, e, f) {
         context.transform(
             a, b, c,
             d, e, f
-          /*0, 0, 1*/
+            /*0, 0, 1*/
         );
     };
 
@@ -7863,7 +7863,7 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} mask The channel mask for future operations on this
      *                      Layer.
      */
-    this.setChannelMask = function(mask) {
+    this.setChannelMask = function (mask) {
         context.globalCompositeOperation = compositeOperation[mask];
     };
 
@@ -7876,7 +7876,7 @@ Guacamole.Layer = function(width, height) {
      * @param {Number} limit The miter limit for stroke operations using the
      *                       miter join.
      */
-    this.setMiterLimit = function(limit) {
+    this.setMiterLimit = function (limit) {
         context.miterLimit = limit;
     };
 
@@ -7893,17 +7893,17 @@ Guacamole.Layer = function(width, height) {
 /**
  * Channel mask for the composite operation "rout".
  */
-Guacamole.Layer.ROUT  = 0x2;
+Guacamole.Layer.ROUT = 0x2;
 
 /**
  * Channel mask for the composite operation "atop".
  */
-Guacamole.Layer.ATOP  = 0x6;
+Guacamole.Layer.ATOP = 0x6;
 
 /**
  * Channel mask for the composite operation "xor".
  */
-Guacamole.Layer.XOR   = 0xA;
+Guacamole.Layer.XOR = 0xA;
 
 /**
  * Channel mask for the composite operation "rover".
@@ -7913,12 +7913,12 @@ Guacamole.Layer.ROVER = 0xB;
 /**
  * Channel mask for the composite operation "over".
  */
-Guacamole.Layer.OVER  = 0xE;
+Guacamole.Layer.OVER = 0xE;
 
 /**
  * Channel mask for the composite operation "plus".
  */
-Guacamole.Layer.PLUS  = 0xF;
+Guacamole.Layer.PLUS = 0xF;
 
 /**
  * Channel mask for the composite operation "rin".
@@ -7926,7 +7926,7 @@ Guacamole.Layer.PLUS  = 0xF;
  * layer where the source layer is transparent, despite the definition of this
  * operation.
  */
-Guacamole.Layer.RIN   = 0x1;
+Guacamole.Layer.RIN = 0x1;
 
 /**
  * Channel mask for the composite operation "in".
@@ -7934,7 +7934,7 @@ Guacamole.Layer.RIN   = 0x1;
  * layer where the source layer is transparent, despite the definition of this
  * operation.
  */
-Guacamole.Layer.IN    = 0x4;
+Guacamole.Layer.IN = 0x4;
 
 /**
  * Channel mask for the composite operation "out".
@@ -7942,7 +7942,7 @@ Guacamole.Layer.IN    = 0x4;
  * layer where the source layer is transparent, despite the definition of this
  * operation.
  */
-Guacamole.Layer.OUT   = 0x8;
+Guacamole.Layer.OUT = 0x8;
 
 /**
  * Channel mask for the composite operation "ratop".
@@ -7958,7 +7958,7 @@ Guacamole.Layer.RATOP = 0x9;
  * layer where the source layer is transparent, despite the definition of this
  * operation.
  */
-Guacamole.Layer.SRC   = 0xC;
+Guacamole.Layer.SRC = 0xC;
 
 /**
  * Represents a single pixel of image data. All components have a minimum value
@@ -7971,13 +7971,13 @@ Guacamole.Layer.SRC   = 0xC;
  * @param {Number} b The blue component of this pixel.
  * @param {Number} a The alpha component of this pixel.
  */
-Guacamole.Layer.Pixel = function(r, g, b, a) {
+Guacamole.Layer.Pixel = function (r, g, b, a) {
 
     /**
      * The red component of this pixel, where 0 is the minimum value,
      * and 255 is the maximum.
      */
-    this.red   = r;
+    this.red = r;
 
     /**
      * The green component of this pixel, where 0 is the minimum value,
@@ -7989,7 +7989,7 @@ Guacamole.Layer.Pixel = function(r, g, b, a) {
      * The blue component of this pixel, where 0 is the minimum value,
      * and 255 is the maximum.
      */
-    this.blue  = b;
+    this.blue = b;
 
     /**
      * The alpha component of this pixel, where 0 is the minimum value,
@@ -8029,7 +8029,7 @@ var Guacamole = Guacamole || {};
  * @constructor
  * @param {Element} element The Element to use to provide mouse events.
  */
-Guacamole.Mouse = function(element) {
+Guacamole.Mouse = function (element) {
 
     /**
      * Reference to this Guacamole.Mouse.
@@ -8067,7 +8067,7 @@ Guacamole.Mouse = function(element) {
      * @type {Guacamole.Mouse.State}
      */
     this.currentState = new Guacamole.Mouse.State(
-        0, 0, 
+        0, 0,
         false, false, false, false, false
     );
 
@@ -8078,7 +8078,7 @@ Guacamole.Mouse = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmousedown = null;
+    this.onmousedown = null;
 
     /**
      * Fired whenever the user releases a mouse button down over the element
@@ -8087,7 +8087,7 @@ Guacamole.Mouse = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmouseup = null;
+    this.onmouseup = null;
 
     /**
      * Fired whenever the user moves the mouse over the element associated with
@@ -8096,7 +8096,7 @@ Guacamole.Mouse = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmousemove = null;
+    this.onmousemove = null;
 
     /**
      * Fired whenever the mouse leaves the boundaries of the element associated
@@ -8104,7 +8104,7 @@ Guacamole.Mouse = function(element) {
      * 
      * @event
      */
-	this.onmouseout = null;
+    this.onmouseout = null;
 
     /**
      * Counter of mouse events to ignore. This decremented by mousemove, and
@@ -8129,11 +8129,11 @@ Guacamole.Mouse = function(element) {
     }
 
     // Block context menu so right-click gets sent properly
-    element.addEventListener("contextmenu", function(e) {
+    element.addEventListener("contextmenu", function (e) {
         cancelEvent(e);
     }, false);
 
-    element.addEventListener("mousemove", function(e) {
+    element.addEventListener("mousemove", function (e) {
 
         cancelEvent(e);
 
@@ -8150,7 +8150,7 @@ Guacamole.Mouse = function(element) {
 
     }, false);
 
-    element.addEventListener("mousedown", function(e) {
+    element.addEventListener("mousedown", function (e) {
 
         cancelEvent(e);
 
@@ -8175,7 +8175,7 @@ Guacamole.Mouse = function(element) {
 
     }, false);
 
-    element.addEventListener("mouseup", function(e) {
+    element.addEventListener("mouseup", function (e) {
 
         cancelEvent(e);
 
@@ -8200,10 +8200,10 @@ Guacamole.Mouse = function(element) {
 
     }, false);
 
-    element.addEventListener("mouseout", function(e) {
+    element.addEventListener("mouseout", function (e) {
 
         // Get parent of the element the mouse pointer is leaving
-       	if (!e) e = window.event;
+        if (!e) e = window.event;
 
         // Check that mouseout is due to actually LEAVING the element
         var target = e.relatedTarget || e.toElement;
@@ -8235,16 +8235,16 @@ Guacamole.Mouse = function(element) {
     }, false);
 
     // Override selection on mouse event element.
-    element.addEventListener("selectstart", function(e) {
+    element.addEventListener("selectstart", function (e) {
         cancelEvent(e);
     }, false);
 
     // Ignore all pending mouse events when touch events are the apparent source
     function ignorePendingMouseEvents() { ignore_mouse = guac_mouse.touchMouseThreshold; }
 
-    element.addEventListener("touchmove",  ignorePendingMouseEvents, false);
+    element.addEventListener("touchmove", ignorePendingMouseEvents, false);
     element.addEventListener("touchstart", ignorePendingMouseEvents, false);
-    element.addEventListener("touchend",   ignorePendingMouseEvents, false);
+    element.addEventListener("touchend", ignorePendingMouseEvents, false);
 
     // Scroll wheel support
     function mousewheel_handler(e) {
@@ -8269,7 +8269,7 @@ Guacamole.Mouse = function(element) {
         // Otherwise, assume legacy mousewheel event and line scrolling
         else
             delta = e.detail * guac_mouse.PIXELS_PER_LINE;
-        
+
         // Update overall delta
         scroll_delta += delta;
 
@@ -8328,8 +8328,8 @@ Guacamole.Mouse = function(element) {
     }
 
     element.addEventListener('DOMMouseScroll', mousewheel_handler, false);
-    element.addEventListener('mousewheel',     mousewheel_handler, false);
-    element.addEventListener('wheel',          mousewheel_handler, false);
+    element.addEventListener('mousewheel', mousewheel_handler, false);
+    element.addEventListener('wheel', mousewheel_handler, false);
 
     /**
      * Whether the browser supports CSS3 cursor styling, including hotspot
@@ -8338,7 +8338,7 @@ Guacamole.Mouse = function(element) {
      * @private
      * @type {Boolean}
      */
-    var CSS3_CURSOR_SUPPORTED = (function() {
+    var CSS3_CURSOR_SUPPORTED = (function () {
 
         var div = document.createElement("div");
 
@@ -8349,10 +8349,10 @@ Guacamole.Mouse = function(element) {
         try {
             // Apply simple 1x1 PNG
             div.style.cursor = "url(data:image/png;base64,"
-                             + "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
-                             + "AQMAAAAl21bKAAAAA1BMVEX///+nxBvI"
-                             + "AAAACklEQVQI12NgAAAAAgAB4iG8MwAA"
-                             + "AABJRU5ErkJggg==) 0 0, auto";
+                + "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
+                + "AQMAAAAl21bKAAAAA1BMVEX///+nxBvI"
+                + "AAAACklEQVQI12NgAAAAAgAB4iG8MwAA"
+                + "AABJRU5ErkJggg==) 0 0, auto";
         }
         catch (e) {
             return false;
@@ -8379,7 +8379,7 @@ Guacamole.Mouse = function(element) {
      * @return {Boolean} true if the cursor was successfully set, false if the
      *                   cursor could not be set for any reason.
      */
-    this.setCursor = function(canvas, x, y) {
+    this.setCursor = function (canvas, x, y) {
 
         // Attempt to set via CSS3 cursor styling
         if (CSS3_CURSOR_SUPPORTED) {
@@ -8409,7 +8409,7 @@ Guacamole.Mouse = function(element) {
  * @param {Boolean} down Whether the down mouse button is pressed (the fifth
  *                       button, usually part of a scroll wheel). 
  */
-Guacamole.Mouse.State = function(x, y, left, middle, right, up, down) {
+Guacamole.Mouse.State = function (x, y, left, middle, right, up, down) {
 
     /**
      * Reference to this Guacamole.Mouse.State.
@@ -8474,8 +8474,8 @@ Guacamole.Mouse.State = function(x, y, left, middle, right, up, down) {
      * @param {Number} clientX The X coordinate to translate, viewport-relative.
      * @param {Number} clientY The Y coordinate to translate, viewport-relative.
      */
-    this.fromClientPosition = function(element, clientX, clientY) {
-    
+    this.fromClientPosition = function (element, clientX, clientY) {
+
         guac_state.x = clientX - element.offsetLeft;
         guac_state.y = clientY - element.offsetTop;
 
@@ -8483,7 +8483,7 @@ Guacamole.Mouse.State = function(x, y, left, middle, right, up, down) {
         var parent = element.offsetParent;
         while (parent && !(parent === document.body)) {
             guac_state.x -= parent.offsetLeft - parent.scrollLeft;
-            guac_state.y -= parent.offsetTop  - parent.scrollTop;
+            guac_state.y -= parent.offsetTop - parent.scrollTop;
 
             parent = parent.offsetParent;
         }
@@ -8495,7 +8495,7 @@ Guacamole.Mouse.State = function(x, y, left, middle, right, up, down) {
             var documentScrollTop = document.body.scrollTop || document.documentElement.scrollTop;
 
             guac_state.x -= parent.offsetLeft - documentScrollLeft;
-            guac_state.y -= parent.offsetTop  - documentScrollTop;
+            guac_state.y -= parent.offsetTop - documentScrollTop;
         }
 
     };
@@ -8511,7 +8511,7 @@ Guacamole.Mouse.State = function(x, y, left, middle, right, up, down) {
  * @constructor
  * @param {Element} element The Element to use to provide touch events.
  */
-Guacamole.Mouse.Touchpad = function(element) {
+Guacamole.Mouse.Touchpad = function (element) {
 
     /**
      * Reference to this Guacamole.Mouse.Touchpad.
@@ -8545,7 +8545,7 @@ Guacamole.Mouse.Touchpad = function(element) {
      * @type {Guacamole.Mouse.State}
      */
     this.currentState = new Guacamole.Mouse.State(
-        0, 0, 
+        0, 0,
         false, false, false, false, false
     );
 
@@ -8558,7 +8558,7 @@ Guacamole.Mouse.Touchpad = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmousedown = null;
+    this.onmousedown = null;
 
     /**
      * Fired whenever a mouse button is effectively released. This can happen
@@ -8569,7 +8569,7 @@ Guacamole.Mouse.Touchpad = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmouseup = null;
+    this.onmouseup = null;
 
     /**
      * Fired whenever the user moves the mouse by dragging their finger over
@@ -8578,7 +8578,7 @@ Guacamole.Mouse.Touchpad = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmousemove = null;
+    this.onmousemove = null;
 
     var touch_count = 0;
     var last_touch_x = 0;
@@ -8595,13 +8595,13 @@ Guacamole.Mouse.Touchpad = function(element) {
     var gesture_in_progress = false;
     var click_release_timeout = null;
 
-    element.addEventListener("touchend", function(e) {
-        
+    element.addEventListener("touchend", function (e) {
+
         e.preventDefault();
-            
+
         // If we're handling a gesture AND this is the last touch
         if (gesture_in_progress && e.touches.length === 0) {
-            
+
             var time = new Date().getTime();
 
             // Get corresponding mouse button
@@ -8625,7 +8625,7 @@ Guacamole.Mouse.Touchpad = function(element) {
 
             // If single tap detected (based on time and distance)
             if (time - last_touch_time <= guac_touchpad.clickTimingThreshold
-                    && pixels_moved < guac_touchpad.clickMoveThreshold) {
+                && pixels_moved < guac_touchpad.clickMoveThreshold) {
 
                 // Fire button down event
                 guac_touchpad.currentState[button] = true;
@@ -8634,13 +8634,13 @@ Guacamole.Mouse.Touchpad = function(element) {
 
                 // Delay mouse up - mouse up should be canceled if
                 // touchstart within timeout.
-                click_release_timeout = window.setTimeout(function() {
-                    
+                click_release_timeout = window.setTimeout(function () {
+
                     // Fire button up event
                     guac_touchpad.currentState[button] = false;
                     if (guac_touchpad.onmouseup)
                         guac_touchpad.onmouseup(guac_touchpad.currentState);
-                    
+
                     // Gesture now over
                     gesture_in_progress = false;
 
@@ -8656,7 +8656,7 @@ Guacamole.Mouse.Touchpad = function(element) {
 
     }, false);
 
-    element.addEventListener("touchstart", function(e) {
+    element.addEventListener("touchstart", function (e) {
 
         e.preventDefault();
 
@@ -8687,7 +8687,7 @@ Guacamole.Mouse.Touchpad = function(element) {
 
     }, false);
 
-    element.addEventListener("touchmove", function(e) {
+    element.addEventListener("touchmove", function (e) {
 
         e.preventDefault();
 
@@ -8709,8 +8709,8 @@ Guacamole.Mouse.Touchpad = function(element) {
             var scale = 1 + velocity;
 
             // Update mouse location
-            guac_touchpad.currentState.x += delta_x*scale;
-            guac_touchpad.currentState.y += delta_y*scale;
+            guac_touchpad.currentState.x += delta_x * scale;
+            guac_touchpad.currentState.y += delta_y * scale;
 
             // Prevent mouse from leaving screen
 
@@ -8743,7 +8743,7 @@ Guacamole.Mouse.Touchpad = function(element) {
                 // Decide button based on Y movement direction
                 var button;
                 if (delta_y > 0) button = "down";
-                else             button = "up";
+                else button = "up";
 
                 // Fire button down event
                 guac_touchpad.currentState[button] = true;
@@ -8778,7 +8778,7 @@ Guacamole.Mouse.Touchpad = function(element) {
  * @constructor
  * @param {Element} element The Element to use to provide touch events.
  */
-Guacamole.Mouse.Touchscreen = function(element) {
+Guacamole.Mouse.Touchscreen = function (element) {
 
     /**
      * Reference to this Guacamole.Mouse.Touchscreen.
@@ -8865,7 +8865,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmousedown = null;
+    this.onmousedown = null;
 
     /**
      * Fired whenever a mouse button is effectively released. This can happen
@@ -8876,7 +8876,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmouseup = null;
+    this.onmouseup = null;
 
     /**
      * Fired whenever the user moves the mouse by dragging their finger over
@@ -8887,7 +8887,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
      * @event
      * @param {Guacamole.Mouse.State} state The current mouse state.
      */
-	this.onmousemove = null;
+    this.onmousemove = null;
 
     /**
      * Presses the given mouse button, if it isn't already pressed. Valid
@@ -8959,7 +8959,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
         var touch = e.touches[0] || e.changedTouches[0];
         var delta_x = touch.clientX - gesture_start_x;
         var delta_y = touch.clientY - gesture_start_y;
-        return Math.sqrt(delta_x*delta_x + delta_y*delta_y) >= guac_touchscreen.clickMoveThreshold;
+        return Math.sqrt(delta_x * delta_x + delta_y * delta_y) >= guac_touchscreen.clickMoveThreshold;
     }
 
     /**
@@ -8988,7 +8988,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
         gesture_in_progress = false;
     }
 
-    element.addEventListener("touchend", function(e) {
+    element.addEventListener("touchend", function (e) {
 
         // Do not handle if no gesture
         if (!gesture_in_progress)
@@ -9019,7 +9019,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
                 press_button("left");
 
                 // Release button after a delay, if not canceled
-                click_release_timeout = window.setTimeout(function() {
+                click_release_timeout = window.setTimeout(function () {
                     release_button("left");
                     end_gesture();
                 }, guac_touchscreen.clickTimingThreshold);
@@ -9030,7 +9030,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
 
     }, false);
 
-    element.addEventListener("touchstart", function(e) {
+    element.addEventListener("touchstart", function (e) {
 
         // Ignore if more than one touch
         if (e.touches.length !== 1) {
@@ -9047,7 +9047,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
         window.clearTimeout(click_release_timeout);
 
         // Click right button if this turns into a long-press
-        long_press_timeout = window.setTimeout(function() {
+        long_press_timeout = window.setTimeout(function () {
             var touch = e.touches[0];
             move_mouse(touch.clientX, touch.clientY);
             click_button("right");
@@ -9056,7 +9056,7 @@ Guacamole.Mouse.Touchscreen = function(element) {
 
     }, false);
 
-    element.addEventListener("touchmove", function(e) {
+    element.addEventListener("touchmove", function (e) {
 
         // Do not handle if no gesture
         if (!gesture_in_progress)
@@ -9355,7 +9355,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.OnScreenKeyboard.Layout} layout
  *     The layout of the on-screen keyboard to display.
  */
-Guacamole.OnScreenKeyboard = function(layout) {
+Guacamole.OnScreenKeyboard = function (layout) {
 
     /**
      * Reference to this Guacamole.OnScreenKeyboard.
@@ -9447,7 +9447,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
 
                     // Otherwise, allow
                     return match;
-                    
+
                 }
             );
         }
@@ -9503,7 +9503,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
          *
          * @type {Number}
          */
-         this.width = width;
+        this.width = width;
 
         /**
          * The height of this ScaledElement, in arbitrary units, relative to
@@ -9511,8 +9511,8 @@ Guacamole.OnScreenKeyboard = function(layout) {
          *
          * @type {Number}
          */
-         this.height = height;
- 
+        this.height = height;
+
         /**
          * Resizes the associated element, updating its dimensions according to
          * the given pixels per unit.
@@ -9520,16 +9520,16 @@ Guacamole.OnScreenKeyboard = function(layout) {
          * @param {Number} pixels
          *     The number of pixels to assign per arbitrary unit.
          */
-        this.scale = function(pixels) {
+        this.scale = function (pixels) {
 
             // Scale element width/height
-            element.style.width  = (width  * pixels) + "px";
+            element.style.width = (width * pixels) + "px";
             element.style.height = (height * pixels) + "px";
 
             // Scale font, if requested
             if (scaleFont) {
                 element.style.lineHeight = (height * pixels) + "px";
-                element.style.fontSize   = pixels + "px";
+                element.style.fontSize = pixels + "px";
             }
 
         };
@@ -9550,7 +9550,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
     var modifiersPressed = function modifiersPressed(names) {
 
         // If any required modifiers are not pressed, return false
-        for (var i=0; i < names.length; i++) {
+        for (var i = 0; i < names.length; i++) {
 
             // Test whether current modifier is pressed
             var name = names[i];
@@ -9635,10 +9635,10 @@ Guacamole.OnScreenKeyboard = function(layout) {
 
                 // Activate modifier if not pressed
                 if (!originalKeysym) {
-                    
+
                     addClass(keyboard, modifierClass);
                     modifierKeysyms[key.modifier] = key.keysym;
-                    
+
                     // Send key event
                     if (osk.onkeydown)
                         osk.onkeydown(key.keysym);
@@ -9650,7 +9650,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
 
                     removeClass(keyboard, modifierClass);
                     delete modifierKeysyms[key.modifier];
-                    
+
                     // Send key event
                     if (osk.onkeyup)
                         osk.onkeyup(originalKeysym);
@@ -9709,18 +9709,18 @@ Guacamole.OnScreenKeyboard = function(layout) {
 
     // Do not allow selection or mouse movement to propagate/register.
     keyboard.onselectstart =
-    keyboard.onmousemove   =
-    keyboard.onmouseup     =
-    keyboard.onmousedown   = function handleMouseEvents(e) {
+        keyboard.onmousemove =
+        keyboard.onmouseup =
+        keyboard.onmousedown = function handleMouseEvents(e) {
 
-        // If ignoring events, decrement counter
-        if (ignoreMouse)
-            ignoreMouse--;
+            // If ignoring events, decrement counter
+            if (ignoreMouse)
+                ignoreMouse--;
 
-        e.stopPropagation();
-        return false;
+            e.stopPropagation();
+            return false;
 
-    };
+        };
 
     /**
      * The number of mousemove events to require before re-enabling mouse
@@ -9757,7 +9757,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
      * Returns the element containing the entire on-screen keyboard.
      * @returns {Element} The element containing the entire on-screen keyboard.
      */
-    this.getElement = function() {
+    this.getElement = function () {
         return keyboard;
     };
 
@@ -9769,13 +9769,13 @@ Guacamole.OnScreenKeyboard = function(layout) {
      * @param {Number} width The width to resize this Guacamole.OnScreenKeyboard
      *                       to, in pixels.
      */
-    this.resize = function(width) {
+    this.resize = function (width) {
 
         // Get pixel size of a unit
         var unit = Math.floor(width * 10 / osk.layout.width) / 10;
 
         // Resize all scaled elements
-        for (var i=0; i<scaledElements.length; i++) {
+        for (var i = 0; i < scaledElements.length; i++) {
             var scaledElement = scaledElements[i];
             scaledElement.scale(unit);
         }
@@ -9805,7 +9805,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
         // If already an array, just coerce into a true Key[] 
         if (object instanceof Array) {
             var keys = [];
-            for (var i=0; i < object.length; i++) {
+            for (var i = 0; i < object.length; i++) {
                 keys.push(new Guacamole.OnScreenKeyboard.Key(object[i], name));
             }
             return keys;
@@ -9814,16 +9814,16 @@ Guacamole.OnScreenKeyboard = function(layout) {
         // Derive key object from keysym if that's all we have
         if (typeof object === 'number') {
             return [new Guacamole.OnScreenKeyboard.Key({
-                name   : name,
-                keysym : object
+                name: name,
+                keysym: object
             })];
         }
 
         // Derive key object from title if that's all we have
         if (typeof object === 'string') {
             return [new Guacamole.OnScreenKeyboard.Key({
-                name  : name,
-                title : object
+                name: name,
+                title: object
             })];
         }
 
@@ -9888,9 +9888,9 @@ Guacamole.OnScreenKeyboard = function(layout) {
 
         // Convert name from possibly-CamelCase to hyphenated lowercase
         var cssName = name
-               .replace(/([a-z])([A-Z])/g, '$1-$2')
-               .replace(/[^A-Za-z0-9]+/g, '-')
-               .toLowerCase();
+            .replace(/([a-z])([A-Z])/g, '$1-$2')
+            .replace(/[^A-Za-z0-9]+/g, '-')
+            .toLowerCase();
 
         return cssName;
 
@@ -9953,7 +9953,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
             addClass(div, 'guac-keyboard-group');
 
             // Append all elements of array
-            for (i=0; i < object.length; i++)
+            for (i = 0; i < object.length; i++)
                 appendElements(div, object[i]);
 
         }
@@ -9966,7 +9966,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
 
             // Append all children, sorted by name
             var names = Object.keys(object).sort();
-            for (i=0; i < names.length; i++) {
+            for (i = 0; i < names.length; i++) {
                 var name = names[i];
                 appendElements(div, object[name], name);
             }
@@ -9998,26 +9998,26 @@ Guacamole.OnScreenKeyboard = function(layout) {
             // Create key element which will contain all possible caps
             var keyElement = document.createElement('div');
             keyElement.className = 'guac-keyboard-key '
-                                 + 'guac-keyboard-key-' + getCSSName(keyName);
+                + 'guac-keyboard-key-' + getCSSName(keyName);
 
             // Add all associated keys as caps within DOM
             var keys = osk.keys[object];
             if (keys) {
-                for (i=0; i < keys.length; i++) {
+                for (i = 0; i < keys.length; i++) {
 
                     // Get current key
                     var key = keys[i];
 
                     // Create cap element for key
                     var capElement = document.createElement('div');
-                    capElement.className   = 'guac-keyboard-cap';
+                    capElement.className = 'guac-keyboard-cap';
                     capElement.textContent = key.title;
 
                     // Add classes for any requirements
-                    for (var j=0; j < key.requires.length; j++) {
+                    for (var j = 0; j < key.requires.length; j++) {
                         var requirement = key.requires[j];
                         addClass(capElement, 'guac-keyboard-requires-' + getCSSName(requirement));
-                        addClass(keyElement, 'guac-keyboard-uses-'     + getCSSName(requirement));
+                        addClass(keyElement, 'guac-keyboard-uses-' + getCSSName(requirement));
                     }
 
                     // Add cap to key within DOM
@@ -10091,13 +10091,13 @@ Guacamole.OnScreenKeyboard = function(layout) {
             };
 
             // Handle touch events on key
-            keyElement.addEventListener("touchstart", touchPress,   true);
-            keyElement.addEventListener("touchend",   touchRelease, true);
+            keyElement.addEventListener("touchstart", touchPress, true);
+            keyElement.addEventListener("touchend", touchRelease, true);
 
             // Handle mouse events on key
-            keyElement.addEventListener("mousedown", mousePress,   true);
-            keyElement.addEventListener("mouseup",   mouseRelease, true);
-            keyElement.addEventListener("mouseout",  mouseRelease, true);
+            keyElement.addEventListener("mousedown", mousePress, true);
+            keyElement.addEventListener("mouseup", mouseRelease, true);
+            keyElement.addEventListener("mouseout", mouseRelease, true);
 
         } // end if object is key name
 
@@ -10120,7 +10120,7 @@ Guacamole.OnScreenKeyboard = function(layout) {
  *     The object whose identically-named properties will be used to initialize
  *     the properties of this layout.
  */
-Guacamole.OnScreenKeyboard.Layout = function(template) {
+Guacamole.OnScreenKeyboard.Layout = function (template) {
 
     /**
      * The language of keyboard layout, such as "en_US". This property is for
@@ -10201,7 +10201,7 @@ Guacamole.OnScreenKeyboard.Layout = function(template) {
  *     any. If omitted, the name within the template will be used, assuming the
  *     template contains a name.
  */
-Guacamole.OnScreenKeyboard.Key = function(template, name) {
+Guacamole.OnScreenKeyboard.Key = function (template, name) {
 
     /**
      * The unique name identifying this key within the keyboard layout.
@@ -10297,7 +10297,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.Client} client The client owning this stream.
  * @param {Number} index The index of this stream.
  */
-Guacamole.OutputStream = function(client, index) {
+Guacamole.OutputStream = function (client, index) {
 
     /**
      * Reference to this stream.
@@ -10325,14 +10325,14 @@ Guacamole.OutputStream = function(client, index) {
      * 
      * @param {String} data The base64-encoded data to send.
      */
-    this.sendBlob = function(data) {
+    this.sendBlob = function (data) {
         client.sendBlob(guac_stream.index, data);
     };
 
     /**
      * Closes this stream.
      */
-    this.sendEnd = function() {
+    this.sendEnd = function () {
         client.endStream(guac_stream.index);
     };
 
@@ -10365,7 +10365,7 @@ var Guacamole = Guacamole || {};
  * 
  * @constructor
  */
-Guacamole.Parser = function() {
+Guacamole.Parser = function () {
 
     /**
      * Reference to this parser.
@@ -10403,7 +10403,7 @@ Guacamole.Parser = function() {
      *
      * @param {String} packet The instruction data to receive.
      */
-    this.receive = function(packet) {
+    this.receive = function (packet) {
 
         // Truncate buffer as necessary
         if (start_index > 4096 && element_end >= start_index) {
@@ -10427,7 +10427,7 @@ Guacamole.Parser = function() {
 
                 // We now have enough data for the element. Parse.
                 var element = buffer.substring(start_index, element_end);
-                var terminator = buffer.substring(element_end, element_end+1);
+                var terminator = buffer.substring(element_end, element_end + 1);
 
                 // Add element to array
                 element_buffer.push(element);
@@ -10460,7 +10460,7 @@ Guacamole.Parser = function() {
             if (length_end != -1) {
 
                 // Parse length
-                var length = parseInt(buffer.substring(element_end+1, length_end));
+                var length = parseInt(buffer.substring(element_end + 1, length_end));
                 if (isNaN(length))
                     throw new Error("Non-numeric character in element length.");
 
@@ -10471,7 +10471,7 @@ Guacamole.Parser = function() {
                 element_end = start_index + length;
 
             }
-            
+
             // If no period yet, continue search when more data
             // is received
             else {
@@ -10605,8 +10605,8 @@ Guacamole.RawAudioFormat.parse = function parseFormat(mimetype) {
             return null;
 
         // Parse name and value from parameter string
-        var name  = parameter.substring(0, equals);
-        var value = parameter.substring(equals+1);
+        var name = parameter.substring(0, equals);
+        var value = parameter.substring(equals + 1);
 
         // Handle each supported parameter
         switch (name) {
@@ -10635,9 +10635,9 @@ Guacamole.RawAudioFormat.parse = function parseFormat(mimetype) {
 
     // Return parsed format details
     return new Guacamole.RawAudioFormat({
-        bytesPerSample : bytesPerSample,
-        channels       : channels,
-        rate           : rate
+        bytesPerSample: bytesPerSample,
+        channels: channels,
+        rate: rate
     });
 
 };
@@ -10834,7 +10834,7 @@ Guacamole.SessionRecording = function SessionRecording(tunnel) {
             // has been processed and enough recording time has elapsed, or if
             // this is the absolute first frame
             if (frames.length === 1 || (charactersSinceLastKeyframe >= KEYFRAME_CHAR_INTERVAL
-                    && timestamp - lastKeyframeTimestamp >= KEYFRAME_TIME_INTERVAL)) {
+                && timestamp - lastKeyframeTimestamp >= KEYFRAME_TIME_INTERVAL)) {
                 frame.keyframe = true;
                 lastKeyframeTimestamp = timestamp;
                 charactersSinceLastKeyframe = 0;
@@ -11495,7 +11495,7 @@ var Guacamole = Guacamole || {};
  * @param {String} [message]
  *     An optional human-readable message.
  */
-Guacamole.Status = function(code, message) {
+Guacamole.Status = function (code, message) {
 
     /**
      * Reference to this Guacamole.Status.
@@ -11525,7 +11525,7 @@ Guacamole.Status = function(code, message) {
      * @returns {Boolean} true if this status represents an error, false
      *                    otherwise.
      */
-    this.isError = function() {
+    this.isError = function () {
         return guac_status.code < 0 || guac_status.code > 0x00FF;
     };
 
@@ -11811,7 +11811,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.InputStream} stream The stream that data will be read
  *                                       from.
  */
-Guacamole.StringReader = function(stream) {
+Guacamole.StringReader = function (stream) {
 
     /**
      * Reference to this Guacamole.InputStream.
@@ -11855,7 +11855,7 @@ Guacamole.StringReader = function(stream) {
         var text = "";
 
         var bytes = new Uint8Array(buffer);
-        for (var i=0; i<bytes.length; i++) {
+        for (var i = 0; i < bytes.length; i++) {
 
             // Get current byte
             var value = bytes[i];
@@ -11874,7 +11874,7 @@ Guacamole.StringReader = function(stream) {
                 }
 
                 // 3 byte (1110xxxx)
-                else if ((value | 0x0F )=== 0xEF) {
+                else if ((value | 0x0F) === 0xEF) {
                     codepoint = value & 0x0F;
                     bytes_remaining = 2;
                 }
@@ -11916,7 +11916,7 @@ Guacamole.StringReader = function(stream) {
     }
 
     // Receive blobs as strings
-    array_reader.ondata = function(buffer) {
+    array_reader.ondata = function (buffer) {
 
         // Decode UTF-8
         var text = __decode_utf8(buffer);
@@ -11928,7 +11928,7 @@ Guacamole.StringReader = function(stream) {
     };
 
     // Simply call onend when end received
-    array_reader.onend = function() {
+    array_reader.onend = function () {
         if (guac_reader.onend)
             guac_reader.onend();
     };
@@ -11977,7 +11977,7 @@ var Guacamole = Guacamole || {};
  * @param {Guacamole.OutputStream} stream The stream that data will be written
  *                                        to.
  */
-Guacamole.StringWriter = function(stream) {
+Guacamole.StringWriter = function (stream) {
 
     /**
      * Reference to this Guacamole.StringWriter.
@@ -12005,7 +12005,7 @@ Guacamole.StringWriter = function(stream) {
     var length = 0;
 
     // Simply call onack for acknowledgements
-    array_writer.onack = function(status) {
+    array_writer.onack = function (status) {
         if (guac_writer.onack)
             guac_writer.onack(status);
     };
@@ -12021,8 +12021,8 @@ Guacamole.StringWriter = function(stream) {
     function __expand(bytes) {
 
         // Resize buffer if more space needed
-        if (length+bytes >= buffer.length) {
-            var new_buffer = new Uint8Array((length+bytes)*2);
+        if (length + bytes >= buffer.length) {
+            var new_buffer = new Uint8Array((length + bytes) * 2);
             new_buffer.set(buffer);
             buffer = new_buffer;
         }
@@ -12079,7 +12079,7 @@ Guacamole.StringWriter = function(stream) {
         var offset = length - 1;
 
         // Add trailing bytes, if any
-        for (var i=1; i<bytes; i++) {
+        for (var i = 1; i < bytes; i++) {
             buffer[offset--] = 0x80 | (codepoint & 0x3F);
             codepoint >>= 6;
         }
@@ -12100,7 +12100,7 @@ Guacamole.StringWriter = function(stream) {
     function __encode_utf8(text) {
 
         // Fill buffer with UTF-8
-        for (var i=0; i<text.length; i++) {
+        for (var i = 0; i < text.length; i++) {
             var codepoint = text.charCodeAt(i);
             __append_utf8(codepoint);
         }
@@ -12119,7 +12119,7 @@ Guacamole.StringWriter = function(stream) {
      * 
      * @param {String} text The text to send.
      */
-    this.sendText = function(text) {
+    this.sendText = function (text) {
         if (text.length)
             array_writer.sendData(__encode_utf8(text));
     };
@@ -12128,7 +12128,7 @@ Guacamole.StringWriter = function(stream) {
      * Signals that no further text will be sent, effectively closing the
      * stream.
      */
-    this.sendEnd = function() {
+    this.sendEnd = function () {
         array_writer.sendEnd();
     };
 
@@ -12170,7 +12170,7 @@ var Guacamole = Guacamole || {};
  * @constructor
  * @see Guacamole.HTTPTunnel
  */
-Guacamole.Tunnel = function() {
+Guacamole.Tunnel = function () {
 
     /**
      * Connect to the tunnel with the given optional data. This data is
@@ -12179,13 +12179,13 @@ Guacamole.Tunnel = function() {
      * 
      * @param {String} data The data to send to the tunnel when connecting.
      */
-    this.connect = function(data) {};
-    
+    this.connect = function (data) { };
+
     /**
      * Disconnect from the tunnel.
      */
-    this.disconnect = function() {};
-    
+    this.disconnect = function () { };
+
     /**
      * Send the given message through the tunnel to the service on the other
      * side. All messages are guaranteed to be received in the order sent.
@@ -12194,7 +12194,7 @@ Guacamole.Tunnel = function() {
      *     The elements of the message to send to the service on the other side
      *     of the tunnel.
      */
-    this.sendMessage = function(elements) {};
+    this.sendMessage = function (elements) { };
 
     /**
      * Changes the stored numeric state of this tunnel, firing the onstatechange
@@ -12204,7 +12204,7 @@ Guacamole.Tunnel = function() {
      * @param {Number} state
      *     The new state of this tunnel.
      */
-    this.setState = function(state) {
+    this.setState = function (state) {
 
         // Notify only if state changes
         if (state !== this.state) {
@@ -12361,7 +12361,7 @@ Guacamole.Tunnel.State = {
      *
      * @type {Number}
      */
-    "UNSTABLE" : 3
+    "UNSTABLE": 3
 
 };
 
@@ -12384,7 +12384,7 @@ Guacamole.Tunnel.State = {
  *     headers to be sent in tunnel requests. By default, no extra headers will
  *     be added.
  */
-Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
+Guacamole.HTTPTunnel = function (tunnelURL, crossDomain, extraTunnelHeaders) {
 
     /**
      * Reference to this HTTP tunnel.
@@ -12393,11 +12393,11 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
     var tunnel = this;
 
     var TUNNEL_CONNECT = tunnelURL + "?connect";
-    var TUNNEL_READ    = tunnelURL + "?read:";
-    var TUNNEL_WRITE   = tunnelURL + "?write:";
+    var TUNNEL_READ = tunnelURL + "?read:";
+    var TUNNEL_WRITE = tunnelURL + "?write:";
 
-    var POLLING_ENABLED     = 1;
-    var POLLING_DISABLED    = 0;
+    var POLLING_ENABLED = 1;
+    var POLLING_DISABLED = 0;
 
     // Default to polling - will be turned off automatically if not needed
     var pollingMode = POLLING_ENABLED;
@@ -12490,7 +12490,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
         }, tunnel.receiveTimeout);
 
         // Set new timeout for tracking suspected connection instability
-        unstableTimeout = window.setTimeout(function() {
+        unstableTimeout = window.setTimeout(function () {
             tunnel.setState(Guacamole.Tunnel.State.UNSTABLE);
         }, tunnel.unstableThreshold);
 
@@ -12524,7 +12524,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
             // Ignore RESOURCE_NOT_FOUND if we've already connected, as that
             // only signals end-of-stream for the HTTP tunnel.
             if (tunnel.state === Guacamole.Tunnel.State.CONNECTING
-                    || status.code !== Guacamole.Status.Code.RESOURCE_NOT_FOUND)
+                || status.code !== Guacamole.Status.Code.RESOURCE_NOT_FOUND)
                 tunnel.onerror(status);
 
         }
@@ -12538,7 +12538,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
     }
 
 
-    this.sendMessage = function() {
+    this.sendMessage = function () {
 
         // Do not attempt to send messages if not connected
         if (!tunnel.isConnected())
@@ -12558,14 +12558,14 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
          */
         function getElement(value) {
             var string = new String(value);
-            return string.length + "." + string; 
+            return string.length + "." + string;
         }
 
         // Initialized message with first element
         var message = getElement(arguments[0]);
 
         // Append remaining elements
-        for (var i=1; i<arguments.length; i++)
+        for (var i = 1; i < arguments.length; i++)
             message += "," + getElement(arguments[i]);
 
         // Final terminator
@@ -12597,7 +12597,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
             message_xmlhttprequest.setRequestHeader("Content-type", "application/octet-stream");
 
             // Once response received, send next queued event.
-            message_xmlhttprequest.onreadystatechange = function() {
+            message_xmlhttprequest.onreadystatechange = function () {
                 if (message_xmlhttprequest.readyState === 4) {
 
                     reset_timeout();
@@ -12636,7 +12636,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
         else if (xmlhttprequest.status)
             close_tunnel(new Guacamole.Status(
                 Guacamole.Status.Code.fromHTTPCode(xmlhttprequest.status),
-                    xmlhttprequest.statusText));
+                xmlhttprequest.statusText));
 
         // Otherwise, assume server is unreachable
         else
@@ -12664,11 +12664,11 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
 
             // Do not handle responses if not connected
             if (!tunnel.isConnected()) {
-                
+
                 // Clean up interval if polling
                 if (interval !== null)
                     clearInterval(interval);
-                
+
                 return;
             }
 
@@ -12727,7 +12727,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
 
                         // We now have enough data for the element. Parse.
                         var element = current.substring(startIndex, elementEnd);
-                        var terminator = current.substring(elementEnd, elementEnd+1);
+                        var terminator = current.substring(elementEnd, elementEnd + 1);
 
                         // Add element to array
                         elements.push(element);
@@ -12758,7 +12758,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
                     if (lengthEnd !== -1) {
 
                         // Parse length
-                        var length = parseInt(current.substring(elementEnd+1, lengthEnd));
+                        var length = parseInt(current.substring(elementEnd + 1, lengthEnd));
 
                         // If we're done parsing, handle the next response.
                         if (length === 0) {
@@ -12766,7 +12766,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
                             // Clean up interval if polling
                             if (interval)
                                 clearInterval(interval);
-                           
+
                             // Clean up object
                             xmlhttprequest.onreadystatechange = null;
                             xmlhttprequest.abort();
@@ -12787,7 +12787,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
                         elementEnd = startIndex + length;
 
                     }
-                    
+
                     // If no period yet, continue search when more data
                     // is received
                     else {
@@ -12804,7 +12804,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
         // If response polling enabled, attempt to detect if still
         // necessary (via wrapping parseResponse())
         if (pollingMode === POLLING_ENABLED) {
-            xmlhttprequest.onreadystatechange = function() {
+            xmlhttprequest.onreadystatechange = function () {
 
                 // If we receive two or more readyState==3 events,
                 // there is no need to poll.
@@ -12847,7 +12847,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
 
     }
 
-    this.connect = function(data) {
+    this.connect = function (data) {
 
         // Start waiting for connect
         reset_timeout();
@@ -12857,7 +12857,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
 
         // Start tunnel and connect
         var connect_xmlhttprequest = new XMLHttpRequest();
-        connect_xmlhttprequest.onreadystatechange = function() {
+        connect_xmlhttprequest.onreadystatechange = function () {
 
             if (connect_xmlhttprequest.readyState !== 4)
                 return;
@@ -12894,7 +12894,7 @@ Guacamole.HTTPTunnel = function(tunnelURL, crossDomain, extraTunnelHeaders) {
 
     };
 
-    this.disconnect = function() {
+    this.disconnect = function () {
         close_tunnel(new Guacamole.Status(Guacamole.Status.Code.SUCCESS, "Manually closed."));
     };
 
@@ -12909,7 +12909,7 @@ Guacamole.HTTPTunnel.prototype = new Guacamole.Tunnel();
  * @augments Guacamole.Tunnel
  * @param {String} tunnelURL The URL of the WebSocket tunneling service.
  */
-Guacamole.WebSocketTunnel = function(tunnelURL) {
+Guacamole.WebSocketTunnel = function (tunnelURL) {
 
     /**
      * Reference to this WebSocket tunnel.
@@ -12952,7 +12952,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
      * @private
      */
     var ws_protocol = {
-        "http:":  "ws:",
+        "http:": "ws:",
         "https:": "wss:"
     };
 
@@ -12969,7 +12969,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
     // Transform current URL to WebSocket URL
 
     // If not already a websocket URL
-    if (   tunnelURL.substring(0, 3) !== "ws:"
+    if (tunnelURL.substring(0, 3) !== "ws:"
         && tunnelURL.substring(0, 4) !== "wss:") {
 
         var protocol = ws_protocol[window.location.protocol];
@@ -12986,7 +12986,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
 
             // Get path from pathname
             var slash = window.location.pathname.lastIndexOf("/");
-            var path  = window.location.pathname.substring(0, slash + 1);
+            var path = window.location.pathname.substring(0, slash + 1);
 
             // Construct absolute URL
             tunnelURL =
@@ -13021,7 +13021,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
         }, tunnel.receiveTimeout);
 
         // Set new timeout for tracking suspected connection instability
-        unstableTimeout = window.setTimeout(function() {
+        unstableTimeout = window.setTimeout(function () {
             tunnel.setState(Guacamole.Tunnel.State.UNSTABLE);
         }, tunnel.unstableThreshold);
 
@@ -13060,7 +13060,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
 
     }
 
-    this.sendMessage = function(elements) {
+    this.sendMessage = function (elements) {
 
         // Do not attempt to send messages if not connected
         if (!tunnel.isConnected())
@@ -13080,14 +13080,14 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
          */
         function getElement(value) {
             var string = new String(value);
-            return string.length + "." + string; 
+            return string.length + "." + string;
         }
 
         // Initialized message with first element
         var message = getElement(arguments[0]);
 
         // Append remaining elements
-        for (var i=1; i<arguments.length; i++)
+        for (var i = 1; i < arguments.length; i++)
             message += "," + getElement(arguments[i]);
 
         // Final terminator
@@ -13097,7 +13097,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
 
     };
 
-    this.connect = function(data) {
+    this.connect = function (data) {
 
         reset_timeout();
 
@@ -13107,7 +13107,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
         // Connect socket
         socket = new WebSocket(tunnelURL + "?" + data, "guacamole");
 
-        socket.onopen = function(event) {
+        socket.onopen = function (event) {
             reset_timeout();
 
             // Ping tunnel endpoint regularly to test connection stability
@@ -13118,7 +13118,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
 
         };
 
-        socket.onclose = function(event) {
+        socket.onclose = function (event) {
 
             // Pull status code directly from closure reason provided by Guacamole
             if (event.reason)
@@ -13134,8 +13134,8 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
                 close_tunnel(new Guacamole.Status(Guacamole.Status.Code.UPSTREAM_NOT_FOUND));
 
         };
-        
-        socket.onmessage = function(event) {
+
+        socket.onmessage = function (event) {
 
             reset_timeout();
 
@@ -13152,7 +13152,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
                 if (lengthEnd !== -1) {
 
                     // Parse length
-                    var length = parseInt(message.substring(elementEnd+1, lengthEnd));
+                    var length = parseInt(message.substring(elementEnd + 1, lengthEnd));
 
                     // Calculate start of element
                     startIndex = lengthEnd + 1;
@@ -13161,14 +13161,14 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
                     elementEnd = startIndex + length;
 
                 }
-                
+
                 // If no period, incomplete instruction.
                 else
                     close_tunnel(new Guacamole.Status(Guacamole.Status.Code.SERVER_ERROR, "Incomplete instruction."));
 
                 // We now have enough data for the element. Parse.
                 var element = message.substring(startIndex, elementEnd);
-                var terminator = message.substring(elementEnd, elementEnd+1);
+                var terminator = message.substring(elementEnd, elementEnd + 1);
 
                 // Add element to array
                 elements.push(element);
@@ -13210,7 +13210,7 @@ Guacamole.WebSocketTunnel = function(tunnelURL) {
 
     };
 
-    this.disconnect = function() {
+    this.disconnect = function () {
         close_tunnel(new Guacamole.Status(Guacamole.Status.Code.SUCCESS, "Manually closed."));
     };
 
@@ -13230,7 +13230,7 @@ Guacamole.WebSocketTunnel.prototype = new Guacamole.Tunnel();
  * @param {...*} tunnelChain
  *     The tunnels to use, in order of priority.
  */
-Guacamole.ChainedTunnel = function(tunnelChain) {
+Guacamole.ChainedTunnel = function (tunnelChain) {
 
     /**
      * Reference to this chained tunnel.
@@ -13262,7 +13262,7 @@ Guacamole.ChainedTunnel = function(tunnelChain) {
     var committedTunnel = null;
 
     // Load all tunnels into array
-    for (var i=0; i<arguments.length; i++)
+    for (var i = 0; i < arguments.length; i++)
         tunnels.push(arguments[i]);
 
     /**
@@ -13274,7 +13274,7 @@ Guacamole.ChainedTunnel = function(tunnelChain) {
     function attach(tunnel) {
 
         // Set own functions to tunnel's functions
-        chained_tunnel.disconnect  = tunnel.disconnect;
+        chained_tunnel.disconnect = tunnel.disconnect;
         chained_tunnel.sendMessage = tunnel.sendMessage;
 
         /**
@@ -13335,7 +13335,7 @@ Guacamole.ChainedTunnel = function(tunnelChain) {
         }
 
         // Wrap own onstatechange within current tunnel
-        tunnel.onstatechange = function(state) {
+        tunnel.onstatechange = function (state) {
 
             switch (state) {
 
@@ -13351,13 +13351,13 @@ Guacamole.ChainedTunnel = function(tunnelChain) {
                     if (!failTunnel() && chained_tunnel.onstatechange)
                         chained_tunnel.onstatechange(state);
                     break;
-                
+
             }
 
         };
 
         // Wrap own oninstruction within current tunnel
-        tunnel.oninstruction = function(opcode, elements) {
+        tunnel.oninstruction = function (opcode, elements) {
 
             // Accept current tunnel
             commit_tunnel();
@@ -13369,7 +13369,7 @@ Guacamole.ChainedTunnel = function(tunnelChain) {
         };
 
         // Attach next tunnel on error
-        tunnel.onerror = function(status) {
+        tunnel.onerror = function (status) {
 
             // Mark failure, attempt next tunnel
             if (!failTunnel(status) && chained_tunnel.onerror)
@@ -13379,11 +13379,11 @@ Guacamole.ChainedTunnel = function(tunnelChain) {
 
         // Attempt connection
         tunnel.connect(connect_data);
-        
+
     }
 
-    this.connect = function(data) {
-       
+    this.connect = function (data) {
+
         // Remember connect data
         connect_data = data;
 
@@ -13399,7 +13399,7 @@ Guacamole.ChainedTunnel = function(tunnelChain) {
             chained_tunnel.onerror(Guacamole.Status.Code.SERVER_ERROR, "No tunnels to try.");
 
     };
-    
+
 };
 
 Guacamole.ChainedTunnel.prototype = new Guacamole.Tunnel();
@@ -13694,4 +13694,5 @@ Guacamole.VideoPlayer.getInstance = function getInstance(stream, layer, mimetype
     return null;
 
 };
-module.exports = Guacamole;
+// module.exports = Guacamole;
+window.Guacamole = Guacamole;
