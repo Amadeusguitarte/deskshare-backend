@@ -350,6 +350,126 @@
         }
 
         // ========================================
+        // Guacamole Logic
+        // ========================================
+        function connectGuacamole(token) {
+            const displayContainer = document.getElementById('display');
+
+            // Hardcoded Backend for Production (Railway)
+            const tunnelUrl = 'wss://deskshare-backend-production.up.railway.app/guacamole';
+
+            const tunnel = new Guacamole.WebSocketTunnel(`${tunnelUrl}?token=${token}`);
+            guacClient = new Guacamole.Client(tunnel);
+
+            guacClient.onerror = function (error) {
+                console.error('Guacamole Client Error:', error);
+                const msg = error.message || error.toString();
+                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                debugOverlay.innerHTML += `<div style="color:red">Error: ${msg}</div>`;
+                alert('Guacamole Error: ' + msg);
+            };
+
+            guacClient.onstatechange = function (state) {
+                const states = {
+                    0: 'IDLE',
+                    1: 'CONNECTING',
+                    2: 'WAITING',
+                    3: 'CONNECTED',
+                    4: 'DISCONNECTING',
+                    5: 'DISCONNECTED'
+                };
+                const stateStr = states[state] || state;
+                console.log('Guacamole State:', stateStr);
+
+                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                debugOverlay.innerHTML += `<div>State: ${stateStr}</div>`;
+
+                if (state === 3) {
+                    debugOverlay.style.display = 'none';
+                }
+            };
+
+            guacDisplay = guacClient.getDisplay();
+            const element = guacDisplay.getElement();
+            displayContainer.appendChild(element);
+
+            let syncCount = 0;
+            guacClient.onsync = function () {
+                syncCount++;
+                const displayWidth = guacDisplay.getWidth();
+                const displayHeight = guacDisplay.getHeight();
+
+                if (syncCount === 1 || syncCount % 10 === 0) {
+                    console.log(`[GUAC] onsync #${syncCount} - Display: ${displayWidth}x${displayHeight}`);
+                }
+
+                if (displayWidth > 0 && displayHeight > 0) {
+                    const containerWidth = displayContainer.offsetWidth;
+                    const containerHeight = displayContainer.offsetHeight;
+                    const scaleX = containerWidth / displayWidth;
+                    const scaleY = containerHeight / displayHeight;
+                    const scale = Math.min(scaleX, scaleY, 1);
+                    guacDisplay.scale(scale);
+                }
+            };
+
+            guacClient.connect();
+
+            mouse = new Guacamole.Mouse(element);
+            mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
+                const scale = guacDisplay.getScale();
+                mouseState.x = mouseState.x / scale;
+                mouseState.y = mouseState.y / scale;
+                guacClient.sendMouseState(mouseState);
+            };
+
+            keyboard = new Guacamole.Keyboard(document);
+            keyboard.onkeydown = function (keysym) {
+                guacClient.sendKeyEvent(1, keysym);
+            };
+            keyboard.onkeyup = function (keysym) {
+                guacClient.sendKeyEvent(0, keysym);
+            };
+
+            window.onblur = function () { keyboard.reset(); };
+
+            window.addEventListener('resize', () => {
+                if (guacDisplay && guacDisplay.getWidth() > 0) {
+                    const containerWidth = displayContainer.offsetWidth;
+                    const containerHeight = displayContainer.offsetHeight;
+                    const displayWidth = guacDisplay.getWidth();
+                    const displayHeight = guacDisplay.getHeight();
+                    const scaleX = containerWidth / displayWidth;
+                    const scaleY = containerHeight / displayHeight;
+                    const scale = Math.min(scaleX, scaleY, 1);
+                    guacDisplay.scale(scale);
+                }
+            });
+
+            // Latency Tick
+            setInterval(() => {
+                const latencyDots = document.getElementById('latency-dot');
+                if (latencyDots && syncCount > 0) {
+                    // Mock latency update based on sync activity
+                    // Real latency requires ack handling
+                }
+            }, 1000);
+        }
+
+        // ========================================
+        // RustDesk Logic
+        // ========================================
+        function connectRustDesk(rustdeskId, password) {
+            const displayContainer = document.getElementById('display');
+            displayContainer.innerHTML = `<div style="color:white;text-align:center;padding:50px;"><h2>RustDesk P2P</h2><p>Abriendo app...</p></div>`;
+            setTimeout(() => openRustDeskApp(rustdeskId, password), 1500);
+        }
+
+        function openRustDeskApp(rustdeskId, password) {
+            window.location.href = `rustdesk://connection/new/${rustdeskId}?password=${password}`;
+        }
+
+        // ========================================
         // UI Logic
         // ========================================
         function switchMode(mode) {
