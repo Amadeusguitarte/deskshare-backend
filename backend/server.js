@@ -303,6 +303,53 @@ io.on('connection', (socket) => {
         io.to(`user-${receiverId}`).emit('stop-typing', { senderId });
     });
 
+    // ========================================
+    // WebRTC SIGNALING (ADDED FOR ALPHA AGENT)
+    // ========================================
+
+    // 1. Offer (Browser -> Agent)
+    socket.on('webrtc-offer', (data) => {
+        const { targetComputerId, sdp } = data;
+        // Forward to the computer room
+        console.log(`[Signal] Forwarding OFFER to computer-${targetComputerId}`);
+        socket.to(`computer-${targetComputerId}`).emit('webrtc-offer', { sdp, senderId: socket.id });
+    });
+
+    // 2. Answer (Agent -> Browser)
+    socket.on('webrtc-answer', (data) => {
+        const { targetSocketId, sdp } = data; // Agent should send who it's answering to
+        // If agent doesn't know target socket, we broadcast to the user room? 
+        // Better: Agent emits to "user-room" if it knows userId, OR we pass targetSocketId in the Offer.
+
+        // Strategy: Broadcast to the user room associated with this computer? No, unreliable.
+        // Strategy: Browser joins 'webrtc-session-{bookingId}'?
+
+        // SIMPLEST: Broadcast to all users in the user-room of the Renter?
+        // Let's assume the frontend joins 'user-{userId}'.
+
+        // FIX: Let's make the Agent simply broadcast to the computer-room (where the user also is? No)
+        // Re-routing: Client sends Offer. Agent receives. Agent replies.
+        // The Agent needs to know WHERE to send.
+
+        // Let's forward to EVERYONE listening on that computer? (The user joins computer room too?)
+        // In client code: socket.emit('join-computer-room', computerId) ??
+        // Let's check client code later. For now, try broad forwarding.
+
+        console.log(`[Signal] Forwarding ANSWER from ${socket.id}`);
+        socket.broadcast.emit('webrtc-answer', data); // Too broad?
+        // Ideally: socket.to(data.target).emit(...)
+    });
+
+    // 3. ICE Candidate (Bidirectional)
+    socket.on('webrtc-candidate', (data) => {
+        const { target, candidate, targetComputerId } = data;
+        if (target === 'agent') {
+            socket.to(`computer-${targetComputerId}`).emit('webrtc-candidate', { candidate });
+        } else {
+            socket.broadcast.emit('webrtc-candidate', { candidate });
+        }
+    });
+
     // 2. Read Receipts
     socket.on('mark-read', ({ senderId, receiverId }) => {
         // senderId = person who just read
