@@ -65,6 +65,45 @@ router.post('/register', auth, async (req, res, next) => {
 });
 
 // ========================================
+// GET /api/webrtc/host/pending
+// Host checks if there is a pending session
+// ========================================
+router.get('/host/pending', auth, async (req, res, next) => {
+    try {
+        const { computerId } = req.query;
+        const userId = req.user.userId || req.user.id;
+
+        // Find computer to verify ownership
+        const computer = await prisma.computer.findUnique({
+            where: { id: parseInt(computerId) }
+        });
+
+        if (!computer || computer.userId !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        // Check active sessions map
+        let foundSession = null;
+        for (const [sid, session] of activeSessions.entries()) {
+            if (session.computerId === parseInt(computerId) && !session.answer) {
+                // Found a session for this computer that hasn't been answered yet
+                foundSession = sid;
+                break;
+            }
+        }
+
+        if (foundSession) {
+            return res.json({ sessionId: foundSession });
+        } else {
+            return res.status(404).json({ message: 'No pending session' });
+        }
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ========================================
 // POST /api/webrtc/session/create
 // Create WebRTC session for a booking
 // ========================================

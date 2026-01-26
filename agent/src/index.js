@@ -209,7 +209,47 @@ async function startAgent() {
     // Heartbeat
     if (global.heartbeatInt) clearInterval(global.heartbeatInt);
     global.heartbeatInt = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+
+    // === 3. WEBRTC SIGNALING POLL (Host needs to know when to start) ===
+    if (global.sessionPollInt) clearInterval(global.sessionPollInt);
+    // Poll every 3 seconds for new sessions
+    global.sessionPollInt = setInterval(pollPendingSessions, 3000);
 }
+
+async function pollPendingSessions() {
+    try {
+        // We need an endpoint to check if there is an active session for this computer
+        // Since we don't have a specific GET /api/webrtc/pending, we can assume the backend
+        // might notify us or we need to add that endpoint.
+        // ACTUALLY: Let's use the existing /api/webrtc/poll/CHECK endpoint or similar.
+        // WAIT: The current backend implementation (routes/webrtc.js) doesn't have a "list pending" for computer.
+        // Correct Approach: The Renter creates the session. The Host needs to find it.
+        // I will add a GET /api/webrtc/pending-session?computerId=... to the backend first.
+
+        // Changing strategy: modifying backend first, then this file.
+        // For now, I will write the polling logic assuming the endpoint exists.
+
+        const response = await axios.get(`${BACKEND_URL}/api/webrtc/host/pending`, {
+            params: { computerId: config.computerId },
+            headers: { 'Authorization': `Bearer ${config.token}` }
+        });
+
+        if (response.data.sessionId) {
+            const sid = response.data.sessionId;
+            if (currentSessionId !== sid) {
+                log(`Found New WebRTC Session: ${sid}`, 'info');
+                // Trigger start
+                ipcMain.emit('start-webrtc-session', null, sid);
+            }
+        }
+    } catch (e) {
+        // Ignore 404 (no session)
+        if (e.response && e.response.status !== 404) {
+            // log(`Poll Error: ${e.message}`, 'warning');
+        }
+    }
+}
+let currentSessionId = null; // Track locally to avoid re-triggering
 
 // ==========================================
 // DUAL MODE SERVICES
