@@ -1,5 +1,5 @@
 // ========================================
-// WebRTC Viewer Module
+// WebRTC Viewer Module (v2.2-Safe)
 // Client-side WebRTC receiver with canvas rendering
 // ========================================
 
@@ -12,109 +12,80 @@ class WebRTCViewer {
         this.sessionId = null;
         this.pollInterval = null;
         this.dataChannel = null;
+        this.stateTarget = document.getElementById('webrtc-state');
+    }
+
+    updateState(msg) {
+        if (this.stateTarget) this.stateTarget.innerText = msg;
+        console.log('[WebRTC State]', msg);
     }
 
     async connect() {
-        console.log('[WebRTC Viewer] Starting connection...');
-
+        this.updateState('Iniciando...');
         try {
-            // 1. Create WebRTC session
             await this.createSession();
-
-            // 2. Initialize peer connection
             await this.initPeerConnection();
 
-            // 3. Create offer
             const offer = await this.peerConnection.createOffer();
             await this.peerConnection.setLocalDescription(offer);
 
-            // 4. Send offer to host via backend
             await this.sendOffer(offer);
-
-            // 5. Start polling for answer and ICE candidates
             this.startPolling();
 
-            console.log('[WebRTC Viewer] Connection process started');
+            this.updateState('Handshake enviado (Polling)...');
         } catch (e) {
+            this.updateState('Error: ' + e.message);
             console.error('[WebRTC Viewer] Connection failed:', e);
             throw e;
         }
     }
 
     async createSession() {
-        // Hardcoded Backend for Production (Railway)
         const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
-
         const response = await fetch(`${BACKEND_URL}/webrtc/session/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}` // Fix: use correct token key
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             },
-            body: JSON.stringify({
-                bookingId: this.booking.id
-            })
+            body: JSON.stringify({ bookingId: this.booking.id })
         });
-
-        if (!response.ok) {
-            throw new Error('Failed to create WebRTC session');
-        }
-
+        if (!response.ok) throw new Error('Falló al crear sesión WebRTC');
         const data = await response.json();
         this.sessionId = data.sessionId;
-        console.log('[WebRTC Viewer] Session created:', this.sessionId);
     }
 
-    initPeerConnection() {
+    async initPeerConnection() {
         const config = {
             iceServers: [
-                {
-                    urls: [
-                        'stun:stun.l.google.com:19302',
-                        'stun:stun1.l.google.com:19302'
-                    ]
-                }
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
             ]
         };
 
         this.peerConnection = new RTCPeerConnection(config);
 
-        // Handle ICE candidates
         this.peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('[WebRTC Viewer] New ICE candidate');
                 this.sendIceCandidate(event.candidate);
             }
         };
 
-        // Handle incoming stream
         this.peerConnection.ontrack = (event) => {
-            console.log('[WebRTC Viewer] Received remote stream');
-            const stream = event.streams[0];
-            this.renderStream(stream);
+            console.log('[WebRTC Viewer] Stream recibido ✅');
+            this.renderStream(event.streams[0]);
         };
 
-        // Connection state changes
         this.peerConnection.onconnectionstatechange = () => {
-            console.log('[WebRTC Viewer] Connection state:', this.peerConnection.connectionState);
-
-            if (this.peerConnection.connectionState === 'connected') {
-                console.log('[WebRTC Viewer] P2P connection established!');
-                this.onConnected();
-            } else if (this.peerConnection.connectionState === 'failed') {
-                console.error('[WebRTC Viewer] Connection failed');
-                this.onDisconnected();
-            }
+            const state = this.peerConnection.connectionState;
+            this.updateState(state.toUpperCase());
+            if (state === 'connected') this.onConnected();
+            if (state === 'failed') this.onDisconnected();
         };
 
-        // Create data channel for sending input
         this.dataChannel = this.peerConnection.createDataChannel('input');
-        this.dataChannel.onopen = () => {
-            console.log('[WebRTC Viewer] Data channel opened');
-            this.setupInputCapture();
-        };
-
-        return this.peerConnection;
+        this.dataChannel.onopen = () => { this.setupInputCapture(); };
     }
 
     async sendOffer(offer) {
@@ -125,17 +96,9 @@ class WebRTCViewer {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             },
-            body: JSON.stringify({
-                sessionId: this.sessionId,
-                sdp: offer
-            })
+            body: JSON.stringify({ sessionId: this.sessionId, sdp: offer })
         });
-
-        if (!response.ok) {
-            throw new Error('Failed to send offer');
-        }
-
-        console.log('[WebRTC Viewer] Offer sent to host');
+        if (!response.ok) throw new Error('Error al enviar Offer');
     }
 
     async sendIceCandidate(candidate) {
@@ -147,15 +110,9 @@ class WebRTCViewer {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
-                body: JSON.stringify({
-                    sessionId: this.sessionId,
-                    candidate,
-                    isHost: false
-                })
+                body: JSON.stringify({ sessionId: this.sessionId, candidate, isHost: false })
             });
-        } catch (e) {
-            console.error('[WebRTC Viewer] Failed to send ICE candidate:', e);
-        }
+        } catch (e) { }
     }
 
     startPolling() {
@@ -163,51 +120,38 @@ class WebRTCViewer {
         this.pollInterval = setInterval(async () => {
             try {
                 const response = await fetch(`${BACKEND_URL}/webrtc/poll/${this.sessionId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                    }
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
                 });
-
-                if (!response.ok) {
-                    console.warn('[WebRTC Viewer] Poll failed, session may be closed');
-                    this.disconnect();
-                    return;
-                }
+                if (!response.ok) return;
 
                 const data = await response.json();
 
-                // Check for host's answer
                 if (data.answer && !this.peerConnection.remoteDescription) {
-                    console.log('[WebRTC Viewer] Received answer from host');
-                    await this.peerConnection.setRemoteDescription(
-                        new RTCSessionDescription(data.answer)
-                    );
+                    this.updateState('Answer recibida. Conectando P2P...');
+                    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 }
 
-                // Add ICE candidates from host
                 if (data.iceCandidates && data.iceCandidates.length > 0) {
                     for (const candidate of data.iceCandidates) {
-                        if (!this.peerConnection.remoteDescription) continue;
-                        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                        try {
+                            if (this.peerConnection.remoteDescription) {
+                                await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                            }
+                        } catch (e) { }
                     }
                 }
-
-            } catch (e) {
-                console.error('[WebRTC Viewer] Poll error:', e);
-            }
-        }, 1000); // Poll every second
+            } catch (e) { }
+        }, 1000);
     }
 
     renderStream(stream) {
-        // Create video element to receive stream
         const video = document.createElement('video');
         video.srcObject = stream;
         video.autoplay = true;
+        video.muted = true;
         video.style.display = 'none';
-
         document.body.appendChild(video);
 
-        // Render video frames to canvas
         const renderFrame = () => {
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 this.canvas.width = video.videoWidth;
@@ -216,44 +160,18 @@ class WebRTCViewer {
             }
             requestAnimationFrame(renderFrame);
         };
-
-        video.onplay = () => {
-            renderFrame();
-        };
+        video.onplay = () => renderFrame();
     }
 
     setupInputCapture() {
-        // Mouse events
         this.canvas.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * this.canvas.width;
             const y = ((e.clientY - rect.top) / rect.height) * this.canvas.height;
-
             this.sendInput({ type: 'mousemove', x, y });
         });
-
-        this.canvas.addEventListener('mousedown', (e) => {
-            this.sendInput({ type: 'mousedown', button: e.button === 0 ? 'left' : 'right' });
-        });
-
-        this.canvas.addEventListener('mouseup', (e) => {
-            this.sendInput({ type: 'mouseup', button: e.button === 0 ? 'left' : 'right' });
-        });
-
-        // Keyboard events
-        document.addEventListener('keydown', (e) => {
-            if (this.isCanvasFocused()) {
-                e.preventDefault();
-                this.sendInput({ type: 'keydown', key: e.key });
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (this.isCanvasFocused()) {
-                e.preventDefault();
-                this.sendInput({ type: 'keyup', key: e.key });
-            }
-        });
+        this.canvas.addEventListener('mousedown', (e) => this.sendInput({ type: 'mousedown', button: e.button === 0 ? 'left' : 'right' }));
+        this.canvas.addEventListener('mouseup', (e) => this.sendInput({ type: 'mouseup', button: e.button === 0 ? 'left' : 'right' }));
     }
 
     sendInput(input) {
@@ -262,45 +180,22 @@ class WebRTCViewer {
         }
     }
 
-    isCanvasFocused() {
-        return document.activeElement === this.canvas ||
-            this.canvas.contains(document.activeElement);
-    }
-
     onConnected() {
-        console.log('[WebRTC Viewer] Successfully connected!');
-        // Update UI to show connected state
+        this.updateState('CONECTADO ✅');
         const statusEl = document.getElementById('connection-status');
-        if (statusEl) statusEl.textContent = 'Conectado vía WebRTC P2P';
+        if (statusEl) statusEl.style.color = '#0f0';
     }
 
     onDisconnected() {
-        console.log('[WebRTC Viewer] Disconnected');
+        this.updateState('FALLÓ ❌');
         this.disconnect();
-        // Fallback to Guacamole
-        alert('Conexión WebRTC falló. Cambiando a modo Nativo...');
-        switchMode('native');
     }
 
     disconnect() {
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-            this.pollInterval = null;
-        }
-
-        if (this.peerConnection) {
-            this.peerConnection.close();
-            this.peerConnection = null;
-        }
-
-        if (this.dataChannel) {
-            this.dataChannel.close();
-            this.dataChannel = null;
-        }
-
-        console.log('[WebRTC Viewer] Disconnected and cleaned up');
+        if (this.pollInterval) clearInterval(this.pollInterval);
+        if (this.peerConnection) this.peerConnection.close();
+        console.log('[WebRTC Viewer] Disonnected and cleaned up');
     }
 }
 
-// Export for use in remote-access.html
 window.WebRTCViewer = WebRTCViewer;

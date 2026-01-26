@@ -158,6 +158,10 @@
             border: 1px dashed #667eea;
             font-family: monospace;
         }
+
+        .hidden-force {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -210,8 +214,8 @@
             <div id="webrtc-view">
                 <canvas id="webrtc-canvas"></canvas>
                 <div id="connection-status"
-                    style="position: absolute; top: 10px; left: 10px; color: yellow; background: rgba(0,0,0,0.5); padding: 5px;">
-                    Esperando conexión...
+                    style="position: absolute; top: 10px; left: 10px; color: #0ff; background: rgba(0,0,0,0.8); padding: 8px 15px; border-radius: 4px; border: 1px solid #333; font-family: monospace;">
+                    📡 P2P: <span id="webrtc-state">Iniciando...</span>
                 </div>
             </div>
 
@@ -503,7 +507,11 @@
             if (webrtcView) webrtcView.style.display = 'none';
 
             const debugOverlay = document.getElementById('debug-overlay');
-            if (debugOverlay) debugOverlay.style.display = 'none';
+            if (debugOverlay) {
+                if (mode === 'webrtc') debugOverlay.classList.add('hidden-force');
+                else debugOverlay.classList.remove('hidden-force');
+                debugOverlay.style.display = 'none';
+            }
 
             btnNative.classList.remove('active');
             btnParsec.classList.remove('active');
