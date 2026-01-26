@@ -116,6 +116,7 @@ model Booking {
   guacamoleConnectionId String? @map("guacamole_connection_id")
   accessToken           String? @map("access_token") @db.Text
   isAccessGranted       Boolean @default(false) @map("is_access_granted") // Manual Host Control
+  webrtcSessionId       String? @map("webrtc_session_id") // WebRTC Active Session
   
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
