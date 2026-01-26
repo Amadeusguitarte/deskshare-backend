@@ -8,15 +8,13 @@ const axios = require('axios');
 // ==========================================
 // CONFIG & PATHS
 // ==========================================
-const APP_NAME = 'DeskShareLauncher';
+const APP_NAME = 'DeskShareLauncherV11';
 const USER_DATA_PATH = app.getPath('userData');
 
-// Portable config: Prioritize 'config.json' in the executable directory
+// Portable config
 const PORTABLE_CONFIG = path.join(__dirname, '..', '..', 'config.json');
 const APPDATA_CONFIG = path.join(USER_DATA_PATH, 'config.json');
 const CONFIG_PATH = fs.existsSync(PORTABLE_CONFIG) ? PORTABLE_CONFIG : APPDATA_CONFIG;
-
-// Logs go to the same folder as config for visibility
 const LOG_FILE = path.join(path.dirname(CONFIG_PATH), 'agent.log');
 
 const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app';
@@ -31,9 +29,10 @@ let vncProcess;
 let config = {};
 let webrtcMode = null;
 let broadcasterWindow = null;
+let currentSessionId = null;
 
 // ==========================================
-// LOGGING & UTILS
+// LOGGING
 // ==========================================
 function safeSend(channel, data) {
     try {
@@ -68,11 +67,7 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
-
-    mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
-        startAgent();
-    });
+    mainWindow.once('ready-to-show', () => mainWindow.show());
 }
 
 // ==========================================
@@ -83,7 +78,6 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.quit();
 } else {
-    // Second Instance Handler
     app.on('second-instance', (event, commandLine) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
             if (mainWindow.isMinimized()) mainWindow.restore();
@@ -93,57 +87,60 @@ if (!gotTheLock) {
         if (url) handleProtocolUrl(url);
     });
 
-    // Ready Handler
     app.whenReady().then(() => {
-        // Register Protocol
-        if (process.defaultApp) {
-            if (process.argv.length >= 2) {
-                app.setAsDefaultProtocolClient('deskshare', process.execPath, [path.resolve(process.argv[1])]);
-            }
+        if (process.defaultApp && process.argv.length >= 2) {
+            app.setAsDefaultProtocolClient('deskshare', process.execPath, [path.resolve(process.argv[1])]);
         } else {
             app.setAsDefaultProtocolClient('deskshare');
         }
-
         createWindow();
-
         if (process.platform === 'win32') {
             const url = process.argv.find(arg => arg.startsWith('deskshare://'));
             if (url) handleProtocolUrl(url);
         }
     });
 
-    // Cleanup
     app.on('window-all-closed', () => {
-        if (cloudflaredProcess) cloudflaredProcess.kill();
-        if (vncProcess) vncProcess.kill();
+        cleanup();
         app.quit();
     });
 
-    // Crash Prevention
     process.on('uncaughtException', (err) => {
-        log(`CRITICAL CRASH: ${err.message}`, 'error');
-        try { fs.appendFileSync(LOG_FILE, `Stack: ${err.stack}\n`); } catch (e) { }
+        log(`CRITICAL: ${err.message}`, 'error');
     });
+}
+
+function cleanup() {
+    if (cloudflaredProcess) { try { cloudflaredProcess.kill(); } catch (e) { } }
+    if (vncProcess) { try { vncProcess.kill(); } catch (e) { } }
+    if (global.heartbeatInt) clearInterval(global.heartbeatInt);
+    if (global.sessionPollInt) clearInterval(global.sessionPollInt);
 }
 
 // ==========================================
 // IPC HANDLERS
 // ==========================================
+ipcMain.on('start-mode', (event, mode) => {
+    log(`User selected mode: ${mode}`, 'info');
+    if (mode === 'guacamole') {
+        runGuacamoleMode();
+    } else if (mode === 'webrtc') {
+        runPureWebRTCMode();
+    }
+});
+
 ipcMain.on('open-url', (e, url) => shell.openExternal(url));
-ipcMain.on('retry-vnc', () => {
-    log('User requested retry...', 'info');
-    startAgentFallback();
-});
-ipcMain.on('start-webrtc-session', async (event, sessionId) => {
-    log(`Starting WebRTC Session: ${sessionId}`, 'info');
-    if (webrtcMode === 'browser') await startBroadcasterWindow(sessionId);
-    else if (webrtcMode === 'native') require('./webrtc-broadcaster').startBroadcasting(sessionId, config.token);
+ipcMain.on('open-webrtc-debug', () => {
+    if (broadcasterWindow) {
+        broadcasterWindow.show();
+        broadcasterWindow.focus();
+        broadcasterWindow.webContents.openDevTools();
+    }
 });
 
 // ==========================================
-// CORE LOGIC
+// PROTOCOL HANDLER
 // ==========================================
-
 function handleProtocolUrl(urlStr) {
     try {
         const url = new URL(urlStr);
@@ -151,9 +148,6 @@ function handleProtocolUrl(urlStr) {
         if (params.has('computerId')) config.computerId = params.get('computerId');
         if (params.has('token')) config.token = params.get('token');
         saveConfig();
-
-        // Restart services with new ID
-        startAgent();
     } catch (e) {
         log(`Invalid Protocol URL: ${e.message}`, 'error');
     }
@@ -164,10 +158,6 @@ function loadConfig() {
         if (fs.existsSync(CONFIG_PATH)) {
             config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
             log(`Config Loaded (ID: ${config.computerId})`, 'info');
-            safeSend('status-update', {
-                status: 'CONFIGURED',
-                details: `Computer ID: ${config.computerId}`
-            });
         }
     } catch (e) {
         log('No config found', 'warning');
@@ -178,136 +168,41 @@ function saveConfig() {
     try { fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2)); } catch (e) { }
 }
 
-async function startAgent() {
+// ==========================================
+// MODE 1: GUACAMOLE (VNC + TUNNEL)
+// ==========================================
+async function runGuacamoleMode() {
+    log('=== STARTING GUACAMOLE MODE ===', 'info');
     loadConfig();
 
     if (!config.computerId || !config.token) {
-        safeSend('status-update', { status: 'WAITING', details: 'Config Needed (Launch from Web)' });
+        safeSend('status-update', { status: 'WAITING', details: 'Config Needed' });
         return;
     }
 
-    safeSend('status-update', { status: 'STARTING', details: 'Initializing...' });
+    safeSend('status-update', { status: 'STARTING', details: 'Iniciando VNC + Tunnel...' });
+    cleanup();
 
-    // === 1. WEBRTC (P2P) ===
     try {
-        log('Starting WebRTC P2P...', 'info');
-        safeSend('status-update', { status: 'CONFIGURING', details: 'Setting up WebRTC...' });
-        await setupWebRTC();
+        await startVNCAndTunnel();
+
         safeSend('status-update', {
             status: 'ONLINE',
-            details: `ID: ${config.computerId} | WebRTC: READY`
-        });
-    } catch (e) {
-        log(`WebRTC Failed: ${e.message}`, 'warning');
-    }
-
-    // === 2. VNC + TUNNEL (Standard) ===
-    // Always run this in parallel for Guacamole compat
-    log('Starting Standard Tunnel...', 'info');
-    startAgentFallback().catch(e => log(`Tunnel Error: ${e.message}`, 'error'));
-
-    // Heartbeat
-    if (global.heartbeatInt) clearInterval(global.heartbeatInt);
-    global.heartbeatInt = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
-
-    // === 3. WEBRTC SIGNALING POLL (Host needs to know when to start) ===
-    if (global.sessionPollInt) clearInterval(global.sessionPollInt);
-    // Poll every 3 seconds for new sessions
-    global.sessionPollInt = setInterval(pollPendingSessions, 3000);
-}
-
-async function pollPendingSessions() {
-    try {
-        // We need an endpoint to check if there is an active session for this computer
-        // Since we don't have a specific GET /api/webrtc/pending, we can assume the backend
-        // might notify us or we need to add that endpoint.
-        // ACTUALLY: Let's use the existing /api/webrtc/poll/CHECK endpoint or similar.
-        // WAIT: The current backend implementation (routes/webrtc.js) doesn't have a "list pending" for computer.
-        // Correct Approach: The Renter creates the session. The Host needs to find it.
-        // I will add a GET /api/webrtc/pending-session?computerId=... to the backend first.
-
-        // Changing strategy: modifying backend first, then this file.
-        // For now, I will write the polling logic assuming the endpoint exists.
-
-        const response = await axios.get(`${BACKEND_URL}/api/webrtc/host/pending`, {
-            params: { computerId: config.computerId },
-            headers: { 'Authorization': `Bearer ${config.token}` }
+            details: `ID: ${config.computerId} | GUACAMOLE READY`
         });
 
-        if (response.data.sessionId) {
-            const sid = response.data.sessionId;
-            if (currentSessionId !== sid) {
-                log(`Found New WebRTC Session: ${sid}`, 'info');
-                // Trigger start
-                ipcMain.emit('start-webrtc-session', null, sid);
-            }
-        }
-    } catch (e) {
-        // Ignore 404 (no session)
-        if (e.response && e.response.status !== 404) {
-            // log(`Poll Error: ${e.message}`, 'warning');
-        }
-    }
-}
-let currentSessionId = null; // Track locally to avoid re-triggering
+        if (global.heartbeatInt) clearInterval(global.heartbeatInt);
+        global.heartbeatInt = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
 
-// ==========================================
-// DUAL MODE SERVICES
-// ==========================================
+        log('=== GUACAMOLE MODE ACTIVE ===', 'success');
 
-// --- WebRTC ---
-async function setupWebRTC() {
-    try {
-        // Try Native first (requires binaries)
-        try {
-            require('wrtc');
-            await setupWebRTCNative();
-        } catch {
-            await setupWebRTCBrowser();
-        }
-        return true;
     } catch (e) {
-        throw e;
+        log(`Guacamole Error: ${e.message}`, 'error');
+        safeSend('status-update', { status: 'ERROR', details: e.message });
     }
 }
 
-async function setupWebRTCBrowser() {
-    log('WebRTC: Using Browser Mode', 'info');
-    broadcasterWindow = new BrowserWindow({
-        width: 400, height: 300, show: false,
-        webPreferences: { nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, 'preload.js') }
-    });
-
-    await registerWebRTCCapability('browser');
-    webrtcMode = 'browser';
-}
-
-async function setupWebRTCNative() {
-    const webrtc = require('./webrtc-broadcaster');
-    await webrtc.registerWebRTCCapability(config.computerId, config.token);
-    webrtcMode = 'native';
-    log('WebRTC: Using Native Mode', 'success');
-}
-
-async function startBroadcasterWindow(sessionId) {
-    if (!broadcasterWindow) return;
-    const url = `file://${path.join(__dirname, 'broadcaster.html')}?sessionId=${sessionId}&token=${config.token}`;
-    broadcasterWindow.loadURL(url);
-}
-
-async function registerWebRTCCapability(mode) {
-    try {
-        await axios.post(`${BACKEND_URL}/api/webrtc/register`,
-            { computerId: config.computerId, mode },
-            { headers: { 'Authorization': `Bearer ${config.token}` } }
-        );
-    } catch (e) { log(`WebRTC Reg Error: ${e.message}`, 'warning'); }
-}
-
-
-// --- STANDARD TUNNEL (VNC) ---
-
-async function startAgentFallback() {
+async function startVNCAndTunnel() {
     const osType = await checkWindowsEdition();
     log(`OS Type: ${osType}`, 'info');
 
@@ -318,21 +213,119 @@ async function startAgentFallback() {
     if (osType === 'Home') {
         method = 'vnc';
         port = 5900;
-        pass = "12345678"; // Internal password for VNC
+        pass = "12345678";
         await setupVNC();
     } else {
         await enableRDP();
     }
 
+    const url = await createTunnel(port);
+    await registerTunnel(url, method, pass);
+    log('Tunnel Registered', 'success');
+}
+
+// ==========================================
+// MODE 2: PURE WEBRTC (P2P - NO VNC/TUNNEL)
+// ==========================================
+async function runPureWebRTCMode() {
+    log('=== STARTING PURE WEBRTC MODE ===', 'info');
+    loadConfig();
+
+    if (!config.computerId || !config.token) {
+        safeSend('status-update', { status: 'WAITING', details: 'Config Needed' });
+        return;
+    }
+
+    safeSend('status-update', { status: 'STARTING', details: 'Iniciando WebRTC P2P...' });
+    cleanup();
+
     try {
-        const url = await createTunnel(port);
-        await registerTunnel(url, method, pass);
-        log('Tunnel Registered Successfully', 'success');
+        // Step 1: Create broadcaster window
+        log('[WebRTC] Creating broadcaster window...', 'info');
+        broadcasterWindow = new BrowserWindow({
+            width: 600, height: 400, show: false,
+            title: 'DeskShare WebRTC Broadcaster',
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: path.join(__dirname, 'preload.js')
+            }
+        });
+        broadcasterWindow.loadFile('broadcaster.html');
+        webrtcMode = 'browser';
+        log('[WebRTC] Broadcaster window created', 'success');
+
+        // Step 2: Register WebRTC capability
+        log('[WebRTC] Registering capability...', 'info');
+        await axios.post(`${BACKEND_URL}/api/webrtc/register`,
+            { computerId: config.computerId, mode: 'browser' },
+            { headers: { 'Authorization': `Bearer ${config.token}` } }
+        );
+        log('[WebRTC] Registered webrtcCapable=true', 'success');
+
+        // Step 3: Start polling for sessions
+        log('[WebRTC] Starting session poll...', 'info');
+        if (global.sessionPollInt) clearInterval(global.sessionPollInt);
+        global.sessionPollInt = setInterval(pollPendingSessions, 2000);
+        log('[WebRTC] Polling every 2 seconds', 'success');
+
+        // Step 4: Update UI
+        safeSend('status-update', {
+            status: 'ONLINE',
+            details: `ID: ${config.computerId} | WEBRTC P2P READY`
+        });
+
+        log('=== WEBRTC MODE ACTIVE ===', 'success');
+        log('Waiting for viewer to connect...', 'info');
+
+        // Heartbeat
+        if (global.heartbeatInt) clearInterval(global.heartbeatInt);
+        global.heartbeatInt = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+
     } catch (e) {
-        throw e;
+        log(`WebRTC Error: ${e.message}`, 'error');
+        safeSend('status-update', { status: 'ERROR', details: `WebRTC: ${e.message}` });
     }
 }
 
+async function pollPendingSessions() {
+    try {
+        if (!config.computerId || !config.token) return;
+
+        const response = await axios.get(`${BACKEND_URL}/api/webrtc/host/pending`, {
+            params: { computerId: config.computerId },
+            headers: { 'Authorization': `Bearer ${config.token}` }
+        });
+
+        if (response.data.sessionId) {
+            const sid = response.data.sessionId;
+            if (currentSessionId !== sid) {
+                log(`[WebRTC] Found session: ${sid}`, 'info');
+                currentSessionId = sid;
+                startBroadcasterWithSession(sid);
+            }
+        }
+    } catch (e) {
+        // Ignore 404
+    }
+}
+
+function startBroadcasterWithSession(sessionId) {
+    if (!broadcasterWindow) {
+        log('[WebRTC] No broadcaster window!', 'error');
+        return;
+    }
+
+    const url = `file://${path.join(__dirname, 'broadcaster.html')}?sessionId=${sessionId}&token=${config.token}`;
+    log(`[WebRTC] Loading broadcaster with session: ${sessionId}`, 'info');
+    broadcasterWindow.loadURL(url);
+    broadcasterWindow.show();
+    broadcasterWindow.focus();
+}
+
+// ==========================================
+// VNC SETUP
+// ==========================================
 async function checkWindowsEdition() {
     return new Promise(resolve => {
         exec('wmic os get Caption', (e, stdout) => {
@@ -354,7 +347,6 @@ async function runPowershell(content) {
     });
 }
 
-// RDP Setup
 async function enableRDP() {
     log('Enabling RDP...', 'info');
     const script = `
@@ -364,9 +356,7 @@ async function enableRDP() {
     await runPowershell(script);
 }
 
-// VNC Setup
 async function setupVNC() {
-    // 1. Locate Binary
     const binName = 'tvnserver.exe';
     let binPath = [
         path.join(__dirname, 'bin', binName),
@@ -375,15 +365,13 @@ async function setupVNC() {
     ].find(p => fs.existsSync(p));
 
     if (!binPath) {
-        log('Error: VNC Binary Missing', 'error');
-        safeSend('status-update', { status: 'MANUAL_ACTION_REQUIRED', details: 'Missing VNC Engine' });
-        return;
+        log('VNC Binary Missing', 'error');
+        throw new Error('VNC Binary Missing');
     }
 
-    // 2. Kill Old
     exec('taskkill /F /IM tvnserver.exe /T', () => { });
+    await new Promise(r => setTimeout(r, 1500));
 
-    // 3. Configure Registry (Password: 12345678)
     const script = `
     $path = "HKCU:\\Software\\TightVNC\\Server";
     if (!(Test-Path $path)) { New-Item -Path $path -Force; }
@@ -396,26 +384,23 @@ async function setupVNC() {
     `;
     await runPowershell(script);
 
-    // 4. Firewall
     await runPowershell(`
     if (!(Get-NetFirewallRule -DisplayName "DeskShare-VNC" -ErrorAction SilentlyContinue)) {
         New-NetFirewallRule -DisplayName "DeskShare-VNC" -Direction Inbound -LocalPort 5900 -Protocol TCP -Action Allow -Profile Any;
     }
     `);
 
-    // 5. Spawn Process
-    log('Spawning VNC Engine...', 'info');
-    setTimeout(() => {
-        vncProcess = spawn(binPath, ['-run'], { detached: true });
-        log('VNC Engine Started', 'success');
-    }, 1000);
+    log('Starting VNC...', 'info');
+    vncProcess = spawn(binPath, ['-run'], { detached: true });
+    log('VNC Started', 'success');
 }
 
-// Cloudflare Tunnel
+// ==========================================
+// TUNNEL
+// ==========================================
 async function createTunnel(port) {
     if (cloudflaredProcess) cloudflaredProcess.kill();
 
-    // Find binary
     const binName = 'cloudflared.exe';
     let binPath = [
         path.join(process.resourcesPath, 'bin', binName),
@@ -423,9 +408,8 @@ async function createTunnel(port) {
         path.join(USER_DATA_PATH, 'bin', binName)
     ].find(p => fs.existsSync(p));
 
-    // Download if missing
     if (!binPath) {
-        log('Downloading Tunnel Engine...', 'info');
+        log('Downloading cloudflared...', 'info');
         binPath = path.join(USER_DATA_PATH, 'bin', binName);
         fs.mkdirSync(path.dirname(binPath), { recursive: true });
         const writer = fs.createWriteStream(binPath);
@@ -434,29 +418,41 @@ async function createTunnel(port) {
         await new Promise(r => writer.on('finish', r));
     }
 
-    log(`Starting Tunnel on port ${port}...`, 'info');
+    log(`Starting tunnel on port ${port}...`, 'info');
     return new Promise((resolve, reject) => {
         cloudflaredProcess = spawn(binPath, ['tunnel', '--url', `tcp://localhost:${port}`]);
+        let found = false;
+
         cloudflaredProcess.stderr.on('data', d => {
             const t = d.toString();
-            const m = t.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
-            if (m) resolve(m[0]);
+            const m = t.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+            if (m && !found) { found = true; resolve(m[0]); }
         });
-        setTimeout(() => reject(new Error('Tunnel Connection Timeout')), 20000);
+
+        cloudflaredProcess.stdout.on('data', d => {
+            const t = d.toString();
+            const m = t.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+            if (m && !found) { found = true; resolve(m[0]); }
+        });
+
+        setTimeout(() => {
+            if (!found) reject(new Error('Tunnel Timeout'));
+        }, 45000);
     });
 }
 
 async function registerTunnel(url, method, pass) {
-    try {
-        await axios.post(`${BACKEND_URL}/api/tunnels/register`,
-            { computerId: config.computerId, tunnelUrl: url, accessMethod: method, accessPassword: pass },
-            { headers: { 'Authorization': `Bearer ${config.token}` } }
-        );
-    } catch (e) { log('Tunnel Registration Failed', 'error'); }
+    await axios.post(`${BACKEND_URL}/api/tunnels/register`,
+        { computerId: config.computerId, tunnelUrl: url, accessMethod: method, accessPassword: pass },
+        { headers: { 'Authorization': `Bearer ${config.token}` } }
+    );
 }
 
 async function sendHeartbeat() {
     try {
-        await axios.post(`${BACKEND_URL}/api/tunnels/heartbeat`, { computerId: config.computerId }, { headers: { 'Authorization': `Bearer ${config.token}` } });
+        await axios.post(`${BACKEND_URL}/api/tunnels/heartbeat`,
+            { computerId: config.computerId },
+            { headers: { 'Authorization': `Bearer ${config.token}` } }
+        );
     } catch { }
 }
