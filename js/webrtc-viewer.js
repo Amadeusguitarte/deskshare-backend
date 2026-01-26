@@ -1,6 +1,6 @@
 // ========================================
-// WebRTC Viewer Module (v3.0-HighPerf)
-// Client-side WebRTC receiver with 60FPS support
+// WebRTC Viewer Module (v3.2-Solid)
+// Client-side WebRTC receiver with simplified robust logic
 // ========================================
 
 class WebRTCViewer {
@@ -15,23 +15,23 @@ class WebRTCViewer {
         this.stateTarget = document.getElementById('webrtc-state');
         this.latencyTarget = document.getElementById('latency-value');
         this.videoElement = null;
-        this.hostRes = { w: 1920, h: 1080 }; // Default, updated on init
-
-        // Hide local cursor on the viewer
+        this.hostRes = { w: 1920, h: 1080 };
         this.canvas.style.cursor = 'none';
     }
 
     updateState(msg) {
         if (this.stateTarget) this.stateTarget.innerText = msg;
+        console.log('[WebRTC State]', msg);
     }
 
     async connect() {
         this.updateState('Iniciando...');
         try {
+            this.disconnect(); // Clean old session
             await this.createSession();
             await this.initPeerConnection();
 
-            // Request video at 60FPS
+            // Add transceiver AFTER connection init
             this.peerConnection.addTransceiver('video', { direction: 'recvonly' });
 
             const offer = await this.peerConnection.createOffer();
@@ -42,7 +42,6 @@ class WebRTCViewer {
             this.updateState('Negociando...');
         } catch (e) {
             this.updateState('Error: ' + e.message);
-            throw e;
         }
     }
 
@@ -56,68 +55,49 @@ class WebRTCViewer {
             },
             body: JSON.stringify({ bookingId: this.booking.id })
         });
-        if (!response.ok) throw new Error('Falló al crear sesión WebRTC');
         const data = await response.json();
         this.sessionId = data.sessionId;
     }
 
     async initPeerConnection() {
-        const config = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
-            ]
-        };
-
-        this.peerConnection = new RTCPeerConnection(config);
+        this.peerConnection = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
+        });
 
         this.peerConnection.onicecandidate = (event) => {
             if (event.candidate) this.sendIceCandidate(event.candidate);
         };
 
         this.peerConnection.ontrack = (event) => {
-            if (event.streams && event.streams[0]) {
-                this.renderStream(event.streams[0]);
-            }
+            console.log('[WebRTC Viewer] Video Track Detectado ✅');
+            this.renderStream(event.streams[0]);
         };
 
         this.peerConnection.onconnectionstatechange = () => {
-            const state = this.peerConnection.connectionState;
-            this.updateState(state.toUpperCase());
-            if (state === 'connected') this.onConnected();
+            this.updateState(this.peerConnection.connectionState.toUpperCase());
         };
 
         this.dataChannel = this.peerConnection.createDataChannel('input');
         this.dataChannel.onopen = () => {
-            console.log('[WebRTC] Data channel OPEN');
+            console.log('[WebRTC] Control Activo');
             this.setupInputCapture();
-            this.startLatencyMonitor();
+            this.startPingLoop();
         };
-
         this.dataChannel.onmessage = (e) => {
             const data = JSON.parse(e.data);
-            if (data.type === 'init-host') {
-                this.hostRes = data.res;
-                console.log('[WebRTC] Host Resolution Synced:', this.hostRes);
-            } else if (data.type === 'pong') {
-                const latency = Date.now() - data.ts;
-                if (this.latencyTarget) this.latencyTarget.innerText = latency + ' ms';
-                this.updateLatencyDot(latency);
+            if (data.type === 'init-host') { this.hostRes = data.res; }
+            else if (data.type === 'pong') {
+                const lat = Date.now() - data.ts;
+                if (this.latencyTarget) this.latencyTarget.innerText = lat + ' ms';
+                const dot = document.getElementById('latency-dot');
+                if (dot) dot.style.background = lat < 100 ? '#0f0' : '#f00';
             }
         };
     }
 
-    updateLatencyDot(ms) {
-        const dot = document.getElementById('latency-dot');
-        if (!dot) return;
-        if (ms < 50) dot.style.background = '#00ff00';
-        else if (ms < 150) dot.style.background = '#ffff00';
-        else dot.style.background = '#ff4444';
-    }
-
-    startLatencyMonitor() {
+    startPingLoop() {
         setInterval(() => {
-            if (this.dataChannel.readyState === 'open') {
+            if (this.dataChannel && this.dataChannel.readyState === 'open') {
                 this.dataChannel.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
             }
         }, 1000);
@@ -127,26 +107,18 @@ class WebRTCViewer {
         const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
         await fetch(`${BACKEND_URL}/webrtc/offer`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
             body: JSON.stringify({ sessionId: this.sessionId, sdp: offer })
         });
     }
 
     async sendIceCandidate(candidate) {
         const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
-        try {
-            await fetch(`${BACKEND_URL}/webrtc/ice`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                },
-                body: JSON.stringify({ sessionId: this.sessionId, candidate, isHost: false })
-            });
-        } catch (e) { }
+        fetch(`${BACKEND_URL}/webrtc/ice`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+            body: JSON.stringify({ sessionId: this.sessionId, candidate, isHost: false })
+        }).catch(() => { });
     }
 
     startPolling() {
@@ -162,16 +134,14 @@ class WebRTCViewer {
                     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 }
                 if (data.iceCandidates) {
-                    for (const candidate of data.iceCandidates) {
-                        try {
-                            if (this.peerConnection.remoteDescription) {
-                                await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                            }
-                        } catch (e) { }
+                    for (const cand of data.iceCandidates) {
+                        if (this.peerConnection.remoteDescription) {
+                            try { await this.peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
+                        }
                     }
                 }
             } catch (e) { }
-        }, 800);
+        }, 1000);
     }
 
     renderStream(stream) {
@@ -179,64 +149,48 @@ class WebRTCViewer {
         const video = document.createElement('video');
         this.videoElement = video;
         video.srcObject = stream;
-        video.autoplay = true;
-        video.muted = true;
-        video.setAttribute('playsinline', '');
+        video.autoplay = true; video.muted = true; video.setAttribute('playsinline', '');
         video.style.display = 'none';
         document.body.appendChild(video);
 
-        console.log('[WebRTC Viewer] Started 60FPS Render Loop');
-        const renderFrame = () => {
+        video.onloadedmetadata = () => {
+            this.canvas.width = video.videoWidth; this.canvas.height = video.videoHeight;
+        };
+
+        const render = () => {
             if (video.readyState >= 2) {
                 if (this.canvas.width !== video.videoWidth || this.canvas.height !== video.videoHeight) {
-                    this.canvas.width = video.videoWidth;
-                    this.canvas.height = video.videoHeight;
+                    this.canvas.width = video.videoWidth; this.canvas.height = video.videoHeight;
                 }
                 this.ctx.drawImage(video, 0, 0);
             }
-            if (this.peerConnection) requestAnimationFrame(renderFrame);
+            if (this.peerConnection) requestAnimationFrame(render);
         };
-        requestAnimationFrame(renderFrame);
+        requestAnimationFrame(render);
+        video.play().catch(() => { });
     }
 
     setupInputCapture() {
-        const sendPos = (e, type) => {
+        const handle = (e, type) => {
             const rect = this.canvas.getBoundingClientRect();
-            // Map canvas relative pixels to host physical pixels
             const x = ((e.clientX - rect.left) / rect.width) * this.hostRes.w;
             const y = ((e.clientY - rect.top) / rect.height) * this.hostRes.h;
-
-            if (type === 'mousemove') {
-                this.sendInput({ type: 'mousemove', x, y });
-            } else {
-                this.sendInput({ type, x, y, button: e.button === 0 ? 'left' : 'right' });
-            }
+            this.sendInput({ type, x, y, button: e.button === 0 ? 'left' : 'right' });
         };
-
-        this.canvas.addEventListener('mousemove', (e) => sendPos(e, 'mousemove'));
-        this.canvas.addEventListener('mousedown', (e) => sendPos(e, 'mousedown'));
-        this.canvas.addEventListener('mouseup', (e) => sendPos(e, 'mouseup'));
+        this.canvas.addEventListener('mousemove', (e) => handle(e, 'mousemove'));
+        this.canvas.addEventListener('mousedown', (e) => handle(e, 'mousedown'));
+        this.canvas.addEventListener('mouseup', (e) => handle(e, 'mouseup'));
     }
 
-    sendInput(input) {
+    sendInput(data) {
         if (this.dataChannel && this.dataChannel.readyState === 'open') {
-            this.dataChannel.send(JSON.stringify(input));
+            this.dataChannel.send(JSON.stringify(data));
         }
     }
 
     toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            this.canvas.requestFullscreen().catch(err => {
-                alert(`Error al entrar en pantalla completa: ${err.message}`);
-            });
-        } else {
-            document.exitFullscreen();
-        }
-    }
-
-    onConnected() {
-        this.updateState('CONECTADO ✅');
-        if (this.stateTarget) this.stateTarget.style.color = '#0f0';
+        if (!document.fullscreenElement) { this.canvas.requestFullscreen().catch(() => { }); }
+        else { document.exitFullscreen(); }
     }
 
     disconnect() {
