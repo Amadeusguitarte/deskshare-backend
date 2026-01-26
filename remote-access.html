@@ -502,6 +502,9 @@
             parsecView.style.display = 'none';
             if (webrtcView) webrtcView.style.display = 'none';
 
+            const debugOverlay = document.getElementById('debug-overlay');
+            if (debugOverlay) debugOverlay.style.display = 'none';
+
             btnNative.classList.remove('active');
             btnParsec.classList.remove('active');
             if (btnWebrtc) btnWebrtc.classList.remove('active');
