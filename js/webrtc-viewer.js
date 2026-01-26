@@ -1,5 +1,5 @@
 // ========================================
-// WebRTC Viewer Module (v2.2-Safe)
+// WebRTC Viewer Module (v2.3-Fix)
 // Client-side WebRTC receiver with canvas rendering
 // ========================================
 
@@ -13,6 +13,7 @@ class WebRTCViewer {
         this.pollInterval = null;
         this.dataChannel = null;
         this.stateTarget = document.getElementById('webrtc-state');
+        this.remoteStream = null;
     }
 
     updateState(msg) {
@@ -32,7 +33,7 @@ class WebRTCViewer {
             await this.sendOffer(offer);
             this.startPolling();
 
-            this.updateState('Handshake enviado (Polling)...');
+            this.updateState('Esperando respuesta...');
         } catch (e) {
             this.updateState('Error: ' + e.message);
             console.error('[WebRTC Viewer] Connection failed:', e);
@@ -72,9 +73,17 @@ class WebRTCViewer {
             }
         };
 
+        // Handle both ontrack (modern) and onaddstream (legacy fallback)
         this.peerConnection.ontrack = (event) => {
-            console.log('[WebRTC Viewer] Stream recibido ✅');
-            this.renderStream(event.streams[0]);
+            console.log('[WebRTC Viewer] Track recibido ✅', event.track.kind);
+            if (event.streams && event.streams[0]) {
+                this.renderStream(event.streams[0]);
+            } else {
+                // If no stream attached to track, create one
+                if (!this.remoteStream) this.remoteStream = new MediaStream();
+                this.remoteStream.addTrack(event.track);
+                this.renderStream(this.remoteStream);
+            }
         };
 
         this.peerConnection.onconnectionstatechange = () => {
@@ -127,7 +136,7 @@ class WebRTCViewer {
                 const data = await response.json();
 
                 if (data.answer && !this.peerConnection.remoteDescription) {
-                    this.updateState('Answer recibida. Conectando P2P...');
+                    this.updateState('Sincronizando video...');
                     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 }
 
@@ -145,22 +154,42 @@ class WebRTCViewer {
     }
 
     renderStream(stream) {
+        if (this.videoElement) return; // Already rendering
+
+        console.log('[WebRTC Viewer] Iniciando renderizado de stream...');
         const video = document.createElement('video');
+        this.videoElement = video;
         video.srcObject = stream;
         video.autoplay = true;
         video.muted = true;
+        video.setAttribute('playsinline', '');
         video.style.display = 'none';
         document.body.appendChild(video);
 
+        video.onloadedmetadata = () => {
+            console.log(`[WebRTC Viewer] Video metadatos listos: ${video.videoWidth}x${video.videoHeight}`);
+            this.canvas.width = video.videoWidth;
+            this.canvas.height = video.videoHeight;
+        };
+
         const renderFrame = () => {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                this.canvas.width = video.videoWidth;
-                this.canvas.height = video.videoHeight;
+            if (video.readyState >= video.HAVE_CURRENT_DATA) {
+                // Auto-resize canvas if dimensions change
+                if (this.canvas.width !== video.videoWidth || this.canvas.height !== video.videoHeight) {
+                    this.canvas.width = video.videoWidth;
+                    this.canvas.height = video.videoHeight;
+                }
                 this.ctx.drawImage(video, 0, 0);
             }
-            requestAnimationFrame(renderFrame);
+            if (this.peerConnection) {
+                requestAnimationFrame(renderFrame);
+            }
         };
-        video.onplay = () => renderFrame();
+
+        // Start render loop immediately to catch frames as they arrive
+        requestAnimationFrame(renderFrame);
+
+        video.play().catch(e => console.warn('Video play failed:', e));
     }
 
     setupInputCapture() {
@@ -187,14 +216,22 @@ class WebRTCViewer {
     }
 
     onDisconnected() {
-        this.updateState('FALLÓ ❌');
+        this.updateState('DESCONECTADO ❌');
         this.disconnect();
     }
 
     disconnect() {
         if (this.pollInterval) clearInterval(this.pollInterval);
-        if (this.peerConnection) this.peerConnection.close();
-        console.log('[WebRTC Viewer] Disonnected and cleaned up');
+        if (this.peerConnection) {
+            this.peerConnection.close();
+            this.peerConnection = null;
+        }
+        if (this.videoElement) {
+            this.videoElement.srcObject = null;
+            this.videoElement.remove();
+            this.videoElement = null;
+        }
+        console.log('[WebRTC Viewer] Disconnected');
     }
 }
 
