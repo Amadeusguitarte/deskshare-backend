@@ -88,6 +88,11 @@ class WebRTCViewer {
         this.peerConnection.ontrack = (event) => {
             console.log('[WebRTC Viewer] Track Detectado:', event.track.kind, '✅');
 
+            // v49: FORCE UI UNLOCK (Fix for "Negociando" Forever)
+            const statusPanel = document.getElementById('connection-status');
+            if (statusPanel) statusPanel.style.display = 'none';
+            this.updateState('EN VIVO');
+
             // v48: FORCE VIDEO PLAYBACK (Fix for Black Screen)
             // Ensure we have a video element and it is playing
             if (event.streams && event.streams[0]) {
