@@ -1,8 +1,10 @@
 // Temporary migration endpoint - DELETE AFTER USE
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma'); // Singleton
+const auth = require('../middleware/auth');
+
+// const prisma = new PrismaClient();
 
 router.get('/run-migrations', async (req, res) => {
     try {

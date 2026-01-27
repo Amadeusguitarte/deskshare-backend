@@ -17,7 +17,7 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // REMOVED DUPLICATE
 
 // ========================================
 // GET /api/chat/document-proxy
