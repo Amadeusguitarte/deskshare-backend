@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <script>
+        // v32 ENGINE: The Real Worker
+        const { ipcRenderer } = require('electron');
+        let config = null, currentSid = null, pc = null, res = null;
+        let iceSet = new Set();
+        let pollInterval = null;
+
+        ipcRenderer.send('engine-ready');
+        console.log('Engine Started');
+
+        ipcRenderer.on('init-engine', (e, d) => {
+            config = d.config; res = d.res;
+            console.log('[LEGACY ENGINE] Active:', config.computerId);
+
+            // CLEAN START
+            if (pc) { pc.close(); pc = null; }
+            currentSid = null; iceSet.clear();
+
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(poll, 1500);
+
+            poll(); // Immediate check
+        });
+
+        async function api(method, endpoint, body = null) { return await ipcRenderer.invoke('api-request', { method, endpoint, body }); }
+
+        async function poll() {
+            if (!config) return;
+            try {
+                // 1. Check for Pending Sessions
+                const r = await api('GET', "/webrtc/host/pending?computerId=" + config.computerId);
+
+                if (r && r.sessionId) {
+                    const sid = r.sessionId;
+
+                    // NEW SESSION DETECTED
+                    if (sid !== currentSid || !pc || pc.connectionState === 'failed') {
+                        currentSid = sid; iceSet.clear();
+                        console.log('New Session:', sid);
+
+                        const p = await api('GET', "/webrtc/poll/" + sid);
+                        if (p && p.offer) {
+                            console.log('Offer Received, Negotiating...');
+                            handle(p.offer);
+                        }
+                    }
+
+                    // HANDLE ICE CANDIDATES
+                    if (pc && pc.remoteDescription) {
+                        const p = await api('GET', "/webrtc/poll/" + sid);
+                        if (p && p.iceCandidates) {
+                            for (const c of p.iceCandidates) {
+                                let s = JSON.stringify(c);
+                                if (!iceSet.has(s)) {
+                                    iceSet.add(s);
+                                    pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) { console.log('Poll Error', e); }
+        }
+
+        async function handle(sdp) {
+            try {
+                if (pc) pc.close();
+                pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] });
+                pc.onicecandidate = (e) => { if (e.candidate) api('POST', '/webrtc/ice', { sessionId: currentSid, candidate: e.candidate, isHost: true }); };
+                pc.ondatachannel = (ev) => {
+                    ev.channel.onmessage = (e) => {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'ping') ev.channel.send(JSON.stringify({ type: 'pong', ts: data.ts }));
+                        else ipcRenderer.send('remote-input', data);
+                    };
+                };
+                pc.onconnectionstatechange = () => ipcRenderer.send('engine-state', pc.connectionState);
+
+                const sources = await ipcRenderer.invoke('get-sources');
+                // FORCE SCREEN CAPTURE REQUEST (This triggers the permission bubble if missing)
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: sources[0].id,
+                            minFrameRate: 30, maxWidth: res.w, maxHeight: res.h
+                        }
+                    }
+                });
+                stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+                const ans = await pc.createAnswer();
+                await pc.setLocalDescription(ans);
+                await api('POST', "/webrtc/answer", { sessionId: currentSid, sdp: ans });
+
+                console.log('Answer Sent!');
+            } catch (err) { ipcRenderer.send('log-error', 'Handle Fail: ' + err.message); }
+        }
+    </script>
+</body>
+
+</html>

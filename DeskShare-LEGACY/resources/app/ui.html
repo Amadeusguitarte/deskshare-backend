@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050507;
+            --card: #121216;
+            --success: #10b981;
+            --accent: #3b82f6;
+            --text: #fff
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 0;
+            transition: all 0.5s ease
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px
+        }
+
+        .app-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px
+        }
+
+        .icon-box {
+            width: 150px;
+            height: 150px;
+            background: var(--card);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #555;
+            transition: all 0.5s ease;
+            position: relative
+        }
+
+        .pulse {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid transparent
+        }
+
+        .status-badge {
+            padding: 12px 24px;
+            background: #1a1a1a;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #555;
+            border: 1px solid #333;
+            transition: all 0.4s ease;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #333;
+            border-radius: 50%
+        }
+
+        /* STATES */
+        body.online .icon-box {
+            border-color: var(--success)
+        }
+
+        body.online .status-badge {
+            color: var(--success);
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1)
+        }
+
+        body.online .dot {
+            background: var(--success)
+        }
+
+        body.connected .icon-box {
+            border-color: var(--accent);
+            box-shadow: 0 0 50px rgba(59, 130, 246, 0.4)
+        }
+
+        body.connected .status-badge {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.1)
+        }
+
+        body.connected .dot {
+            background: var(--accent)
+        }
+    </style>
+</head>
+
+<body class="online">
+    <div class="container">
+        <div class="app-title">DESKSHARE LEGACY</div>
+        <div class="icon-box">
+            <div class="pulse"></div><svg width="60" border="0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
+                </path>
+            </svg>
+        </div>
+        <div class="status-badge">
+            <div class="dot"></div><span id="stText">EN LÍNEA</span>
+        </div>
+        <div style="margin-top:15px;background:#111;padding:8px;border-radius:6px;font-family:monospace;font-size:0.8rem;color:#888;cursor:pointer;"
+            onclick="if(this.dataset.link){navigator.clipboard.writeText(this.dataset.link);alert('Link Copiado!');}">
+            <span id="directLink">...</span></div>
+    </div>
+    <script>const { ipcRenderer } = require('electron');
+        ipcRenderer.send('renderer-ready');
+        ipcRenderer.on('init-config', (e, d) => {
+            document.getElementById('stText').innerText = "ONLINE (ID: " + d.config.computerId + ")";
+            const url = "https://deskshare.netlify.app/remote-access.html?directId=" + d.config.computerId;
+            document.getElementById('directLink').innerText = "COPIAR LINK DIRECTO";
+            document.getElementById('directLink').parentElement.dataset.link = url;
+        });
+        ipcRenderer.on('update-engine-ui', (e, state) => {
+            const b = document.body;
+            const t = document.getElementById('stText');
+            if (state === 'connected') { b.className = 'connected'; t.innerText = 'CONECTADO'; }
+            else if (state === 'connecting') { b.className = 'online'; t.innerText = 'NEGOCIANDO...'; }
+            else { b.className = 'online'; t.innerText = 'EN LÍNEA'; }
+        });
+    </script>
+</body>
+
+</html>

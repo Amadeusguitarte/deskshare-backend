@@ -1,0 +1,12 @@
+{
+    "name": "deskshare-webrtc-agent",
+    "version": "18.1.0",
+    "description": "DeskShare WebRTC Agent v18 (Standalone)",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron ."
+    },
+    "author": "Antigravity",
+    "license": "ISC",
+    "dependencies": {}
+}
