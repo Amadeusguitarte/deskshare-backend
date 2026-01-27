@@ -1235,27 +1235,8 @@ class ChatManager {
             const targetComputer = computers[0];
             const computerId = targetComputer.id;
 
-            // v42: BACKEND SATISFACTION (Fix for "This computer does not have Parsec")
-            // The User Token HAS permission to update the computer. The Agent did not.
-            // We fix the backend requirement right here, right now.
-            if (!targetComputer.parsecPeerId && !targetComputer.rdpHost) {
-                console.log("[Auto-Config] Fixing missing Backend Requirements...");
-                try {
-                    await fetch(`${API_BASE_URL}/computers/${computerId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({
-                            parsecPeerId: 'DESKSHARE_WEB_V1', // Satisfy the validator
-                            rdpHost: 'enabled'
-                        })
-                    });
-                    // Update local object to reflect change
-                    targetComputer.parsecPeerId = 'DESKSHARE_WEB_V1';
-                } catch (err) {
-                    console.warn("Auto-Config Warning:", err);
-                    // Continue anyway, maybe it was a race condition
-                }
-            }
+            // v43: Clean Flow - Backend no longer requires dummy Parsec ID.
+            // Direct Link Generation Logic continues below...
 
             // v41: SECURE BOOKING FLOW (Fix for "Negotiating" Stall)
             // Instead of a raw directId (which fails auth for renters), we create an Ad-Hoc Booking

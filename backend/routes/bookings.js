@@ -300,10 +300,12 @@ router.post('/manual-share', auth, async (req, res, next) => {
             console.log(`Auth Fail: Computer Owner ${computer?.userId} vs Request User ${requestUserId}`);
             return res.status(403).json({ error: 'Not authorized' });
         }
-        // Allow if Parsec OR RDP is configured
-        if (!computer.parsecPeerId && !computer.rdpHost) {
-            return res.status(400).json({ error: 'This computer does not have Parsec or RDP configured.' });
-        }
+
+        // v43: NATIVE CONNECTION SUPPORT
+        // We relaxed this check. If Parsec/RDP aren't set, we assume Native DeskShare mode.
+        // if (!computer.parsecPeerId && !computer.rdpHost) {
+        //    return res.status(400).json({ error: 'This computer does not have Parsec or RDP configured.' });
+        // }
 
         // 2. Create "Free Trial" / Manual Booking
         const booking = await prisma.booking.create({
