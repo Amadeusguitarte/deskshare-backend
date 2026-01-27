@@ -179,7 +179,6 @@
 
 <body>
     <div id="app" class="card waiting">
-        <video id="localPreview" muted autoplay playsinline></video>
         <div class="controls">
             <div class="btn" onclick="window.minimize()">−</div>
             <div class="btn" onclick="window.close()">✕</div>
@@ -353,13 +352,6 @@
                         }
                     }
                 });
-
-                // Show Local Preview
-                const preview = document.getElementById('localPreview');
-                if (preview) {
-                    preview.srcObject = stream;
-                    preview.style.display = 'block';
-                }
 
                 stream.getTracks().forEach(t => pc.addTrack(t, stream));
 

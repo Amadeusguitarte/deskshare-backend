@@ -38,11 +38,28 @@ function sendToController(cmd) {
 }
 
 // PROTOCOL
-if (!app.requestSingleInstanceLock()) { app.quit(); }
-app.on('second-instance', (e, argv) => {
-    handleLink(argv);
-    if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
-});
+if (process.defaultApp) {
+    if (process.argv.length >= 2) app.setAsDefaultProtocolClient('deskshare', process.execPath, [path.resolve(process.argv[1])]);
+} else {
+    app.setAsDefaultProtocolClient('deskshare');
+}
+
+// v81: SINGLE INSTANCE LOCK (Robust)
+// Ensure only one instance of the agent runs
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.on('second-instance', (event, commandLine) => {
+        // Someone tried to run a second instance, we should focus our window.
+        if (win) {
+            if (win.isMinimized()) win.restore();
+            win.focus();
+            // Handle deep link from second instance
+            if (commandLine) handleLink(commandLine);
+        }
+    });
+}
 
 function handleLink(argv) {
     const link = argv.find(arg => arg.startsWith('deskshare://'));

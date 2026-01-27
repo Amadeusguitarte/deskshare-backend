@@ -88,14 +88,17 @@ class WebRTCViewer {
         this.peerConnection.ontrack = (event) => {
             console.log('[WebRTC Viewer] Track Detectado:', event.track.kind, '✅');
 
-            // STABILITY: Set motion hint on video track
+            // v48: FORCE VIDEO PLAYBACK (Fix for Black Screen)
+            // Ensure we have a video element and it is playing
             if (event.streams && event.streams[0]) {
-                event.streams[0].getTracks().forEach(track => {
-                    if (track.kind === 'video') track.contentHint = 'motion';
-                });
-            }
+                this.renderStream(event.streams[0]);
 
-            this.renderStream(event.streams[0]);
+                // Extra safety: Force play on the existing element
+                if (this.videoElement) {
+                    this.videoElement.srcObject = event.streams[0];
+                    this.videoElement.play().catch(e => console.error("Autoplay Blocked:", e));
+                }
+            }
         };
 
         this.peerConnection.onconnectionstatechange = () => {
