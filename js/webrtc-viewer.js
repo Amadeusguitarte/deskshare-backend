@@ -85,11 +85,24 @@ class WebRTCViewer {
             this.updateState(this.peerConnection.connectionState.toUpperCase());
         };
 
-        this.dataChannel = this.peerConnection.createDataChannel('input');
+        // v16.0: Twin-Channel Strategy
+        // 1. Reliable: For clicks, keys, and setup
+        this.dataChannel = this.peerConnection.createDataChannel('input', { ordered: true });
+
+        // 2. Unreliable: Fast-Path for mouse movement (Carril Rápido)
+        this.motionChannel = this.peerConnection.createDataChannel('motion', {
+            ordered: false,
+            maxRetransmits: 0
+        });
+
         this.dataChannel.onopen = () => {
-            console.log('[WebRTC] Control Activo');
+            console.log('[WebRTC] Control Activo (Reliable)');
             this.setupInputCapture();
             this.startPingLoop();
+        };
+
+        this.motionChannel.onopen = () => {
+            console.log('[WebRTC] Control Fluido (Unreliable) Activo');
         };
     }
 
@@ -231,6 +244,11 @@ class WebRTCViewer {
         }, 3000);
 
         video.play().catch(() => { });
+
+        // v16.0: Low Latency Playout Hint
+        if ('playoutDelayHint' in video) {
+            video.playoutDelayHint = 0;
+        }
     }
 
     setupInputCapture() {
@@ -313,7 +331,13 @@ class WebRTCViewer {
     }
 
     sendInput(data) {
-        if (this.dataChannel && this.dataChannel.readyState === 'open') {
+        // v16.0: Route motion to unreliable channel for zero lag
+        const channel = (data.type === 'mousemove') ? this.motionChannel : this.dataChannel;
+
+        if (channel && channel.readyState === 'open') {
+            channel.send(JSON.stringify(data));
+        } else if (this.dataChannel && this.dataChannel.readyState === 'open') {
+            // Fallback to reliable
             this.dataChannel.send(JSON.stringify(data));
         }
     }

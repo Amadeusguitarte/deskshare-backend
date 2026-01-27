@@ -5,10 +5,12 @@ const os = require('os');
 const { spawn } = require('child_process');
 const axios = require('axios');
 
-// v14.0: DISABLE ALL BACKGROUND THROTTLING (True Immortality)
+// v16.0: CRITICAL RESILIENCE & FLUIDITY (Fast-Path)
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+app.commandLine.appendSwitch('disable-frame-rate-limit');
 
 let blockerId = null;
 
@@ -19,7 +21,12 @@ let inputProcess = null;
 function startInputController() {
     const psPath = path.join(__dirname, 'input_controller.ps1');
     inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
-    console.log('PowerShell Input Controller started');
+
+    // v16.0: Increase process priority for zero-lag input
+    if (process.platform === 'win32' && inputProcess.pid) {
+        spawn('powershell.exe', ['-Command', `(Get-Process -Id ${inputProcess.pid}).PriorityClass = 'High'`]);
+    }
+    console.log('PowerShell Input Controller started (High Priority)');
 }
 
 function sendToController(cmd) {
@@ -224,7 +231,11 @@ function createWindow() {
                                 ipcRenderer.send('remote-input', data);
                             }
                         };
-                        channel.onopen = () => channel.send(JSON.stringify({ type: 'init-host', res: hostRes }));
+                        channel.onopen = () => {
+                            if (channel.label === 'input') {
+                                channel.send(JSON.stringify({ type: 'init-host', res: hostRes }));
+                            }
+                        };
                     };
 
                     peerConnection.onicecandidate = (event) => {
@@ -261,15 +272,15 @@ function createWindow() {
                                     videoSender.setDegradationPreference('maintain-framerate');
                                     videoSender.setParameters(params);
 
-                                    // Ramp-up to 8Mbps (Sweet spot for stability)
+                                    // v16.0: Fast Ramp (2s)
                                     setTimeout(() => {
                                         if (peerConnection && peerConnection.connectionState === 'connected') {
                                             const p = videoSender.getParameters();
-                                            p.encodings[0].maxBitrate = 8000000; // 8Mbps Ceiling
+                                            p.encodings[0].maxBitrate = 8000000; 
                                             videoSender.setParameters(p);
-                                            log("Rendimiento: 8Mbps / 60FPS Activo");
+                                            log("Fluidez Total: 8Mbps / 60FPS");
                                         }
-                                    }, 4000);
+                                    }, 2000);
                                 }
                         } else if (state === 'failed' || state === 'closed' || state === 'disconnected') {
                             reset();
@@ -280,35 +291,48 @@ function createWindow() {
                     const sourceId = sources[0].id; 
 
                     let stream;
+                    const constraints = {
+                        video: { 
+                            mandatory: { 
+                                chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, 
+                                minFrameRate: 60, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
+                            } 
+                        }
+                    };
+
                     try {
-                        // v15.0: Try audio loopback with specific source ID
+                        // Intentar A+V (Primary)
                         stream = await navigator.mediaDevices.getUserMedia({
                             audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } },
-                            video: { 
-                                mandatory: { 
-                                    chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, 
-                                    minFrameRate: 60, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
-                                } 
-                            }
+                            ...constraints
                         });
-                        log("Stream Primario (A+V) OK");
+                        log("Audio (Desktop Loopback) OK");
                     } catch (e) {
-                        log("Fallo A+V, intentando fallback de audio...");
-                        // FALLBACK: Try without specific audio source ID
-                        stream = await navigator.mediaDevices.getUserMedia({
-                            audio: { mandatory: { chromeMediaSource: 'desktop' } },
-                            video: { 
-                                mandatory: { 
-                                    chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, 
-                                    minFrameRate: 60, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
-                                } 
+                        try {
+                            // Fallback 1: Desktop Genérico
+                            stream = await navigator.mediaDevices.getUserMedia({
+                                audio: { mandatory: { chromeMediaSource: 'desktop' } },
+                                ...constraints
+                            });
+                            log("Audio (Generic Loopback) OK");
+                        } catch (e2) {
+                            try {
+                                // Fallback 2: Audio System Direct
+                                const vStream = await navigator.mediaDevices.getUserMedia(constraints);
+                                const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                                stream = new MediaStream([...vStream.getTracks(), ...aStream.getTracks()]);
+                                log("Audio (System Device) OK");
+                            } catch (e3) {
+                                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                                log("⚠️ VIDEO OK (Audio falló)");
                             }
-                        });
-                        log("Stream Fallback OK");
+                        }
                     }
                     
-                    if (stream.getAudioTracks().length === 0) log("⚠️ ATENCIÓN: No se detectó canal de Audio");
-                    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+                    stream.getTracks().forEach(track => {
+                        if (track.kind === 'video') track.contentHint = 'motion';
+                        peerConnection.addTrack(track, stream);
+                    });
 
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
                     const answer = await peerConnection.createAnswer();
