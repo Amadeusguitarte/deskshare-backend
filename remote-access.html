@@ -162,6 +162,14 @@
         .hidden-force {
             display: none !important;
         }
+
+        #chatWidgetContainer {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
     </style>
 </head>
 
@@ -242,6 +250,7 @@
         <!-- Global Dependencies -->
         <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
         <script src="script.js"></script>
+        <script src="js/chat-manager.js"></script>
         <script src="js/chat-manager.js"></script>
         <script>
             let booking = null;

@@ -11,9 +11,9 @@ git push origin main --force
 Write-Host "🚀 Deploying to Backend (Railway)..." -ForegroundColor Cyan
 git add .
 git add -f agent/dist-webrtc-alpha/DeskShareWebRTC-win32-x64/resources/app/main.js
-# ZOMBIE KILLER (v21.1)
+# ZOMBIE KILLER (v22)
 Stop-Process -Name "DeskShareWebRTC", "electron" -Force -ErrorAction SilentlyContinue
-git commit -m "DEPLOY: FIX FRONTEND CRASH v21.1 (Restored ChatManager Script)"
+git commit -m "DEPLOY: Engine X NUCLEAR v22 (Infrastructure RESCUE - ICE RESTORED)"
 git push backend_origin main --force
 git push production main --force
 
