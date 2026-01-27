@@ -214,7 +214,8 @@ router.post('/:id/start', auth, async (req, res, next) => {
                         rustdeskId: true,   // ADDED: RustDesk P2P
                         rustdeskPassword: true, // ADDED: RustDesk P2P
                         webrtcCapable: true,
-                        webrtcMode: true
+                        webrtcMode: true,
+                        user: { select: { name: true, email: true } }
                     }
                 }
             }

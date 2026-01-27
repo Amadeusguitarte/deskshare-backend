@@ -117,11 +117,11 @@ router.get('/host/pending', auth, async (req, res, next) => {
         const computerId = parseInt(req.query.computerId);
         if (!computerId) return res.status(400).json({ error: 'computerId required' });
 
-        // Find newest session that hasn't timed out (60s)
+        // Find newest session that is actively negotiating (has offer)
         const session = await prisma.webRTCSession.findFirst({
             where: {
                 computerId: computerId,
-                status: { not: 'closed' },
+                status: 'negotiating', // WAIT FOR VIEWER TO SEND OFFER
                 lastHeartbeat: { gte: new Date(Date.now() - 60000) }
             },
             orderBy: { createdAt: 'desc' }
@@ -139,7 +139,10 @@ router.get('/poll/:sessionId', async (req, res, next) => {
     try {
         const { sessionId } = req.params;
 
-        const session = await prisma.webRTCSession.findUnique({ where: { id: sessionId } });
+        const session = await prisma.webRTCSession.findUnique({
+            where: { id: sessionId },
+            include: { computer: { include: { user: { select: { name: true } } } } }
+        });
         if (!session) return res.status(404).json({ status: 'idle' });
 
         // Update heartbeat
@@ -150,9 +153,11 @@ router.get('/poll/:sessionId', async (req, res, next) => {
 
         res.json({
             sessionId: session.id,
+            status: session.status,
             offer: session.offer ? JSON.parse(session.offer) : null,
             answer: session.answer ? JSON.parse(session.answer) : null,
             clientName: session.clientName || 'Usuario',
+            hostName: session.computer.user.name || 'Propietario',
             candidates: session.candidates || [], // Unified
             iceCandidates: session.candidates || [] // Legacy alias for Agent
         });

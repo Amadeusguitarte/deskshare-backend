@@ -180,7 +180,8 @@
 
                 booking = data.booking;
                 window.currentBooking = booking;
-                document.getElementById('computerName').textContent = 'Conectado al Host';
+                const hostName = booking.computer?.user?.name || booking.computer?.name || 'Anfitrión';
+                document.getElementById('computerName').textContent = `Conectado a ${hostName}`;
                 startTime = new Date();
                 startTimer();
 
@@ -190,7 +191,6 @@
                 // Init WebRTC
                 webrtcViewer = new WebRTCViewer('webrtc-canvas', booking);
                 await webrtcViewer.connect();
-
                 // Init Chat (Invisible)
                 const user = JSON.parse(localStorage.getItem('currentUser'));
                 if (user && !window.chatManager) {

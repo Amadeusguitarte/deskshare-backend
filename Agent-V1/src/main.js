@@ -98,7 +98,11 @@ app.whenReady().then(() => {
     createWindow();
     handleLink(process.argv);
 
-    ipcMain.on('app-quit', () => app.quit());
+    ipcMain.on('app-quit', () => {
+        if (inputProcess) inputProcess.kill();
+        app.quit();
+        process.exit(0);
+    });
     ipcMain.on('app-minimize', () => { if (win) win.minimize(); });
 
     ipcMain.on('renderer-ready', (e) => {
@@ -146,4 +150,5 @@ ipcMain.handle('get-sources', async () => await desktopCapturer.getSources({ typ
 app.on('window-all-closed', () => {
     if (inputProcess) inputProcess.kill();
     app.quit();
+    process.exit(0);
 });

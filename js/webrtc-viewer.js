@@ -217,6 +217,10 @@ class WebRTCViewer {
                     console.log('[WebRTC] Answer Received ✅');
                     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 }
+                if (data.hostName) {
+                    const label = document.getElementById('computerName');
+                    if (label) label.innerText = `Conectado a ${data.hostName}`;
+                }
                 if (data.iceCandidates) {
                     for (const cand of data.iceCandidates) {
                         // v45: ARCHITECTURAL FILTER (Only process candidates from Host)
