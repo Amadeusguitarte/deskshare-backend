@@ -317,9 +317,9 @@
                 // ALWAYS switch to WebRTC Mode (Pure WebRTC Experience)
                 switchMode('webrtc');
 
-                // INITIALIZE CHAT
-                const user = JSON.parse(localStorage.getItem('user'));
-                if (user) {
+                // INITIALIZE CHAT (Fixing Key in v8.0)
+                const user = JSON.parse(localStorage.getItem('currentUser'));
+                if (user && !window.chatManager) {
                     const socketUrl = 'https://deskshare-backend-production.up.railway.app';
                     window.chatManager = new ChatManager(user, socketUrl);
                 }

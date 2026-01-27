@@ -54,8 +54,19 @@ class ChatManager {
         this.messagesPageContainer = document.getElementById('messagesPageContainer');
         this.widgetContainer = document.getElementById('chatWidgetContainer');
 
-        // Load data
+        // v8.0 INSTANT RENDER: Draw the UI immediately (with "Loading..." state if empty)
+        if (this.messagesPageContainer) {
+            this.renderFullPage();
+        } else {
+            if (!window.location.href.includes('messages.html')) {
+                this.renderWidget();
+            }
+        }
+
+        // Load data in background
+        console.time('🚀 [ChatManager] loadConversations');
         await this.loadConversations();
+        console.timeEnd('🚀 [ChatManager] loadConversations');
 
         // Global Click Listener for Menus
         document.addEventListener('click', (e) => {
@@ -75,17 +86,6 @@ class ChatManager {
         if (this.socket && this.conversations.length > 0) {
             const ids = this.conversations.map(c => c.otherUser.id);
             this.socket.emit('check-status', { userIds: ids });
-        }
-
-        // Render
-        if (this.messagesPageContainer) {
-            this.renderFullPage();
-        } else {
-            // FIX: Do not render widget if we are on the messages page but container detection failed for some reason,
-            // or if we just want to be extra safe.
-            if (!window.location.href.includes('messages.html')) {
-                this.renderWidget();
-            }
         }
     }
 

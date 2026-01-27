@@ -23,7 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof ChatManager !== 'undefined') {
         initGlobalChat(currentUser);
     } else {
-        // Fallback with cache buster if not found (though HTML should have it)
+        // v8.0: Check if script is already being loaded/present to avoid double connection
+        if (document.querySelector('script[src*="chat-manager.js"]')) {
+            console.log('[ui-global] ChatManager script detected, waiting...');
+            return;
+        }
         const script = document.createElement('script');
         script.src = 'js/chat-manager.js?v=' + new Date().getTime();
         script.onload = () => initGlobalChat(currentUser);
