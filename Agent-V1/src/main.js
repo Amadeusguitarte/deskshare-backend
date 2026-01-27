@@ -80,13 +80,13 @@ function handleLink(argv) {
 }
 
 function createWindow() {
-    const iconPath = path.join(__dirname, '../icon.png');
     win = new BrowserWindow({
         width: 320, height: 440,
+        title: "DeskShare",
         frame: false, transparent: true, resizable: false,
         hasShadow: false, alwaysOnTop: true,
         backgroundColor: '#00000000',
-        icon: fs.existsSync(iconPath) ? iconPath : null,
+        icon: path.join(__dirname, 'icon.png'),
         webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false }
     });
     win.loadFile(path.join(__dirname, 'agent.html'));
