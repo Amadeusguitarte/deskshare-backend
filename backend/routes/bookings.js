@@ -322,14 +322,22 @@ router.post('/manual-share', auth, async (req, res, next) => {
 
         // 3. Inject Chat Message with Access Info
         // Use a special JSON format that frontend will parse and render as a proper action card
+        // v44: SMART TYPE DETECTION
+        // If explicit RDP -> guacamole
+        // If explicit Parsec -> parsec
+        // Else -> native (WebRTC)
+        let connType = 'native';
+        if (computer.rdpHost) connType = 'guacamole';
+        else if (computer.parsecPeerId) connType = 'parsec';
+
         const accessData = {
             type: 'ACCESS_GRANT',
             computerName: computer.name,
             computerId: computer.id,
             bookingId: booking.id,
-            connectionType: computer.rdpHost ? 'guacamole' : 'parsec',
+            connectionType: connType,
             // For Parsec: direct protocol link
-            // For Guacamole: booking ID (frontend will build the remote-access.html URL)
+            // For Guacamole/Native: booking ID (frontend will build the remote-access.html URL)
             parsecPeerId: computer.parsecPeerId || null
         };
 

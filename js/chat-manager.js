@@ -1280,7 +1280,8 @@ class ChatManager {
 
             // v40: UNIFIED FLOW (Send Link + Wake Launcher)
             // 1. Send Link to Chat
-            this.sendMessage(userId, messageHtml, 'markup');
+            // REMOVED: Backend now injects the official system message.
+            // this.sendMessage(userId, messageHtml, 'markup');
 
             // v45: ARCHITECTURAL SYNC (Pass Host Name)
             const user = JSON.parse(localStorage.getItem('currentUser'));
@@ -2263,13 +2264,15 @@ class ChatManager {
 
                             // Render as beautiful access card
                             const isGuacamole = accessData.connectionType === 'guacamole';
-                            const buttonIcon = isGuacamole ? '🌐' : '🚀';
-                            const buttonText = isGuacamole ? 'Conectar (Web)' : 'Conectar (App)';
-                            const connectionMethod = isGuacamole ? 'Escritorio Remoto Web' : 'Parsec App';
+                            const isNative = accessData.connectionType === 'native';
+
+                            const buttonIcon = (isGuacamole || isNative) ? '🌐' : '🚀';
+                            const buttonText = (isGuacamole || isNative) ? 'Conectar (Web)' : 'Conectar (App)';
+                            const connectionMethod = isGuacamole ? 'Guacamole Bridge' : (isNative ? 'Escritorio Remoto Web' : 'Parsec App');
 
                             // Build the action based on connection type
                             let buttonAction = '';
-                            if (isGuacamole) {
+                            if (isGuacamole || isNative) {
                                 buttonAction = `window.location.href='remote-access.html?bookingId=${accessData.bookingId}'`;
                             } else {
                                 buttonAction = `window.location.href='parsec://peer_id=${accessData.parsecPeerId}'`;
