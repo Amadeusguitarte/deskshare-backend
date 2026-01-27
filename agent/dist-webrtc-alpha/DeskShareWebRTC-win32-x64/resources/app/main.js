@@ -78,8 +78,9 @@ function nodeRequest(method, pathStr, body) {
                 let d = '';
                 rs.on('data', (c) => d += c);
                 rs.on('end', () => {
+                    log(`API [${method}] ${pathStr} -> STATUS: ${rs.statusCode}`);
                     if (rs.statusCode >= 200 && rs.statusCode < 300) { try { resolve(JSON.parse(d)); } catch (e) { resolve({}); } }
-                    else resolve(null);
+                    else { log(`API ERROR: ${d}`); resolve(null); }
                 });
             });
             req.on('error', () => resolve(null));
@@ -92,9 +93,11 @@ function nodeRequest(method, pathStr, body) {
 ipcMain.handle('api-request', async (e, d) => await nodeRequest(d.method, d.endpoint, d.body));
 ipcMain.handle('get-sources', async () => await desktopCapturer.getSources({ types: ['screen'] }));
 
-ipcMain.on('renderer-ready', (e) => { if (config) e.reply('init-config', { config, res }); });
-ipcMain.on('engine-ready', (e) => { if (config) e.sender.send('init-engine', { config, res }); });
-ipcMain.on('engine-state', (e, s) => { if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
+ipcMain.on('renderer-ready', (e) => { log('Renderer UI Ready'); if (config) e.reply('init-config', { config, res }); });
+ipcMain.on('engine-ready', (e) => { log('Engine Core Ready'); if (config) e.sender.send('init-engine', { config, res }); });
+ipcMain.on('engine-state', (e, s) => { log(`Peer Connection State: ${s}`); if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
+
+ipcMain.on('log-error', (e, m) => { log(`ENGINE ERROR: ${m}`); });
 
 ipcMain.on('remote-input', (e, data) => {
     if (!inputProcess || !inputProcess.stdin.writable) return;
