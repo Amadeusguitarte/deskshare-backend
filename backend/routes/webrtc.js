@@ -54,6 +54,7 @@ router.post('/session/create', auth, async (req, res, next) => {
             data: {
                 computerId: parseInt(targetId),
                 bookingId: bookingId ? parseInt(bookingId) : null,
+                clientName: req.user.name || 'Usuario DeskShare',
                 status: 'pending',
                 candidates: []
             }
@@ -80,7 +81,11 @@ router.post('/offer', auth, async (req, res, next) => {
         if (sessionId) {
             session = await prisma.webRTCSession.update({
                 where: { id: sessionId },
-                data: { offer: JSON.stringify(sdp), status: 'negotiating' }
+                data: {
+                    offer: JSON.stringify(sdp),
+                    status: 'negotiating',
+                    clientName: req.user.name || 'Usuario DeskShare'
+                }
             });
         } else {
             // Fallback for direct offers without /create
@@ -147,6 +152,7 @@ router.get('/poll/:sessionId', async (req, res, next) => {
             sessionId: session.id,
             offer: session.offer ? JSON.parse(session.offer) : null,
             answer: session.answer ? JSON.parse(session.answer) : null,
+            clientName: session.clientName || 'Usuario',
             candidates: session.candidates || [], // Unified
             iceCandidates: session.candidates || [] // Legacy alias for Agent
         });

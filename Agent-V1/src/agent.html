@@ -195,7 +195,7 @@
         <h2 id="msg">SISTEMA</h2>
         <p id="sub">Iniciando...</p>
         <div id="debugConsole"
-            style="width: 280px; height: 100px; background: rgba(0,0,0,0.5); border: 1px solid #333; margin-top: 15px; font-family: monospace; font-size: 10px; color: #0f0; overflow-y: auto; text-align: left; padding: 5px; border-radius: 8px;">
+            style="width: 280px; height: 100px; background: rgba(0,0,0,0.5); border: 1px solid #333; margin-top: 15px; font-family: monospace; font-size: 10px; color: #0f0; overflow-y: auto; text-align: left; padding: 5px; border-radius: 8px; display: none;">
         </div>
     </div>
     <script>
@@ -274,7 +274,7 @@
                     const p = await api('GET', '/webrtc/poll/' + r.sessionId);
                     if (p && p.offer) {
                         setStatus('linking', 'NEGOCIANDO', 'Estableciendo enlace...');
-                        acceptSession(r.sessionId, p.offer, p.userName);
+                        acceptSession(r.sessionId, p.offer, p.clientName);
                     }
                 }
             } catch (e) { }
@@ -317,7 +317,7 @@
 
                 pc.onconnectionstatechange = () => {
                     log('Conn State: ' + pc.connectionState);
-                    if (pc.connectionState === 'connected') setStatus('connected', 'EN VIVO', `Control: ${uName || 'Web'}`);
+                    if (pc.connectionState === 'connected') setStatus('connected', 'CONECTADO', `Control: ${uName || 'Web'}`);
                     if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) reset();
                 };
 

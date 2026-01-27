@@ -47,6 +47,12 @@ router.get('/run-migrations', async (req, res) => {
             );
         `);
 
+        // Add client_name to webrtc_sessions
+        await prisma.$executeRawUnsafe(`
+            ALTER TABLE webrtc_sessions 
+            ADD COLUMN IF NOT EXISTS client_name TEXT
+        `);
+
         res.json({
             success: true,
             message: 'Migrations executed successfully'

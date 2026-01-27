@@ -175,6 +175,7 @@ model WebRTCSession {
   answer          String?  @db.Text
   candidates      Json?    @default("[]") // Store ICE candidates as JSON array
   status          String   @default("pending") // pending, negotiating, connected, closed
+  clientName      String?  @map("client_name") // Name of the renter/viewer
   
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
