@@ -1235,8 +1235,26 @@ class ChatManager {
             const targetComputer = computers[0];
             const computerId = targetComputer.id;
 
-            // Generate Link
-            const directLink = `https://deskshare.netlify.app/remote-access.html?directId=${computerId}`;
+            // v41: SECURE BOOKING FLOW (Fix for "Negotiating" Stall)
+            // Instead of a raw directId (which fails auth for renters), we create an Ad-Hoc Booking
+            // and send a link with ?bookingId=. This ensures the backend validates the session correctly.
+
+            const shareRes = await fetch(`${API_BASE_URL}/bookings/manual-share`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ computerId, renterId: userId })
+            });
+            const shareData = await shareRes.json();
+
+            if (!shareRes.ok || !shareData.booking) {
+                console.error("Manual Share Failed:", shareData);
+                throw new Error(shareData.error || "No se pudo crear la reserva");
+            }
+
+            const bookingId = shareData.booking.id;
+
+            // Generate Link with Booking ID (The "Correct" URL)
+            const directLink = `https://deskshare.netlify.app/remote-access.html?bookingId=${bookingId}`;
 
             // Generate Message Card
             const messageHtml = `
@@ -1266,6 +1284,7 @@ class ChatManager {
             const userName = user ? user.name : 'Host';
 
             // 2. Wake Up Launcher (Background)
+            // We still use directId based wakeup for the HOST side, which is fine as Host is owner
             const deepLink = `deskshare://login?token=${token}&computerId=${computerId}&userName=${encodeURIComponent(userName)}`;
             console.log('[Unified] Waking Launcher:', deepLink);
 
@@ -1279,7 +1298,7 @@ class ChatManager {
             this.showToast('Llave enviada y Launcher activado 🚀', 'success');
         } catch (e) {
             console.error(e);
-            this.showToast('Error al compartir llave', 'error');
+            this.showToast('Error al compartir llave: ' + e.message, 'error');
         }
     }
 

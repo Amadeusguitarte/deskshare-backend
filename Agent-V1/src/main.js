@@ -1,18 +1,15 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, shell, screen } = require('electron');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const https = require('https');
+const axios = require('axios');
 
-// v50: DEEP STABILITY (Disable GPU for GUI if artifacts persist)
+// v80: PRODUCTION SYNC (Percentage Mapping + Axios Gold)
 app.disableHardwareAcceleration();
 
-// === AGENT V1 (ZERO BASE) ===
-// No legacy dependencies. Pure Electron.
-
-let guiWin, engineWin;
+let win, inputProcess;
 let config = null;
 
-// 1. DATA PERSISTENCE
 const CONFIG_PATH = path.join(app.getPath('userData'), 'deskshare_v1_config.json');
 const BACKEND_API = 'https://deskshare-backend-production.up.railway.app/api';
 
@@ -20,7 +17,6 @@ function loadConfig() {
     try {
         if (fs.existsSync(CONFIG_PATH)) {
             config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-            // Force integer computerId
             if (config.computerId) config.computerId = parseInt(config.computerId);
         }
     } catch (e) { }
@@ -30,26 +26,24 @@ function saveConfig() {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config));
 }
 
-// 2. PROTOCOL LOCK
-if (process.defaultApp) {
-    if (process.argv.length >= 2) app.setAsDefaultProtocolClient('deskshare', process.execPath, [path.resolve(process.argv[1])]);
-} else {
-    app.setAsDefaultProtocolClient('deskshare');
+function startInputController() {
+    const psPath = path.join(__dirname, 'input_controller.ps1');
+    inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
 }
 
-if (!app.requestSingleInstanceLock()) { app.quit(); }
+function sendToController(cmd) {
+    if (inputProcess && inputProcess.stdin.writable) {
+        inputProcess.stdin.write(cmd + "\n");
+    }
+}
 
+// PROTOCOL
+if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.on('second-instance', (e, argv) => {
     handleLink(argv);
-    if (guiWin && !guiWin.isDestroyed()) {
-        if (guiWin.isMinimized()) guiWin.restore();
-        guiWin.focus();
-    } else {
-        createWindows(); // Re-create if closed
-    }
+    if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
 });
 
-// 3. LINK HANDLER
 function handleLink(argv) {
     const link = argv.find(arg => arg.startsWith('deskshare://'));
     if (link) {
@@ -58,103 +52,80 @@ function handleLink(argv) {
             const t = url.searchParams.get('token');
             const c = url.searchParams.get('computerId');
             const n = url.searchParams.get('userName');
-
             if (t && c) {
                 config = { token: t, computerId: parseInt(c), userName: n || 'Host' };
                 saveConfig();
-                if (engineWin && !engineWin.isDestroyed()) engineWin.webContents.send('init-engine', config);
-                if (guiWin && !guiWin.isDestroyed()) guiWin.webContents.send('ui-state', { mode: 'linking', userName: config.userName });
+                if (win && !win.isDestroyed()) win.webContents.send('init-config', config);
             }
         } catch (e) { }
     }
 }
 
-// 4. WINDOWS
-function createWindows() {
+function createWindow() {
     const iconPath = path.join(__dirname, '../icon.png');
-
-    // GUI (Fixed Transparency & Shadow)
-    guiWin = new BrowserWindow({
-        width: 440, height: 640, // Oversized buffer
-        frame: false,
-        transparent: true,
-        resizable: false,
-        hasShadow: false, // Important to avoid square artifact
-        alwaysOnTop: true,
-        backgroundColor: '#00000000', // HEX Alpha Zero
+    win = new BrowserWindow({
+        width: 320, height: 440,
+        frame: false, transparent: true, resizable: false,
+        hasShadow: false, alwaysOnTop: true,
+        backgroundColor: '#00000000',
         icon: fs.existsSync(iconPath) ? iconPath : null,
-        webPreferences: { nodeIntegration: true, contextIsolation: false }
-    });
-
-    guiWin.loadFile(path.join(__dirname, 'gui.html'));
-    guiWin.setIgnoreMouseEvents(false); // Ensure clickable
-
-    // ENGINE (Background Worker)
-    engineWin = new BrowserWindow({
-        width: 100, height: 100, show: false,
         webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false }
     });
-    engineWin.loadFile(path.join(__dirname, 'webrtc.html'));
+    win.loadFile(path.join(__dirname, 'agent.html'));
 }
 
 app.whenReady().then(() => {
     loadConfig();
-    createWindows();
+    startInputController();
+    createWindow();
     handleLink(process.argv);
 
-    // Allow dragging
     ipcMain.on('app-quit', () => app.quit());
-    ipcMain.on('app-minimize', () => { if (guiWin) guiWin.minimize(); });
+    ipcMain.on('app-minimize', () => { if (win) win.minimize(); });
 
-    // REAL ACTIONS (Native PowerShell Bridge - Zero Dependency)
-    const { exec } = require('child_process');
+    ipcMain.on('renderer-ready', (e) => {
+        if (config && config.token) e.reply('init-config', config);
+    });
+
+    // PRECISION MOUSE BRIDGE (Matches Production v17.9)
     ipcMain.on('engine-action', (e, data) => {
-        if (data.type === 'mousemove') {
-            const cmd = `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = '${data.x},${data.y}'`;
-            exec(`powershell -Command "${cmd}"`);
-        }
-        if (data.type === 'mousedown') {
-            const btn = data.button === 'right' ? '0x0008 | 0x0010' : '0x0002 | 0x0004'; // Down|Up pairs for simple click
-            const cmd = `Add-Type -TypeDefinition '[DllImport("user32.dll")] public class Mouse { [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int x, int y, uint data, int extra); }'; [Mouse]::mouse_event(${btn}, 0, 0, 0, 0)`;
-            exec(`powershell -Command "${cmd}"`);
-        }
+        try {
+            const primary = screen.getPrimaryDisplay();
+            const scale = primary.scaleFactor || 1;
+
+            if (data.type === 'mousemove' && data.px !== undefined) {
+                const x = Math.round(data.px * primary.size.width * scale);
+                const y = Math.round(data.py * primary.size.height * scale);
+                sendToController(`MOVE ${x} ${y}`);
+            }
+            if (data.type === 'mousedown') sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
+            if (data.type === 'mouseup') sendToController(`CLICK ${data.button.toUpperCase()} UP`);
+            if (data.type === 'keydown') sendToController(`KEY ${data.vkCode} DOWN`);
+            if (data.type === 'keyup') sendToController(`KEY ${data.vkCode} UP`);
+            if (data.type === 'wheel') sendToController(`SCROLL ${Math.round(data.deltaY * -1)}`);
+        } catch (err) { }
     });
 });
 
-// 5. IPC BUS
-ipcMain.on('gui-ready', () => {
-    if (config.token && config.computerId) {
-        guiWin.webContents.send('ui-state', 'online');
-        engineWin.webContents.send('init-engine', config);
-    } else {
-        guiWin.webContents.send('ui-state', 'waiting');
+// AXIOS PROXY (Production Standard)
+ipcMain.handle('api', async (e, req) => {
+    try {
+        if (!config || !config.token) return null;
+        const response = await axios({
+            method: req.method,
+            url: BACKEND_API + req.path,
+            data: req.body,
+            headers: { 'Authorization': 'Bearer ' + config.token }
+        });
+        return response.data;
+    } catch (err) {
+        return { error: true, status: err.response ? err.response.status : 500 };
     }
 });
 
-ipcMain.on('engine-log', (e, msg) => console.log(msg));
+ipcMain.handle('get-sources', async () => await desktopCapturer.getSources({ types: ['screen'] }));
 
-ipcMain.on('engine-status', (e, status) => {
-    if (guiWin) guiWin.webContents.send('ui-state', status);
+app.on('window-all-closed', () => {
+    if (inputProcess) inputProcess.kill();
+    app.quit();
 });
-
-// API PROXY
-ipcMain.handle('api', (e, req) => {
-    return new Promise(resolve => {
-        if (!config.token) return resolve(null);
-        const opts = {
-            hostname: 'deskshare-backend-production.up.railway.app',
-            path: '/api' + req.path,
-            method: req.method,
-            headers: { 'Authorization': 'Bearer ' + config.token, 'Content-Type': 'application/json' }
-        };
-        const r = https.request(opts, (res) => {
-            let d = ''; res.on('data', c => d += c);
-            res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { resolve({}); } });
-        });
-        r.on('error', () => resolve(null));
-        if (req.body) r.write(JSON.stringify(req.body));
-        r.end();
-    });
-});
-
-ipcMain.handle('sources', async () => await desktopCapturer.getSources({ types: ['screen'] }));
