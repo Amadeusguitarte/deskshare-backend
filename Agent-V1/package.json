@@ -2,17 +2,26 @@
   "name": "deskshare-agent-v1",
   "productName": "DeskShare",
   "version": "1.0.0",
-  "description": "DeskShare Zero Base Agent",
+  "description": "DeskShare Remote Agent",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder -w nsis portable"
   },
   "build": {
     "appId": "com.deskshare.agent",
+    "productName": "DeskShare",
     "win": {
-      "target": "portable",
+      "target": [
+        "portable",
+        "nsis"
+      ],
       "icon": "src/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false
     }
   },
   "keywords": [],
@@ -20,7 +29,8 @@
   "license": "ISC",
   "devDependencies": {
     "electron": "^34.0.0",
-    "electron-builder": "^24.6.4"
+    "electron-builder": "^24.6.4",
+    "electron-packager": "^17.1.2"
   },
   "dependencies": {
     "axios": "^1.13.3"
