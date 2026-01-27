@@ -50,11 +50,13 @@ function handleLink(argv) {
             const url = new URL(link);
             const t = url.searchParams.get('token');
             const c = url.searchParams.get('computerId');
+            const n = url.searchParams.get('userName');
+
             if (t && c) {
-                config = { token: t, computerId: c };
+                config = { token: t, computerId: c, userName: n || 'Usuario' };
                 saveConfig();
                 if (engineWin && !engineWin.isDestroyed()) engineWin.webContents.send('init-engine', config);
-                if (guiWin && !guiWin.isDestroyed()) guiWin.webContents.send('ui-state', 'linking');
+                if (guiWin && !guiWin.isDestroyed()) guiWin.webContents.send('ui-state', { mode: 'linking', userName: config.userName });
             }
         } catch (e) { }
     }
@@ -66,13 +68,15 @@ function createWindows() {
 
     // GUI (Visible Status)
     guiWin = new BrowserWindow({
-        width: 350, height: 500,
+        width: 400, height: 600, // Slightly larger to avoid shadow clipping
         frame: false, transparent: true, resizable: false,
+        hasShadow: false, // Fix for square shadow artifact
         icon: fs.existsSync(iconPath) ? iconPath : null,
         webPreferences: { nodeIntegration: true, contextIsolation: false }
     });
     guiWin.loadFile(path.join(__dirname, 'gui.html'));
     guiWin.setAlwaysOnTop(true, 'floating');
+    guiWin.setBackgroundColor('#00000000'); // True transparency force
 
     // ENGINE (Hidden Worker)
     engineWin = new BrowserWindow({
@@ -86,6 +90,21 @@ app.whenReady().then(() => {
     loadConfig();
     createWindows();
     handleLink(process.argv);
+
+    // Allow dragging
+    ipcMain.on('app-quit', () => app.quit());
+    ipcMain.on('app-minimize', () => { if (guiWin) guiWin.minimize(); });
+
+    // REAL ACTIONS (RobotJS)
+    try {
+        const robot = require('robotjs');
+        ipcMain.on('engine-action', (e, data) => {
+            if (data.type === 'mousemove') robot.moveMouse(data.x, data.y);
+            if (data.type === 'mousedown') robot.mouseClick(data.button || 'left', false);
+            if (data.type === 'mouseup') { } // Optional
+            if (data.type === 'keydown') robot.keyTap(data.key);
+        });
+    } catch (e) { console.error('RobotJS Load Fail:', e); }
 });
 
 // 5. IPC BUS

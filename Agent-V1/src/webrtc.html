@@ -4,10 +4,14 @@
 <body>
     <script>
         const { ipcRenderer } = require('electron');
-        let pc, config, interval;
+        let pc = null;
+        let config = null;
+        let interval = null;
+        let iceSet = new Set();
 
         ipcRenderer.on('init-engine', (e, cfg) => {
             config = cfg;
+            ipcRenderer.send('engine-log', '[ENGINE] Init with: ' + JSON.stringify(config));
             startService();
         });
 
@@ -16,25 +20,28 @@
         }
 
         async function startService() {
-            // 1. REGISTER
-            await api('POST', '/webrtc/register', { computerId: config.computerId, mode: 'v1' });
-
-            // 2. POLL LOOP
-            if (interval) clearInterval(interval);
-            interval = setInterval(poll, 2000);
-            ipcRenderer.send('engine-status', 'online');
+            try {
+                await api('POST', '/webrtc/register', { computerId: config.computerId, mode: 'v1' });
+                if (interval) clearInterval(interval);
+                interval = setInterval(poll, 1000); // 1s polling for responsiveness
+                ipcRenderer.send('engine-status', 'online');
+            } catch (e) {
+                ipcRenderer.send('engine-status', { error: 'Reg: ' + e.message });
+            }
         }
 
         async function poll() {
+            if (!config || pc) return; // Stop polling while connecting/connected
             try {
-                // CHECK FOR PENDING SESSION
                 const r = await api('GET', '/webrtc/host/pending?computerId=' + config.computerId);
                 if (r && r.sessionId) {
-                    // FOUND SESSION -> CHECK FOR OFFER
-                    const p = await api('GET', '/webrtc/poll/' + r.sessionId);
-                    if (p && p.offer && !pc) {
-                        ipcRenderer.send('engine-status', 'linking');
-                        accept(r.sessionId, p.offer);
+                    const sid = r.sessionId;
+                    ipcRenderer.send('engine-log', '[SYNC] Found Session: ' + sid);
+
+                    const p = await api('GET', '/webrtc/poll/' + sid);
+                    if (p && p.offer) {
+                        ipcRenderer.send('engine-status', { mode: 'linking', userName: config.userName });
+                        accept(sid, p.offer);
                     }
                 }
             } catch (e) {
@@ -44,7 +51,8 @@
 
         async function accept(sid, offer) {
             try {
-                if (pc) return; // Already connecting
+                if (pc) return;
+                ipcRenderer.send('engine-log', '[WEBRTC] Handshake Start...');
 
                 pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
 
@@ -54,14 +62,27 @@
 
                 pc.onconnectionstatechange = () => {
                     const s = pc.connectionState;
-                    if (s === 'connected') ipcRenderer.send('engine-status', 'connected');
+                    ipcRenderer.send('engine-log', '[WEBRTC] State: ' + s);
+                    if (s === 'connected') ipcRenderer.send('engine-status', { mode: 'connected', userName: config.userName });
                     if (s === 'disconnected' || s === 'failed') {
                         pc.close(); pc = null;
                         ipcRenderer.send('engine-status', 'online');
+                        interval = setInterval(poll, 1000); // Resume polling
                     }
                 };
 
-                // MEDIA
+                // DATA CHANNEL (Inputs)
+                pc.ondatachannel = (event) => {
+                    const dc = event.channel;
+                    dc.onmessage = (e) => {
+                        try {
+                            const data = JSON.parse(e.data);
+                            ipcRenderer.send('engine-action', data);
+                        } catch (err) { }
+                    };
+                };
+
+                // MEDIA CAPTURE
                 const sources = await ipcRenderer.invoke('sources');
                 if (!sources || sources.length === 0) throw new Error("No Screen Sources");
 
@@ -71,13 +92,31 @@
                 });
                 stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
-                // ANSWER
+                // SIGNALING
                 await pc.setRemoteDescription(new RTCSessionDescription(offer));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
+
                 await api('POST', '/webrtc/answer', { sessionId: sid, sdp: answer });
+                ipcRenderer.send('engine-log', '[WEBRTC] Answer Sent.');
+
+                // START ICE POLLING FOR THIS SESSION
+                const iceInterval = setInterval(async () => {
+                    if (!pc || pc.connectionState === 'connected') { clearInterval(iceInterval); return; }
+                    const data = await api('GET', '/webrtc/poll/' + sid);
+                    if (data && data.iceCandidates) {
+                        for (const c of data.iceCandidates) {
+                            let cstr = JSON.stringify(c);
+                            if (!iceSet.has(cstr)) {
+                                iceSet.add(cstr);
+                                pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
+                            }
+                        }
+                    }
+                }, 1000);
+
             } catch (e) {
-                console.error(e);
+                ipcRenderer.send('engine-log', '[ERROR] ' + e.message);
                 ipcRenderer.send('engine-status', { error: 'Accept: ' + e.message });
                 pc = null;
             }
