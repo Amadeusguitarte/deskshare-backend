@@ -9,19 +9,16 @@
     <script>
         const { ipcRenderer } = require('electron');
         let config = null, currentSid = null, pc = null, res = null;
-        let processedIce = new Set();
+        let iceSet = new Set();
 
         ipcRenderer.send('engine-ready');
         ipcRenderer.on('init-engine', (e, d) => {
-            config = d.config;
-            res = d.res;
-            console.log('[Engine v24] Init with ID:', config.computerId);
+            config = d.config; res = d.res;
+            console.log('[Engine v25] Active ID:', config.computerId);
             setInterval(poll, 1500);
         });
 
-        async function api(method, endpoint, body = null) {
-            return await ipcRenderer.invoke('api-request', { method, endpoint, body });
-        }
+        async function api(method, endpoint, body = null) { return await ipcRenderer.invoke('api-request', { method, endpoint, body }); }
 
         async function poll() {
             if (!config) return;
@@ -29,33 +26,18 @@
                 const r = await api('GET', "/webrtc/host/pending?computerId=" + config.computerId);
                 if (r && r.sessionId) {
                     const sid = r.sessionId;
-
-                    // IMPROVEMENT: Only restart if SID is truly new or connection is dead
-                    const needsRestart = (sid !== currentSid) ||
-                        (!pc) ||
-                        (pc.connectionState === 'failed') ||
-                        (pc.connectionState === 'closed');
-
-                    if (needsRestart) {
-                        currentSid = sid;
-                        processedIce.clear();
-                        ipcRenderer.send('session-update', sid);
+                    // RECONSTRUCTION: Stay in session until it dies
+                    if (sid !== currentSid || !pc || pc.connectionState === 'failed') {
+                        currentSid = sid; iceSet.clear();
                         const p = await api('GET', "/webrtc/poll/" + sid);
-                        if (p && p.offer) {
-                            handle(p.offer);
-                        }
+                        if (p && p.offer) handle(p.offer);
                     }
-
-                    // Continuous ICE candidate sync
                     if (pc && pc.remoteDescription) {
                         const p = await api('GET', "/webrtc/poll/" + sid);
                         if (p && p.iceCandidates) {
                             for (const c of p.iceCandidates) {
-                                const cStr = JSON.stringify(c);
-                                if (!processedIce.has(cStr)) {
-                                    processedIce.add(cStr);
-                                    try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { }
-                                }
+                                let s = JSON.stringify(c);
+                                if (!iceSet.has(s)) { iceSet.add(s); pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => { }); }
                             }
                         }
                     }
@@ -66,50 +48,22 @@
         async function handle(sdp) {
             try {
                 if (pc) pc.close();
-
-                // RESTORED INFRASTRUCTURE: Twilio + Google
-                pc = new RTCPeerConnection({
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                });
-
-                pc.onicecandidate = (e) => {
-                    if (e.candidate) api('POST', '/webrtc/ice', { sessionId: currentSid, candidate: e.candidate, isHost: true });
-                };
-
-                pc.ondatachannel = (ev) => {
-                    ev.channel.onmessage = (e) => ipcRenderer.send('remote-input', JSON.parse(e.data));
-                };
-
+                pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] });
+                pc.onicecandidate = (e) => { if (e.candidate) api('POST', '/webrtc/ice', { sessionId: currentSid, candidate: e.candidate, isHost: true }); };
+                pc.ondatachannel = (ev) => { ev.channel.onmessage = (e) => ipcRenderer.send('remote-input', JSON.parse(e.data)); };
                 pc.onconnectionstatechange = () => ipcRenderer.send('engine-state', pc.connectionState);
 
                 const sources = await ipcRenderer.invoke('get-sources');
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: false,
-                    video: {
-                        mandatory: {
-                            chromeMediaSource: 'desktop',
-                            chromeMediaSourceId: sources[0].id,
-                            minFrameRate: 30,
-                            maxFrameRate: 60,
-                            maxWidth: res.w || 1920,
-                            maxHeight: res.h || 1080
-                        }
-                    }
+                    video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sources[0].id, minFrameRate: 30, maxWidth: res.w, maxHeight: res.h } }
                 });
-
                 stream.getTracks().forEach(t => pc.addTrack(t, stream));
                 await pc.setRemoteDescription(new RTCSessionDescription(sdp));
                 const ans = await pc.createAnswer();
                 await pc.setLocalDescription(ans);
                 await api('POST', "/webrtc/answer", { sessionId: currentSid, sdp: ans });
-                console.log('[Engine] RESURRECTION SUCCESS ✅');
-            } catch (err) {
-                console.error('[Engine] Resurrection Fail:', err);
-                ipcRenderer.send('log-error', 'Engine Error: ' + err.message);
-            }
+                console.log('[Engine] Handshake Sent ✅');
+            } catch (err) { ipcRenderer.send('log-error', 'Handle Fail: ' + err.message); }
         }
     </script>
 </body>

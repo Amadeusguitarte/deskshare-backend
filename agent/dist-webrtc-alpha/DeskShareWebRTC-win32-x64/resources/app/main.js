@@ -5,20 +5,19 @@ const { spawn } = require('child_process');
 const https = require('https');
 const os = require('os');
 
-// v24: INFRASTRUCTURE RESURRECTION (STABLE LOOP + BROWSER HEADERS)
+// v25: EMERGENCY INFRASTRUCTURE RECONSTRUCTION
 const LOG_FILE = path.join(os.tmpdir(), 'deskshare_debug.log');
 function log(msg) { try { fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`); } catch (e) { } }
 
-log('=== v24 RESURRECTION START ===');
+log('=== v25 SYSTEM RECONSTRUCTION START ===');
 
-// 1. SINGLETON (v18+)
-const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) { log('Dead lock. Quitting.'); app.quit(); process.exit(0); }
+// SINGLETON PROTECTION
+if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
 let mainWindow = null, engineWindow = null, inputProcess = null;
 let config = null, res = { w: 1920, h: 1080 };
 
-// 2. NETWORK BRIDGE (BROWSER-AUTHENTIC)
+// NETWORK BRIDGE (BROWSER-AUTHENTIC)
 function nodeRequest(method, pathStr, body) {
     return new Promise((resolve) => {
         try {
@@ -31,8 +30,7 @@ function nodeRequest(method, pathStr, body) {
                     'Authorization': 'Bearer ' + config.token,
                     'Content-Type': 'application/json',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-                    'Origin': 'https://deskshare-backend-production.up.railway.app',
-                    'Referer': 'https://deskshare-backend-production.up.railway.app/'
+                    'Origin': 'https://deskshare-backend-production.up.railway.app'
                 }
             };
             if (bodyData) opts.headers['Content-Length'] = Buffer.byteLength(bodyData);
@@ -41,27 +39,26 @@ function nodeRequest(method, pathStr, body) {
                 rs.on('data', (c) => d += c);
                 rs.on('end', () => {
                     if (rs.statusCode >= 200 && rs.statusCode < 300) { try { resolve(JSON.parse(d)); } catch (e) { resolve({}); } }
-                    else { log(`API Error: ${rs.statusCode} for ${pathStr}`); resolve(null); }
+                    else { log(`API ${rs.statusCode} on ${pathStr}`); resolve(null); }
                 });
             });
             req.on('error', (e) => { log(`Network Fault: ${e.message}`); resolve(null); });
             if (bodyData) req.write(bodyData);
             req.end();
-        } catch (e) { log(`Bridge Crash: ${e.message}`); resolve(null); }
+        } catch (e) { log(`Request Crash: ${e.message}`); resolve(null); }
     });
 }
 
 ipcMain.handle('api-request', async (e, d) => await nodeRequest(d.method, d.endpoint, d.body));
 ipcMain.handle('get-sources', async () => await desktopCapturer.getSources({ types: ['screen'] }));
 
-// 3. IPC
+// IPC ROUTING
 ipcMain.on('renderer-ready', (e) => { if (config) e.reply('init-config', { config, res }); });
 ipcMain.on('engine-ready', (e) => { if (config) e.sender.send('init-engine', { config, res }); });
 ipcMain.on('engine-state', (e, s) => { log(`PeerState: ${s}`); if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
 ipcMain.on('log-error', (e, m) => log(`[ERR] ${m}`));
-ipcMain.on('session-update', (e, sid) => log(`Session Engaged: ${sid}`));
 
-// 4. INPUT (v18+)
+// INPUT HANDLING (v18+)
 ipcMain.on('remote-input', (e, data) => {
     if (!inputProcess || !inputProcess.stdin.writable) return;
     let finalX = data.x, finalY = data.y;
@@ -79,7 +76,7 @@ function startController() {
     try {
         const sc = path.join(__dirname, 'input_controller.ps1');
         inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', sc]);
-    } catch (e) { log(`PS-Spawn Fail: ${e.message}`); }
+    } catch (e) { log(`PS Spawn Error: ${e.message}`); }
 }
 
 function loadData() {
@@ -89,8 +86,8 @@ function loadData() {
         if (fs.existsSync(cp)) config = JSON.parse(fs.readFileSync(cp, 'utf8'));
         const p = screen.getPrimaryDisplay();
         res = { w: p.size.width, h: p.size.height };
-        log(`Res: ${res.w}x${res.h}`);
-    } catch (e) { log(`Boot Error: ${e.message}`); }
+        log(`System Ready: ${config.computerId} @ ${res.w}x${res.h}`);
+    } catch (e) { log(`Load Fail: ${e.message}`); }
 }
 
 app.whenReady().then(() => {
@@ -102,7 +99,7 @@ app.whenReady().then(() => {
 });
 
 function createMainWindow() {
-    mainWindow = new BrowserWindow({ width: 500, height: 750, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v24" });
+    mainWindow = new BrowserWindow({ width: 500, height: 750, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v25" });
     const ui = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
     mainWindow.loadURL(`data:text/html;base64,${Buffer.from(ui).toString('base64')}`);
     mainWindow.once('ready-to-show', () => mainWindow.show());
