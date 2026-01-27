@@ -17,17 +17,19 @@ let mainWindow;
 let engineWindow;
 let config = {};
 let inputProcess = null;
-let activeSessionId = null; // v17.4: Defined in main process to prevent ReferenceError
-let blockerId = null;      // v17.4: Defined in main process
+let activeSessionId = null;
+let blockerId = null;
 
 function startInputController() {
-    const psPath = path.join(__dirname, 'input_controller.ps1');
-    inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
+    try {
+        const psPath = path.join(__dirname, 'input_controller.ps1');
+        inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
 
-    if (process.platform === 'win32' && inputProcess.pid) {
-        spawn('powershell.exe', ['-Command', `(Get-Process -Id ${inputProcess.pid}).PriorityClass = 'High'`]);
-    }
-    console.log('PowerShell Input Controller started (High Priority)');
+        if (process.platform === 'win32' && inputProcess.pid) {
+            spawn('powershell.exe', ['-Command', `(Get-Process -Id ${inputProcess.pid}).PriorityClass = 'High'`]);
+        }
+        console.log('PowerShell Input Controller started (High Priority)');
+    } catch (e) { console.error('Controller failed:', e); }
 }
 
 function sendToController(cmd) {
@@ -46,7 +48,7 @@ app.whenReady().then(() => {
 function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 500, height: 750,
-        show: false, // v17.3: Start hidden to prevent black screen
+        show: false,
         webPreferences: { nodeIntegration: true, contextIsolation: false },
         autoHideMenuBar: true, backgroundColor: '#050507',
         title: "DeskShare Alpha"
@@ -130,11 +132,8 @@ function createMainWindow() {
             
             let config = null;
             let activeSessionId = null;
-            let peerConnection = null;
-            let hostRes = { w: 1920, h: 1080 };
             let startTime = null;
             let timerInt = null;
-            let currentUserName = "";
             
             function log(msg) { logs.innerText = msg; }
             
@@ -150,8 +149,8 @@ function createMainWindow() {
             
             ipcRenderer.send('renderer-ready');
             ipcRenderer.on('init-config', (e, data) => {
-                config = data.config; hostRes = data.res;
-                log("Agente Engine X v17.4 Iniciado");
+                config = data.config;
+                log("Agente Engine X v17.5 Listo");
             });
             
             ipcRenderer.on('update-engine-ui', (e, state) => {
@@ -172,8 +171,8 @@ function createMainWindow() {
                     if (timerInt) clearInterval(timerInt);
                     startTime = null;
                     timerInt = null;
-                } else if (state === 'negotiating') {
-                    stText.innerText = "NEGOCIANDO...";
+                } else if (state === 'failed' || state === 'disconnected') {
+                    stText.innerText = "RECONECTANDO...";
                 }
             });
         </script>
@@ -181,13 +180,14 @@ function createMainWindow() {
     </html>
     `;
 
-    // v17.4: Data URL Injection
-    const b64 = Buffer.from(htmlContent).toString('base64');
-    mainWindow.loadURL(`data:text/html;base64,${b64}`);
+    // v17.5: Robust Data URL Loading
+    try {
+        const b64 = Buffer.from(htmlContent).toString('base64');
+        mainWindow.loadURL(`data:text/html;base64,${b64}`);
+        mainWindow.once('ready-to-show', () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show(); });
+    } catch (e) { console.error('UI Load Failed:', e); }
 
-    mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
-    });
+    mainWindow.on('closed', () => { mainWindow = null; });
 }
 
 function createEngineWindow() {
@@ -231,7 +231,7 @@ function createEngineWindow() {
                     if (res.data.sessionId && res.data.sessionId !== activeSessionId) {
                         reset();
                         activeSessionId = res.data.sessionId;
-                        ipcRenderer.send('session-update', activeSessionId); // v17.4: Report to main process
+                        ipcRenderer.send('session-update', activeSessionId);
                         const pollRes = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
                             headers: { 'Authorization': 'Bearer ' + config.token }
                         });
@@ -339,7 +339,10 @@ function createEngineWindow() {
             function reset() {
                 activeSessionId = null;
                 ipcRenderer.send('session-update', null);
-                if (peerConnection) peerConnection.close();
+                if (peerConnection) {
+                    peerConnection.onconnectionstatechange = null;
+                    peerConnection.close();
+                }
                 peerConnection = null;
                 ipcRenderer.send('engine-state', 'ready');
             }
@@ -347,8 +350,12 @@ function createEngineWindow() {
     </body>
     </html>
     `;
-    const b64 = Buffer.from(engineHtml).toString('base64');
-    engineWindow.loadURL(`data:text/html;base64,${b64}`);
+    try {
+        const b64 = Buffer.from(engineHtml).toString('base64');
+        engineWindow.loadURL(`data:text/html;base64,${b64}`);
+    } catch (e) { }
+
+    engineWindow.on('closed', () => { engineWindow = null; });
 }
 
 ipcMain.on('renderer-ready', (event) => {
@@ -360,15 +367,18 @@ ipcMain.on('renderer-ready', (event) => {
             const primaryDisplay = screen.getPrimaryDisplay();
             const { width, height } = primaryDisplay.size;
             const data = { config, res: { w: width, h: height } };
-            event.reply('init-config', data);
-            if (engineWindow) engineWindow.webContents.send('init-engine', data);
+            // v17.5: Safe Reply
+            if (event.sender && !event.sender.isDestroyed()) {
+                event.reply('init-config', data);
+            }
+            if (engineWindow && !engineWindow.isDestroyed()) {
+                engineWindow.webContents.send('init-engine', data);
+            }
         }
     } catch (e) { }
 });
 
-ipcMain.on('session-update', (event, sid) => {
-    activeSessionId = sid;
-});
+ipcMain.on('session-update', (event, sid) => { activeSessionId = sid; });
 
 ipcMain.on('engine-state', (event, state) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -384,11 +394,13 @@ ipcMain.handle('get-sources', async () => {
 
 ipcMain.on('remote-input', (event, data) => {
     try {
-        const scaleFactor = screen.getPrimaryDisplay().scaleFactor;
+        // v17.5: 1:1 Physical Mapping (No scaleFactor)
+        // Eliminamos la multiplicación para que la coordenada enviada por el visor (sobre 1920x1080)
+        // se use directamente en el escritorio del host.
         if (data.type === 'mousemove') {
-            sendToController(`MOVE ${Math.round(data.x * scaleFactor)} ${Math.round(data.y * scaleFactor)}`);
+            sendToController(`MOVE ${Math.round(data.x)} ${Math.round(data.y)}`);
         } else if (data.type === 'mousedown') {
-            if (data.x !== -1) sendToController(`MOVE ${Math.round(data.x * scaleFactor)} ${Math.round(data.y * scaleFactor)}`);
+            if (data.x !== -1) sendToController(`MOVE ${Math.round(data.x)} ${Math.round(data.y)}`);
             sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
         } else if (data.type === 'mouseup') {
             sendToController(`CLICK ${data.button.toUpperCase()} UP`);
@@ -414,6 +426,8 @@ app.on('will-quit', async () => {
 app.on('window-all-closed', () => { app.quit(); });
 
 function sendHeartbeat() {
-    if (config.computerId) axios.post("https://deskshare-backend-production.up.railway.app/api/tunnels/heartbeat", { computerId: config.computerId }, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
+    if (config.computerId && config.token) {
+        axios.post("https://deskshare-backend-production.up.railway.app/api/tunnels/heartbeat", { computerId: config.computerId }, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
+    }
 }
 setInterval(sendHeartbeat, 60000);

@@ -223,7 +223,15 @@ class WebRTCViewer {
 
         // v11.0: Start MUTED to ensure autoplay (No Image Fix)
         video.muted = true;
-        document.body.appendChild(video);
+        const container = document.getElementById('webrtc-view');
+        if (container) {
+            container.appendChild(video);
+            // v17.5: Ensure UI panel stays on top
+            const statusPanel = document.getElementById('connection-status');
+            if (statusPanel) statusPanel.style.zIndex = '100';
+        } else {
+            document.body.appendChild(video);
+        }
 
         video.onloadedmetadata = () => {
             this.hostRes = { w: video.videoWidth, h: video.videoHeight };
