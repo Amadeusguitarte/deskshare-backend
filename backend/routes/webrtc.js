@@ -49,25 +49,75 @@ router.post('/register', auth, async (req, res, next) => {
 });
 
 // ========================================
+// POST /api/webrtc/session/create (Viewer Init - Legacy Compatibility)
+// ========================================
+router.post('/session/create', auth, async (req, res, next) => {
+    try {
+        const { computerId, bookingId } = req.body;
+
+        // Handle Direct ID or Booking ID
+        let targetId = computerId;
+        if (bookingId) {
+            const booking = await prisma.booking.findUnique({ where: { id: parseInt(bookingId) }, select: { computerId: true } });
+            if (booking) targetId = booking.computerId;
+        }
+
+        if (!targetId) return res.status(400).json({ error: 'Target ID required' });
+
+        // Create Session (Wait for offer later)
+        const session = await prisma.webRTCSession.create({
+            data: {
+                computerId: parseInt(targetId),
+                bookingId: bookingId ? parseInt(bookingId) : null,
+                status: 'pending', // Waiting for offer
+                candidates: []
+            }
+        });
+
+        // Link to computer for polling
+        await prisma.computer.update({
+            where: { id: parseInt(targetId) },
+            data: { webrtcSessionId: session.id }
+        });
+
+        res.json({ sessionId: session.id, status: 'created' });
+    } catch (e) { next(e); }
+});
+
+// ========================================
 // POST /api/webrtc/offer (Client -> Agent)
 // ========================================
 router.post('/offer', auth, async (req, res, next) => {
     try {
-        const { targetComputerId, sdp, bookingId } = req.body;
+        const { targetComputerId, sdp, bookingId, sessionId } = req.body;
         console.log(`[WebRTC] Received OFFER for Computer ${targetComputerId}`);
 
-        // 1. Create Connection Session in DB (Persist > Memory)
-        const session = await prisma.webRTCSession.create({
-            data: {
-                computerId: parseInt(targetComputerId),
-                bookingId: bookingId ? parseInt(bookingId) : null,
-                offer: JSON.stringify(sdp),
-                status: 'negotiating',
-                candidates: [] // Init empty array
-            }
-        });
+        let session;
 
-        // 2. Update Computer (Optional, for UI status)
+        // Strategy 1: Update existing session (from /session/create)
+        if (sessionId) {
+            session = await prisma.webRTCSession.update({
+                where: { id: sessionId },
+                data: {
+                    offer: JSON.stringify(sdp),
+                    status: 'negotiating'
+                }
+            });
+        }
+        // Strategy 2: Create new (if client didn't call create first)
+        else {
+            session = await prisma.webRTCSession.create({
+                data: {
+                    computerId: parseInt(targetComputerId),
+                    bookingId: bookingId ? parseInt(bookingId) : null,
+                    offer: JSON.stringify(sdp),
+                    status: 'negotiating',
+                    candidates: []
+                }
+            });
+        }
+
+        // 2. Update Computer (Ensure Agent sees THIS session)
         await prisma.computer.update({
             where: { id: parseInt(targetComputerId) },
             data: { webrtcSessionId: session.id }
