@@ -69,7 +69,7 @@ class WebRTCViewer {
         };
 
         this.peerConnection.ontrack = (event) => {
-            console.log('[WebRTC Viewer] Video Track Detectado ✅');
+            console.log('[WebRTC Viewer] Track Detectado:', event.track.kind, '✅');
 
             // STABILITY: Set motion hint on video track
             if (event.streams && event.streams[0]) {
@@ -203,7 +203,13 @@ class WebRTCViewer {
 
     setupInputCapture() {
         // 1. Mouse Movement & Clicks
+        let lastMove = 0;
         const handleMouse = (e, type) => {
+            if (type === 'mousemove') {
+                const now = performance.now();
+                if (now - lastMove < 16) return; // ~60 FPS throttle
+                lastMove = now;
+            }
             const rect = this.canvas.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * this.hostRes.w;
             const y = ((e.clientY - rect.top) / rect.height) * this.hostRes.h;
@@ -212,6 +218,11 @@ class WebRTCViewer {
         this.canvas.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
         this.canvas.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
         this.canvas.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
+        this.canvas.addEventListener('click', () => {
+            if (this.videoElement && this.videoElement.muted) {
+                this.unmute();
+            }
+        });
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // 2. Mouse Wheel (Universal Scroll)
