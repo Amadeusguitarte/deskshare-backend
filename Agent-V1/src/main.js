@@ -34,7 +34,12 @@ if (!app.requestSingleInstanceLock()) { app.quit(); }
 
 app.on('second-instance', (e, argv) => {
     handleLink(argv);
-    if (guiWin) { if (guiWin.isMinimized()) guiWin.restore(); guiWin.focus(); }
+    if (guiWin && !guiWin.isDestroyed()) {
+        if (guiWin.isMinimized()) guiWin.restore();
+        guiWin.focus();
+    } else {
+        createWindows(); // Re-create if closed
+    }
 });
 
 // 3. LINK HANDLER
@@ -48,8 +53,8 @@ function handleLink(argv) {
             if (t && c) {
                 config = { token: t, computerId: c };
                 saveConfig();
-                if (engineWin) engineWin.webContents.send('init-engine', config);
-                if (guiWin) guiWin.webContents.send('ui-state', 'linking');
+                if (engineWin && !engineWin.isDestroyed()) engineWin.webContents.send('init-engine', config);
+                if (guiWin && !guiWin.isDestroyed()) guiWin.webContents.send('ui-state', 'linking');
             }
         } catch (e) { }
     }
@@ -57,10 +62,13 @@ function handleLink(argv) {
 
 // 4. WINDOWS
 function createWindows() {
+    const iconPath = path.join(__dirname, '../icon.png'); // Generated PNG icon
+
     // GUI (Visible Status)
     guiWin = new BrowserWindow({
         width: 350, height: 500,
         frame: false, transparent: true, resizable: false,
+        icon: fs.existsSync(iconPath) ? iconPath : null,
         webPreferences: { nodeIntegration: true, contextIsolation: false }
     });
     guiWin.loadFile(path.join(__dirname, 'gui.html'));

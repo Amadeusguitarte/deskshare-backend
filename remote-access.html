@@ -146,10 +146,27 @@
             if (!checkAuth()) return;
             const urlParams = new URLSearchParams(window.location.search);
             const bookingId = urlParams.get('bookingId');
+            const directId = urlParams.get('directId');
+
             if (bookingId) {
                 await initializeSession(bookingId);
+            } else if (directId) {
+                await initializeDirect(directId);
             }
         });
+
+        async function initializeDirect(directId) {
+            try {
+                document.getElementById('webrtc-view').style.display = 'flex';
+                document.getElementById('computerName').textContent = 'Host Direct: ' + directId;
+                startTime = new Date();
+                startTimer();
+
+                // Init WebRTC
+                webrtcViewer = new WebRTCViewer('webrtc-canvas', { id: directId });
+                await webrtcViewer.connect();
+            } catch (err) { console.error(err); }
+        }
 
         async function initializeSession(bookingId) {
             try {
