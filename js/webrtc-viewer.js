@@ -61,9 +61,8 @@ class WebRTCViewer {
 
     async initPeerConnection() {
         this.peerConnection = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }],
-            // v17.0: Force Low Latency at the stack level
-            lowLatency: true
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
+            // v17.1: Removed lowLatency hint as it may cause excessive pixelation (browser choice)
         });
 
         this.peerConnection.onicecandidate = (event) => {
@@ -217,9 +216,9 @@ class WebRTCViewer {
         video.style.position = 'absolute';
         video.style.top = '0'; video.style.left = '0';
         video.style.width = '100%'; video.style.height = '100%';
-        video.style.objectFit = 'contain';
+        video.style.objectFit = 'fill'; // v17.1: use 'fill' to ensure mouse coordinates map 1:1 to element
         video.style.backgroundColor = 'black';
-        video.style.zIndex = '1';
+        video.style.zIndex = '0'; // v17.1: lower z-index so UI panel (z-index: 10) is above
         this.canvas.style.display = 'none'; // Hide canvas
 
         // v11.0: Start MUTED to ensure autoplay (No Image Fix)
@@ -263,13 +262,27 @@ class WebRTCViewer {
         const handleMouse = (e, type) => {
             if (type === 'mousemove') {
                 const now = performance.now();
-                if (now - lastMove < 16) return; // ~60 FPS throttle
+                if (now - lastMove < 8) return; // v17.1: Higher frequency for mouse (125Hz)
                 lastMove = now;
             }
-            const rect = this.canvas.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * this.hostRes.w;
-            const y = ((e.clientY - rect.top) / rect.height) * this.hostRes.h;
-            this.sendInput({ type, x, y, button: e.button === 0 ? 'left' : 'right' });
+
+            // Use the client-side display element
+            const target = this.videoElement || this.canvas;
+            const rect = target.getBoundingClientRect();
+
+            // Calculate relative coordinates (0 to 1)
+            const rx = (e.clientX - rect.left) / rect.width;
+            const ry = (e.clientY - rect.top) / rect.height;
+
+            // Map to host resolution
+            const x = rx * this.hostRes.w;
+            const y = ry * this.hostRes.h;
+
+            // Ensure values are within bounds to avoid "top-left jumps" from negative/out-of-bounds math
+            const safeX = Math.max(0, Math.min(this.hostRes.w, x));
+            const safeY = Math.max(0, Math.min(this.hostRes.h, y));
+
+            this.sendInput({ type, x: safeX, y: safeY, button: e.button === 0 ? 'left' : 'right' });
         };
         // Use video for tracking instead of canvas
         const target = this.videoElement || this.canvas;

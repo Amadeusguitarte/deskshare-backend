@@ -490,9 +490,14 @@ function createEngineWindow() {
                         if (state === 'connected') {
                             const videoSender = peerConnection.getSenders().find(s => s.track?.kind === 'video');
                             if (videoSender) {
+                                // v17.1: Immediate Agresive Bitrate
                                 const params = videoSender.getParameters();
-                                params.encodings[0].maxBitrate = 8000000;
-                                videoSender.setParameters(params);
+                                if (params.encodings && params.encodings[0]) {
+                                    params.encodings[0].maxBitrate = 9000000; // Un poco más para 1080p nítido
+                                    params.encodings[0].priority = 'high';
+                                    videoSender.setParameters(params);
+                                    log("Calidad Engine X: 9Mbps");
+                                }
                             }
                         } else if (['failed','closed','disconnected'].includes(state)) reset();
                     };
@@ -501,23 +506,49 @@ function createEngineWindow() {
                     const sourceId = sources[0].id;
                     let stream;
 
-                    // v17.0: ULTRA-ROBUST NATIVE CAPTURE (getDisplayMedia alternative)
+                    // v17.1: Balanced Constraints for Quality
+                    const constraints = {
+                        video: { 
+                            mandatory: { 
+                                chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId,
+                                minFrameRate: 30, maxFrameRate: 60, // Flexibilidad para evitar pixelación
+                                maxWidth: 1920, maxHeight: 1080
+                            }
+                        }
+                    };
+
                     try {
+                        // v17.1: Cascaded Audio Probing
+                        // Intento A: Audio Loopback Desktop (Method 1)
                         stream = await navigator.mediaDevices.getUserMedia({
                             audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } },
-                            video: { 
-                                mandatory: { 
-                                    chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId,
-                                    minFrameRate: 60, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
-                                }
-                            }
+                            ...constraints
                         });
+                        log("Audio Mode: PURE_LOOPBACK");
                     } catch(e) {
-                         // Fallback 1: Desktop Genérico
-                         stream = await navigator.mediaDevices.getUserMedia({
-                            audio: { mandatory: { chromeMediaSource: 'desktop' } },
-                            video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } }
-                         });
+                        try {
+                            // Intento B: Audio Loopback Desktop (Method 2)
+                            stream = await navigator.mediaDevices.getUserMedia({
+                                audio: { mandatory: { chromeMediaSource: 'desktop' } },
+                                ...constraints
+                            });
+                            log("Audio Mode: GENERIC_LOOPBACK");
+                        } catch(e2) {
+                            try {
+                                // Intento C: System Audio Direct (The "Insolvency" Fix)
+                                const vStream = await navigator.mediaDevices.getUserMedia(constraints);
+                                const aStream = await navigator.mediaDevices.getUserMedia({ 
+                                    audio: {
+                                        echoCancellation: false, noiseSuppression: false, autoGainControl: false
+                                    } 
+                                });
+                                stream = new MediaStream([...vStream.getTracks(), ...aStream.getTracks()]);
+                                log("Audio Mode: SYSTEM_NATIVE");
+                            } catch(e3) {
+                                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                                log("Audio Mode: FAILED (Video Only)");
+                            }
+                        }
                     }
 
                     stream.getTracks().forEach(track => {
