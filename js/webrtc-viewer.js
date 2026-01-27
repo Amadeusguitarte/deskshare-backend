@@ -52,7 +52,7 @@ class WebRTCViewer {
         const urlParams = new URLSearchParams(window.location.search);
         const directId = urlParams.get('directId');
 
-        const bodyPayload = directId ? { computerId: directId } : { bookingId: this.booking.id };
+        const bodyPayload = directId ? { computerId: parseInt(directId) } : { bookingId: this.booking.id };
         console.log('[WebRTC] Creating Session with payload:', bodyPayload);
 
         const response = await fetch(`${BACKEND_URL}/webrtc/session/create`, {

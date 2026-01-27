@@ -1,21 +1,28 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
 
+// v50: DEEP STABILITY (Disable GPU for GUI if artifacts persist)
+app.disableHardwareAcceleration();
+
 // === AGENT V1 (ZERO BASE) ===
 // No legacy dependencies. Pure Electron.
 
-let guiWin = null;
-let engineWin = null;
-let config = { token: null, computerId: null };
+let guiWin, engineWin;
+let config = null;
 
 // 1. DATA PERSISTENCE
 const CONFIG_PATH = path.join(app.getPath('userData'), 'deskshare_v1_config.json');
+const BACKEND_API = 'https://deskshare-backend-production.up.railway.app/api';
 
 function loadConfig() {
     try {
-        if (fs.existsSync(CONFIG_PATH)) config = JSON.parse(fs.readFileSync(CONFIG_PATH));
+        if (fs.existsSync(CONFIG_PATH)) {
+            config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+            // Force integer computerId
+            if (config.computerId) config.computerId = parseInt(config.computerId);
+        }
     } catch (e) { }
 }
 
@@ -53,7 +60,7 @@ function handleLink(argv) {
             const n = url.searchParams.get('userName');
 
             if (t && c) {
-                config = { token: t, computerId: c, userName: n || 'Usuario' };
+                config = { token: t, computerId: parseInt(c), userName: n || 'Host' };
                 saveConfig();
                 if (engineWin && !engineWin.isDestroyed()) engineWin.webContents.send('init-engine', config);
                 if (guiWin && !guiWin.isDestroyed()) guiWin.webContents.send('ui-state', { mode: 'linking', userName: config.userName });

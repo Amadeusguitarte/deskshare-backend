@@ -20,7 +20,8 @@
 
         async function startService() {
             try {
-                await api('POST', '/webrtc/register', { computerId: config.computerId, mode: 'v1' });
+                const cid = parseInt(config.computerId);
+                await api('POST', '/webrtc/register', { computerId: cid, mode: 'v1' });
                 if (pollInterval) clearInterval(pollInterval);
                 pollInterval = setInterval(syncLoop, 1500);
                 ipcRenderer.send('engine-status', 'online');
@@ -30,7 +31,8 @@
         async function syncLoop() {
             if (pc) return; // Stop polling if active session
             try {
-                const r = await api('GET', '/webrtc/host/pending?computerId=' + config.computerId);
+                const cid = parseInt(config.computerId);
+                const r = await api('GET', '/webrtc/host/pending?computerId=' + cid);
                 if (r && r.sessionId) {
                     const p = await api('GET', '/webrtc/poll/' + r.sessionId);
                     if (p && p.offer) {

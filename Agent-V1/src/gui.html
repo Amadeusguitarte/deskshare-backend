@@ -14,16 +14,14 @@
             justify-content: center;
             height: 100vh;
             user-select: none;
-            padding: 50px;
-            /* Room for shadow */
         }
 
-        /* CLEAN PREMIUM CARD (No outer shadows to avoid square artifact) */
+        /* SQUARE-PROOF CARD (No outer shadows) */
         .card {
             width: 320px;
             height: 440px;
-            background: #0d0d14;
-            border: 2px solid rgba(255, 255, 255, 0.05);
+            background: #09090e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 40px;
             color: white;
             text-align: center;
@@ -33,16 +31,14 @@
             justify-content: center;
             -webkit-app-region: drag;
             position: relative;
-            padding: 20px;
-            /* Internal Glow instead of outer shadow */
-            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 1);
+            /* Internal only */
         }
 
-        /* CONTROLS */
         .controls {
             position: absolute;
             top: 20px;
-            right: 20px;
+            right: 25px;
             display: flex;
             gap: 15px;
             -webkit-app-region: no-drag;
@@ -50,9 +46,9 @@
 
         .btn {
             cursor: pointer;
-            color: #444;
+            color: #333;
             transition: color 0.2s;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
         }
 
@@ -60,81 +56,82 @@
             color: white;
         }
 
-        /* ICON & RIPPLE */
-        .icon-container {
-            width: 140px;
-            height: 140px;
+        /* RIPPLE SYSTEM */
+        .icon-wrapper {
+            width: 150px;
+            height: 150px;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 30px;
-            position: relative;
+        }
+
+        .ripple {
+            position: absolute;
+            inset: 0;
             border-radius: 50%;
+            border: 2px solid #10b981;
+            opacity: 0;
+            animation: ripple-pulse 3s infinite linear;
+        }
+
+        .ripple:nth-child(2) {
+            animation-delay: 1.5s;
+        }
+
+        @keyframes ripple-pulse {
+            0% {
+                transform: scale(0.6);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
         }
 
         .icon {
             width: 80px;
             height: 80px;
             fill: none;
-            stroke-miterlimit: 10;
             stroke-width: 2;
             stroke-linecap: round;
             stroke-linejoin: round;
-            z-index: 5;
-        }
-
-        .ripple {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 2px solid #10b981;
-            opacity: 0;
-            animation: ripple-wave 2.5s cubic-bezier(0.23, 1, 0.32, 1) infinite;
-        }
-
-        .ripple:nth-child(2) {
-            animation-delay: 1.25s;
-        }
-
-        @keyframes ripple-wave {
-            0% {
-                transform: scale(0.8);
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: scale(1.6);
-                opacity: 0;
-            }
+            z-index: 10;
         }
 
         h2 {
             margin: 0;
-            font-size: 18px;
+            font-size: 19px;
             font-weight: 600;
-            letter-spacing: 1px;
             color: #888;
+            text-transform: uppercase;
         }
 
         #sub {
-            font-size: 12px;
+            font-size: 13px;
             color: #555;
             margin-top: 10px;
             font-weight: 300;
         }
 
         #dbg {
-            font-size: 10px;
-            color: #6366f1;
+            font-size: 9px;
+            color: #fbbf24;
             margin-top: 25px;
             opacity: 0.5;
-            height: 12px;
+            height: 10px;
         }
 
         /* STATES */
         .waiting .icon {
-            stroke: #333;
+            stroke: #222;
         }
 
         .waiting .ripple {
@@ -152,26 +149,27 @@
 
         .linking .icon {
             stroke: #fbbf24;
-            filter: drop-shadow(0 0 10px #fbbf24);
+            filter: drop-shadow(0 0 15px #fbbf24);
         }
 
         .linking .ripple {
             border-color: rgba(251, 191, 36, 0.4);
+            animation-duration: 1.5s;
         }
 
         .connected .icon {
             stroke: #3b82f6;
-            filter: drop-shadow(0 0 15px #3b82f6);
+            filter: drop-shadow(0 0 20px #3b82f6);
         }
 
         .connected .ripple {
+            border-color: rgba(59, 130, 246, 0.2);
             animation: none;
-            transform: scale(1.1);
-            opacity: 0.3;
-            border-color: #3b82f6;
+            transform: scale(1.2);
+            opacity: 0.5;
         }
 
-        .connected #msg {
+        .connected h2 {
             color: #fff;
         }
     </style>
@@ -184,8 +182,7 @@
             <div class="btn" onclick="window.close()">✕</div>
         </div>
 
-        <div class="icon-container">
-            <div class="ripple"></div>
+        <div class="icon-wrapper">
             <div class="ripple"></div>
             <div class="ripple"></div>
             <svg class="icon" viewBox="0 0 24 24">
@@ -195,9 +192,9 @@
             </svg>
         </div>
 
-        <h2 id="msg">CARGANDO</h2>
-        <p id="sub">Iniciando sistema...</p>
-        <p id="debug"></p>
+        <h2 id="msg">SISTEMA</h2>
+        <p id="sub">Iniciando...</p>
+        <p id="dbg"></p>
     </div>
 
     <script>
@@ -205,7 +202,7 @@
         const app = document.getElementById('app');
         const msg = document.getElementById('msg');
         const sub = document.getElementById('sub');
-        const dbg = document.getElementById('debug');
+        const dbg = document.getElementById('dbg');
 
         window.close = () => ipcRenderer.send('app-quit');
         window.minimize = () => ipcRenderer.send('app-minimize');
@@ -218,16 +215,18 @@
 
             if (state.error) {
                 dbg.innerText = state.error;
-                dbg.style.color = '#ff4444';
                 return;
             }
 
             app.className = 'card ' + mode;
-            if (mode === 'waiting') { msg.innerText = "ESPERANDO"; sub.innerText = "Usa el enlace de la Llave"; }
-            if (mode === 'online') { msg.innerText = "EN LÍNEA"; sub.innerText = "Sesión Segura • Lista"; }
-            if (mode === 'linking') { msg.innerText = "NEGOCIANDO"; sub.innerText = `Conectando con ${userName}`; }
-            if (mode === 'connected') { msg.innerText = "EN VIVO"; sub.innerText = `Acceso cedido a ${userName}`; }
+            if (mode === 'waiting') { msg.innerText = "ESPERANDO"; sub.innerText = "Acceso mediante llave"; }
+            if (mode === 'online') { msg.innerText = "EN LÍNEA"; sub.innerText = "Sesión Privada"; }
+            if (mode === 'linking') { msg.innerText = "NEGOCIANDO"; sub.innerText = "Estableciendo enlace..."; }
+            if (mode === 'connected') { msg.innerText = "EN VIVO"; sub.innerText = `Control cedido a ${userName}`; }
         });
+
+        // Debug messages from engine if needed
+        ipcRenderer.on('engine-log', (e, text) => { if (text.includes('Error')) dbg.innerText = text; });
     </script>
 </body>
 
