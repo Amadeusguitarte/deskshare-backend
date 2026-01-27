@@ -10,12 +10,20 @@
         const { ipcRenderer } = require('electron');
         let config = null, currentSid = null, pc = null, res = null;
         let iceSet = new Set();
+        let pollInterval = null;
 
         ipcRenderer.send('engine-ready');
         ipcRenderer.on('init-engine', (e, d) => {
             config = d.config; res = d.res;
-            console.log('[Engine v26.0] Active ID:', config.computerId);
-            setInterval(poll, 1500);
+            console.log('[Engine v27.0] Active ID:', config.computerId);
+
+            // Re-sync logic: Reset connection if config changes
+            if (pc) { pc.close(); pc = null; currentSid = null; iceSet.clear(); }
+
+            // Start polling only if not already polling
+            if (!pollInterval) {
+                pollInterval = setInterval(poll, 1500);
+            }
         });
 
         async function api(method, endpoint, body = null) { return await ipcRenderer.invoke('api-request', { method, endpoint, body }); }

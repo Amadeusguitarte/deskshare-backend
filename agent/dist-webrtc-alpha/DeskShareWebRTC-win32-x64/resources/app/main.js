@@ -5,18 +5,18 @@ const { spawn } = require('child_process');
 const https = require('https');
 const os = require('os');
 
-// v26: THE GRAND LINK (PROTOCOL HIJACK)
+// v27: THE RELIABLE BRIDGE (FORENSIC REPAIR)
 const LOG_FILE = path.join(os.tmpdir(), 'deskshare_debug.log');
 function log(msg) { try { fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`); } catch (e) { } }
 
-log('=== v26 PROTOCOL HIJACK START ===');
+log('=== v27 FORENSIC START ===');
 
 // 1. PROTOCOL REGISTRATION
 if (process.defaultApp) {
     if (process.argv.length >= 2) { app.setAsDefaultProtocolClient('deskshare', process.execPath, [path.resolve(process.argv[1])]); }
 } else { app.setAsDefaultProtocolClient('deskshare'); }
 
-// 2. SINGLETON & SECOND INSTANCE (Link Handling)
+// 2. SINGLETON & SECOND INSTANCE
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) { log('Instance already running. Signaling and quitting.'); app.quit(); process.exit(0); }
 
@@ -25,25 +25,36 @@ app.on('second-instance', (event, commandLine) => {
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
     }
-    const url = commandLine.pop();
-    log(`Deep Link Received: ${url}`);
-    handleDeepLink(url);
+    // Search for the protocol link in the command line (more robust than pop)
+    const url = commandLine.find(arg => arg.startsWith('deskshare:'));
+    if (url) {
+        log(`Deep Link Received: ${url}`);
+        handleDeepLink(url);
+    }
 });
 
 function handleDeepLink(url) {
-    if (!url || typeof url !== 'string' || !url.startsWith('deskshare://')) return;
+    if (!url || typeof url !== 'string') return;
     try {
-        const params = new URL(url.replace('deskshare://', 'http://localhost/'));
+        // Robust cleanup: remove any prefix deskshare://, deskshare:/, or deskshare:
+        let cleanUrl = url.replace(/^deskshare:(\/\/)?/, '');
+        if (cleanUrl.startsWith('/')) cleanUrl = cleanUrl.substring(1);
+
+        const params = new URL('http://localhost/' + cleanUrl);
         const token = params.searchParams.get('token');
         const computerId = params.searchParams.get('computerId');
+
         if (token && computerId) {
             config = { token, computerId };
             saveConfig();
             log(`Config synced via Link: ID ${computerId}`);
+            // Inform renderers
             if (mainWindow) mainWindow.webContents.send('init-config', { config, res });
             if (engineWindow) engineWindow.webContents.send('init-engine', { config, res });
+        } else {
+            log(`Invalid Link Params: ID=${computerId} Token=${token ? 'YES' : 'NO'}`);
         }
-    } catch (e) { log(`Deep Link Error: ${e.message}`); }
+    } catch (e) { log(`Deep Link Error: ${e.message} (Raw: ${url})`); }
 }
 
 let mainWindow = null, engineWindow = null, inputProcess = null;
@@ -58,7 +69,7 @@ function saveConfig() {
     } catch (e) { log(`Save Fail: ${e.message}`); }
 }
 
-// NETWORK BRIDGE
+// NETWORK BRIDGE (Refined)
 function nodeRequest(method, pathStr, body) {
     return new Promise((resolve) => {
         try {
@@ -69,8 +80,7 @@ function nodeRequest(method, pathStr, body) {
                 hostname: url.hostname, port: 443, path: url.pathname + url.search, method: method,
                 headers: {
                     'Authorization': 'Bearer ' + config.token, 'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-                    'Origin': 'https://deskshare-backend-production.up.railway.app'
+                    'User-Agent': 'DeskShareLauncher/27.0 (Windows)'
                 }
             };
             if (bodyData) opts.headers['Content-Length'] = Buffer.byteLength(bodyData);
@@ -78,15 +88,17 @@ function nodeRequest(method, pathStr, body) {
                 let d = '';
                 rs.on('data', (c) => d += c);
                 rs.on('end', () => {
-                    log(`API [${method}] ${pathStr} -> STATUS: ${rs.statusCode}`);
                     if (rs.statusCode >= 200 && rs.statusCode < 300) { try { resolve(JSON.parse(d)); } catch (e) { resolve({}); } }
-                    else { log(`API ERROR: ${d}`); resolve(null); }
+                    else {
+                        log(`API FAIL [${rs.statusCode}] ${pathStr}: ${d.substring(0, 100)}`);
+                        resolve(null);
+                    }
                 });
             });
-            req.on('error', () => resolve(null));
+            req.on('error', (e) => { log(`NET ERR: ${e.message}`); resolve(null); });
             if (bodyData) req.write(bodyData);
             req.end();
-        } catch (e) { resolve(null); }
+        } catch (e) { log(`REQ CRASH: ${e.message}`); resolve(null); }
     });
 }
 
@@ -95,9 +107,8 @@ ipcMain.handle('get-sources', async () => await desktopCapturer.getSources({ typ
 
 ipcMain.on('renderer-ready', (e) => { log('Renderer UI Ready'); if (config) e.reply('init-config', { config, res }); });
 ipcMain.on('engine-ready', (e) => { log('Engine Core Ready'); if (config) e.sender.send('init-engine', { config, res }); });
-ipcMain.on('engine-state', (e, s) => { log(`Peer Connection State: ${s}`); if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
-
-ipcMain.on('log-error', (e, m) => { log(`ENGINE ERROR: ${m}`); });
+ipcMain.on('engine-state', (e, s) => { log(`Peer Connection: ${s}`); if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
+ipcMain.on('log-error', (e, m) => { log(`ENGINE ERR: ${m}`); });
 
 ipcMain.on('remote-input', (e, data) => {
     if (!inputProcess || !inputProcess.stdin.writable) return;
@@ -137,13 +148,12 @@ app.whenReady().then(() => {
     createEngineWindow();
 
     // Check initial deep link
-    if (process.argv.length > 1) {
-        handleDeepLink(process.argv[process.argv.length - 1]);
-    }
+    const initialLink = process.argv.find(arg => arg.startsWith('deskshare:'));
+    if (initialLink) handleDeepLink(initialLink);
 });
 
 function createMainWindow() {
-    mainWindow = new BrowserWindow({ width: 500, height: 750, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v26.0" });
+    mainWindow = new BrowserWindow({ width: 500, height: 750, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v27.0" });
     const ui = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
     mainWindow.loadURL(`data:text/html;base64,${Buffer.from(ui).toString('base64')}`);
     mainWindow.once('ready-to-show', () => mainWindow.show());
