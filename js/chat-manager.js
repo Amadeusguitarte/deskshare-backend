@@ -826,8 +826,10 @@ class ChatManager {
     // View Logic - Global Widget
     // ===========================================
     renderWidget() {
-        // STRICT BLOCK: Never render widget on messages.html
-        if (window.location.href.includes('messages.html') || document.getElementById('messagesPageContainer')) {
+        // STRICT BLOCK: Never render widget on messages.html OR remote-access.html
+        if (window.location.href.includes('messages.html') ||
+            window.location.href.includes('remote-access.html') ||
+            document.getElementById('messagesPageContainer')) {
             return;
         }
 

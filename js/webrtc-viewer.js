@@ -180,8 +180,8 @@ class WebRTCViewer {
         video.setAttribute('playsinline', '');
         video.style.display = 'none';
 
-        // UNMUTE for system sound
-        video.muted = false;
+        // v11.0: Start MUTED to ensure autoplay (No Image Fix)
+        video.muted = true;
         document.body.appendChild(video);
 
         video.onloadedmetadata = () => {

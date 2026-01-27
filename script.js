@@ -31,10 +31,10 @@ function initializeSocket() {
     }
 }
 
-// Socket.io connection (v9.0: Shared via ChatManager only to prevent limits)
-// if (authToken) {
-//     initializeSocket();
-// }
+// Socket.io connection (v11.0: Restored global for compatibility)
+if (authToken) {
+    initializeSocket();
+}
 
 // ========================================
 // API Helper Functions
