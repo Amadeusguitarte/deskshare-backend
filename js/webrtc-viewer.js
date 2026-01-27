@@ -302,18 +302,11 @@ class WebRTCViewer {
             const mouseX = e.clientX - rect.left - offsetX;
             const mouseY = e.clientY - rect.top - offsetY;
 
-            const rx = mouseX / actualWidth;
-            const ry = mouseY / actualHeight;
+            // v17.7: PERCENTAGE-BASED MAPPING (Resolution Independent)
+            const px = mouseX / actualWidth;
+            const py = mouseY / actualHeight;
 
-            // Map to host resolution
-            const x = Math.round(rx * videoWidth);
-            const y = Math.round(ry * videoHeight);
-
-            // Boundary checks
-            const safeX = Math.max(0, Math.min(videoWidth, x));
-            const safeY = Math.max(0, Math.min(videoHeight, y));
-
-            this.sendInput({ type, x: safeX, y: safeY, button: e.button === 0 ? 'left' : 'right' });
+            this.sendInput({ type, px, py, button: e.button === 0 ? 'left' : 'right' });
         };
         // Use video for tracking instead of canvas
         const target = this.videoElement || this.canvas;
