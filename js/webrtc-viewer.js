@@ -47,13 +47,21 @@ class WebRTCViewer {
 
     async createSession() {
         const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
+
+        // v31: Direct ID Mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const directId = urlParams.get('directId');
+
+        const bodyPayload = directId ? { computerId: directId } : { bookingId: this.booking.id };
+        console.log('[WebRTC] Creating Session with payload:', bodyPayload);
+
         const response = await fetch(`${BACKEND_URL}/webrtc/session/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             },
-            body: JSON.stringify({ bookingId: this.booking.id })
+            body: JSON.stringify(bodyPayload)
         });
         const data = await response.json();
         this.sessionId = data.sessionId;
