@@ -164,10 +164,12 @@
         }
 
         #chatWidgetContainer {
-            display: none !important;
-            visibility: hidden !important;
+            position: absolute !important;
+            opacity: 0 !important;
             pointer-events: none !important;
+            z-index: -100 !important;
             height: 0 !important;
+            width: 0 !important;
             overflow: hidden !important;
         }
     </style>
@@ -208,6 +210,8 @@
             </div>
         </div>
 
+        <!-- CHAT WIDGET CONTAINER -->
+        <div id="chatWidgetContainer"></div>
         <!-- WORKSPACE -->
         <div class="workspace">
 
@@ -250,6 +254,7 @@
         <!-- Global Dependencies -->
         <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
         <script src="script.js"></script>
+        <script src="js/chat-manager.js"></script>
         <script src="js/chat-manager.js"></script>
         <script src="js/chat-manager.js"></script>
         <script>
