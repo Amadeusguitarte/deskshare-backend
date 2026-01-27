@@ -45,6 +45,7 @@ app.whenReady().then(() => {
 function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 500, height: 750,
+        show: false, // v17.3: Start hidden to prevent black screen
         webPreferences: { nodeIntegration: true, contextIsolation: false },
         autoHideMenuBar: true, backgroundColor: '#050507',
         title: "DeskShare Alpha"
@@ -83,24 +84,24 @@ function createMainWindow() {
                 color: #555; border: 1px solid #333; transition: all 0.4s ease; text-transform: uppercase; display: flex; align-items: center; gap: 10px; 
             }
             .dot { width: 10px; height: 10px; background: #333; border-radius: 50%; }
-
+            
             /* ONLINE READY STATE */
             body.ready .icon-box { border-color: var(--success); box-shadow: 0 0 50px var(--success-glow); }
             body.ready .icon-box svg { color: var(--success); filter: drop-shadow(0 0 10px var(--success)); }
             body.ready .status-badge { color: var(--success); border-color: var(--success); background: rgba(16, 185, 129, 0.1); }
             body.ready .dot { background: var(--success); box-shadow: 0 0 10px var(--success); }
             body.ready .pulse { border-color: var(--success); animation: pulse 2s infinite; }
-
+            
             /* CONNECTED STATE */
             body.connected .status-badge { color: var(--accent); border-color: var(--accent); background: rgba(59, 130, 246, 0.1); animation: blink 1s infinite alternate; }
             body.connected .icon-box { border-color: var(--accent); box-shadow: 0 0 50px rgba(59, 130, 246, 0.4); }
             body.connected .icon-box svg { color: var(--accent); }
             body.connected .dot { background: var(--accent); }
             body.connected .pulse { border-color: var(--accent); }
-
+            
             @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
             @keyframes blink { 0% { opacity: 0.8; } 100% { opacity: 1; } }
-
+            
             .info { font-size: 0.8rem; color: var(--text-dim); margin-top: 15px; font-family: monospace; }
             #timer { font-size: 1.5rem; font-weight: bold; color: var(--accent); margin-top: 5px; display:none; }
         </style>
@@ -124,7 +125,7 @@ function createMainWindow() {
             <div id="userLabel" style="font-size: 0.9rem; color: #aaa; margin-top: 5px;"></div>
             <div id="logs" class="info">Iniciando sistema...</div>
         </div>
-
+        
         <script>
             const { ipcRenderer } = require('electron');
             const axios = require('axios');
@@ -133,7 +134,7 @@ function createMainWindow() {
             const timer = document.getElementById('timer');
             const userLabel = document.getElementById('userLabel');
             const body = document.body;
-
+            
             let config = null;
             let activeSessionId = null;
             let peerConnection = null;
@@ -141,9 +142,9 @@ function createMainWindow() {
             let startTime = null;
             let timerInt = null;
             let currentUserName = "";
-
+            
             function log(msg) { logs.innerText = msg; }
-
+            
             function updateTimer() {
                 const now = new Date();
                 const diff = Math.floor((now - startTime) / 1000);
@@ -152,13 +153,13 @@ function createMainWindow() {
                 const secs = String(diff % 60).padStart(2, '0');
                 timer.innerText = hrs + ":" + mins + ":" + secs;
             }
-
+            
             ipcRenderer.send('renderer-ready');
             ipcRenderer.on('init-config', (e, data) => {
                 config = data.config; hostRes = data.res;
-                log("Agente Engine X v17.2 Iniciado");
+                log("Agente Engine X v17.3 Iniciado");
             });
-
+            
             ipcRenderer.on('update-engine-ui', (e, state) => {
                 if (state === 'connected') {
                     body.classList.remove('ready');
@@ -180,16 +181,16 @@ function createMainWindow() {
                     stText.innerText = "NEGOCIANDO...";
                 }
             });
-
+            
             function startPolling() {
                 body.classList.add('online');
                 stText.innerText = "EN LÍNEA";
                 setInterval(async () => {
                     await checkForPending();
                     if (activeSessionId) await pollActiveSession();
-                }, 1000); // v14.0: 1s faster reaction
+                }, 1000); 
             }
-
+            
             async function checkForPending() {
                 try {
                     const url = "https://deskshare-backend-production.up.railway.app/api/webrtc/host/pending?computerId=" + config.computerId;
@@ -210,14 +211,13 @@ function createMainWindow() {
                     }
                 } catch(e) {}
             }
-
+            
             async function pollActiveSession() {
                 try {
                     const res = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
                         headers: { 'Authorization': 'Bearer ' + config.token }
                     });
                     
-                    // Update username if it becomes available or changes
                     if (res.data.userName && res.data.userName !== "Invitado") {
                         if (currentUserName !== res.data.userName) {
                             currentUserName = res.data.userName;
@@ -225,7 +225,7 @@ function createMainWindow() {
                             log("Usuario identificado: " + currentUserName);
                         }
                     }
-
+                    
                     if (res.data.iceCandidates) {
                         for (const cand of res.data.iceCandidates) {
                             if (peerConnection && peerConnection.remoteDescription) {
@@ -237,14 +237,14 @@ function createMainWindow() {
                     if (e.response && e.response.status === 404) reset();
                 }
             }
-
+            
             async function handleOffer(sdp) {
                 try {
                     stText.innerText = "NEGOCIANDO...";
                     peerConnection = new RTCPeerConnection({
                         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
                     });
-
+                    
                     peerConnection.ondatachannel = (event) => {
                         const channel = event.channel;
                         channel.onmessage = (e) => {
@@ -261,7 +261,7 @@ function createMainWindow() {
                             }
                         };
                     };
-
+                    
                     peerConnection.onicecandidate = (event) => {
                         if (event.candidate) {
                             axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/ice", {
@@ -269,7 +269,7 @@ function createMainWindow() {
                             }, { headers: { 'Authorization': 'Bearer ' + config.token }});
                         }
                     };
-
+                    
                     peerConnection.onconnectionstatechange = () => {
                         const state = peerConnection.connectionState;
                         if (state === 'connected') {
@@ -281,74 +281,67 @@ function createMainWindow() {
                             timer.style.display = 'block';
                             timerInt = setInterval(updateTimer, 1000);
                             log("Sesión activa con " + currentUserName);
-
-                                // STABILITY TUNING v15.0: Adaptive Ramp (3 -> 8Mbps) + Frame Rate Priority
-                                const senders = peerConnection.getSenders();
-                                const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-                                if (videoSender) {
-                                    const params = videoSender.getParameters();
-                                    if (!params.encodings) params.encodings = [{ priority: 'high' }];
-                                    
-                                    // Start conservative (3Mbps)
-                                    params.encodings[0].maxBitrate = 3000000; 
-                                    params.encodings[0].networkPriority = 'high';
-                                    
-                                    videoSender.setDegradationPreference('maintain-framerate');
-                                    videoSender.setParameters(params);
-
-                                    // v16.0: Fast Ramp (2s)
-                                    setTimeout(() => {
-                                        if (peerConnection && peerConnection.connectionState === 'connected') {
-                                            const p = videoSender.getParameters();
-                                            p.encodings[0].maxBitrate = 8000000; 
-                                            videoSender.setParameters(p);
-                                            log("Fluidez Total: 8Mbps / 60FPS");
-                                        }
-                                    }, 2000);
-                                }
+                            
+                            const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                            if (videoSender) {
+                                const params = videoSender.getParameters();
+                                if (!params.encodings) params.encodings = [{ priority: 'high' }];
+                                params.encodings[0].maxBitrate = 3000000; 
+                                params.encodings[0].networkPriority = 'high';
+                                videoSender.setDegradationPreference('maintain-framerate');
+                                videoSender.setParameters(params);
+                                
+                                setTimeout(() => {
+                                    if (peerConnection && peerConnection.connectionState === 'connected') {
+                                        const p = videoSender.getParameters();
+                                        p.encodings[0].maxBitrate = 12000000; 
+                                        videoSender.setParameters(p);
+                                        log("Fluidez Total: 12Mbps / 60FPS");
+                                    }
+                                }, 2000);
+                            }
                         } else if (state === 'failed' || state === 'closed' || state === 'disconnected') {
                             reset();
                         }
                     };
-
+                    
                     const sources = await ipcRenderer.invoke('get-sources');
                     const sourceId = sources[0].id; 
-
+                    
                     let stream;
                     const constraints = {
                         video: { 
                             mandatory: { 
                                 chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, 
-                                minFrameRate: 60, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
+                                minFrameRate: 30, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
                             } 
                         }
                     };
-
+                    
                     try {
-                        // Intentar A+V (Primary)
                         stream = await navigator.mediaDevices.getUserMedia({
                             audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } },
                             ...constraints
                         });
-                        log("Audio (Desktop Loopback) OK");
+                        log("Audio Mode: PURE_LOOPBACK");
                     } catch (e) {
                         try {
-                            // Fallback 1: Desktop Genérico
                             stream = await navigator.mediaDevices.getUserMedia({
                                 audio: { mandatory: { chromeMediaSource: 'desktop' } },
                                 ...constraints
                             });
-                            log("Audio (Generic Loopback) OK");
+                            log("Audio Mode: GENERIC_LOOPBACK");
                         } catch (e2) {
                             try {
-                                // Fallback 2: Audio System Direct
                                 const vStream = await navigator.mediaDevices.getUserMedia(constraints);
-                                const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                                const aStream = await navigator.mediaDevices.getUserMedia({ 
+                                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
+                                });
                                 stream = new MediaStream([...vStream.getTracks(), ...aStream.getTracks()]);
-                                log("Audio (System Device) OK");
+                                log("Audio Mode: SYSTEM_NATIVE");
                             } catch (e3) {
                                 stream = await navigator.mediaDevices.getUserMedia(constraints);
-                                log("⚠️ VIDEO OK (Audio falló)");
+                                log("Audio Mode: FAILED (Video Only)");
                             }
                         }
                     }
@@ -357,17 +350,17 @@ function createMainWindow() {
                         if (track.kind === 'video') track.contentHint = 'motion';
                         peerConnection.addTrack(track, stream);
                     });
-
+                    
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
                     const answer = await peerConnection.createAnswer();
                     await peerConnection.setLocalDescription(answer);
-
+                    
                     await axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/answer", {
                         sessionId: activeSessionId, sdp: answer
                     }, { headers: { 'Authorization': 'Bearer ' + config.token }});
                 } catch (err) { reset(); }
             }
-
+            
             function reset() {
                 activeSessionId = null;
                 if (peerConnection) {
@@ -386,16 +379,19 @@ function createMainWindow() {
         </script>
     </body>
     </html>
-    `;
-    const uiPath = path.join(__dirname, 'webrtc_alpha_ui.html');
-    fs.writeFileSync(uiPath, htmlContent);
-    mainWindow.loadFile(uiPath);
+    \`;
+    
+    // v17.3: Instant Loading via Data URL (No Disk I/O)
+    const b64 = Buffer.from(htmlContent).toString('base64');
+    mainWindow.loadURL(\`data:text/html;base64,\${b64}\`);
+
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+    });
 }
 
 function createEngineWindow() {
     // v17.0: PHANTOM ENGINE WINDOW
-    // This window is hidden (show: false) and tiny, but active.
-    // It captures and streams without being throttled by OS when main is minimized.
     engineWindow = new BrowserWindow({
         width: 100, height: 100, show: false,
         webPreferences: {
@@ -404,7 +400,7 @@ function createEngineWindow() {
         }
     });
 
-    const engineHtml = `
+    const engineHtml = \`
     <!DOCTYPE html>
     <html>
     <body>
@@ -490,14 +486,12 @@ function createEngineWindow() {
                         if (state === 'connected') {
                             const videoSender = peerConnection.getSenders().find(s => s.track?.kind === 'video');
                             if (videoSender) {
-                                // v17.1: Immediate Agresive Bitrate
                                 const params = videoSender.getParameters();
                                 if (params.encodings && params.encodings[0]) {
-                                    params.encodings[0].maxBitrate = 12000000; // 12Mbps for ultra-clarity
+                                    params.encodings[0].maxBitrate = 12000000; // 12Mbps ultra
                                     params.encodings[0].priority = 'high';
                                     params.encodings[0].networkPriority = 'high';
                                     videoSender.setParameters(params);
-                                    log("Engine X: 12Mbps Boost");
                                 }
                             }
                         } else if (['failed','closed','disconnected'].includes(state)) reset();
@@ -507,47 +501,35 @@ function createEngineWindow() {
                     const sourceId = sources[0].id;
                     let stream;
 
-                    // v17.1: Balanced Constraints for Quality
                     const constraints = {
                         video: { 
                             mandatory: { 
                                 chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId,
-                                minFrameRate: 30, maxFrameRate: 60, // Flexibilidad para evitar pixelación
-                                maxWidth: 1920, maxHeight: 1080
+                                minFrameRate: 30, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
                             }
                         }
                     };
 
                     try {
-                        // v17.1: Cascaded Audio Probing
-                        // Intento A: Audio Loopback Desktop (Method 1)
                         stream = await navigator.mediaDevices.getUserMedia({
                             audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } },
                             ...constraints
                         });
-                        log("Audio Mode: PURE_LOOPBACK");
                     } catch(e) {
                         try {
-                            // Intento B: Audio Loopback Desktop (Method 2)
                             stream = await navigator.mediaDevices.getUserMedia({
                                 audio: { mandatory: { chromeMediaSource: 'desktop' } },
                                 ...constraints
                             });
-                            log("Audio Mode: GENERIC_LOOPBACK");
                         } catch(e2) {
                             try {
-                                // Intento C: System Audio Direct (The "Insolvency" Fix)
                                 const vStream = await navigator.mediaDevices.getUserMedia(constraints);
                                 const aStream = await navigator.mediaDevices.getUserMedia({ 
-                                    audio: {
-                                        echoCancellation: false, noiseSuppression: false, autoGainControl: false
-                                    } 
+                                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
                                 });
                                 stream = new MediaStream([...vStream.getTracks(), ...aStream.getTracks()]);
-                                log("Audio Mode: SYSTEM_NATIVE");
                             } catch(e3) {
                                 stream = await navigator.mediaDevices.getUserMedia(constraints);
-                                log("Audio Mode: FAILED (Video Only)");
                             }
                         }
                     }
@@ -576,10 +558,9 @@ function createEngineWindow() {
         </script>
     </body>
     </html>
-    `;
-    const enginePath = path.join(__dirname, 'engine.html');
-    fs.writeFileSync(enginePath, engineHtml);
-    engineWindow.loadFile(enginePath);
+    \`;
+    const b64 = Buffer.from(engineHtml).toString('base64');
+    engineWindow.loadURL(\`data:text/html;base64,\${b64}\`);
 }
 
 ipcMain.on('renderer-ready', (event) => {
@@ -598,7 +579,6 @@ ipcMain.on('renderer-ready', (event) => {
 });
 
 ipcMain.on('engine-state', (event, state) => {
-    // v17.2: SAFE SEND - check if window is still alive
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('update-engine-ui', state);
     }
@@ -617,45 +597,50 @@ ipcMain.on('remote-input', (event, data) => {
         if (data.type === 'mousemove') {
             const x = Math.round(data.x * scaleFactor);
             const y = Math.round(data.y * scaleFactor);
-            sendToController(`MOVE ${x} ${y}`);
+            sendToController(\`MOVE \${x} \${y}\`);
         }
         else if (data.type === 'mousedown') {
             const x = Math.round(data.x * scaleFactor);
             const y = Math.round(data.y * scaleFactor);
-            if (data.x !== -1) sendToController(`MOVE ${x} ${y}`);
-            sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
+            if (data.x !== -1) sendToController(\`MOVE \${x} \${y}\`);
+            sendToController(\`CLICK \${data.button.toUpperCase()} DOWN\`);
         }
         else if (data.type === 'mouseup') {
-            sendToController(`CLICK ${data.button.toUpperCase()} UP`);
+            sendToController(\`CLICK \${data.button.toUpperCase()} UP\`);
         }
         else if (data.type === 'wheel') {
-            // Normalize scroll delta. Windows usually expects multiples of 120.
-            const delta = Math.round(data.deltaY * -1); // Browser delta is inverted to Win32 Wheel
-            sendToController(`SCROLL ${delta}`);
+            const delta = Math.round(data.deltaY * -1);
+            sendToController(\`SCROLL \${delta}\`);
         }
         else if (data.type === 'keydown' || data.type === 'keyup') {
             const state = data.type === 'keydown' ? 'DOWN' : 'UP';
             if (data.vkCode) {
-                sendToController(`KEY ${data.vkCode} ${state}`);
+                sendToController(\`KEY \${data.vkCode} \${state}\`);
             }
         }
     } catch (e) { }
 });
 
 app.on('will-quit', async () => {
-    // v14.0: SUPER CLEAN EXIT
     if (blockerId) powerSaveBlocker.stop(blockerId);
 
     if (activeSessionId && config.token) {
         try {
-            // Signal disconnect to all P2P peers if possible (via backend)
-            await axios.post(`https://deskshare-backend-production.up.railway.app/api/webrtc/session/${activeSessionId}/terminate`,
-                {}, { headers: { 'Authorization': 'Bearer ' + config.token } });
+            const url = \`https://deskshare-backend-production.up.railway.app/api/webrtc/session/\${activeSessionId}/terminate\`;
+            axios.post(url, {}, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
         } catch (e) { }
     }
-    if (inputProcess) inputProcess.kill();
+
+    if (inputProcess) {
+        inputProcess.kill();
+        inputProcess = null;
+    }
 });
-app.on('window-all-closed', () => { app.quit(); });
+
+app.on('window-all-closed', () => {
+    app.quit();
+});
+
 function sendHeartbeat() {
     if (!config.computerId) return;
     axios.post("https://deskshare-backend-production.up.railway.app/api/tunnels/heartbeat", { computerId: config.computerId }, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
