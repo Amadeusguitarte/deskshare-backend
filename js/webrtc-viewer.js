@@ -102,23 +102,38 @@ class WebRTCViewer {
         }, 3000);
 
         // 2. High-Precision Native Metrics (The real truth)
+        let lastBytesReceived = 0;
+        let lastStatsTime = performance.now();
+
         setInterval(async () => {
             if (!this.peerConnection || this.peerConnection.connectionState !== 'connected') return;
 
             try {
                 const stats = await this.peerConnection.getStats();
                 stats.forEach(report => {
+                    // Latency (RTT)
                     if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
                         if (report.currentRoundTripTime !== undefined) {
                             const rtt = Math.round(report.currentRoundTripTime * 1000);
-
-                            // Update UI with the REAL network truth
                             if (this.latencyTarget) this.latencyTarget.innerText = rtt + ' ms';
                             const dot = document.getElementById('latency-dot');
-                            if (dot) {
-                                dot.style.background = rtt < 70 ? '#0f0' : (rtt < 150 ? '#ff0' : '#f00');
-                            }
+                            if (dot) dot.style.background = rtt < 70 ? '#0f0' : (rtt < 150 ? '#ff0' : '#f00');
                         }
+                    }
+
+                    // Bitrate Calculation
+                    if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                        const now = performance.now();
+                        const bytes = report.bytesReceived;
+                        if (lastBytesReceived > 0) {
+                            const bitrate = Math.round(((bytes - lastBytesReceived) * 8) / (now - lastStatsTime) / 1000);
+                            console.log(`[WebRTC] Bitrate: ${bitrate} Mbps`);
+                            // We can show this in UI if needed:
+                            const stateText = document.getElementById('webrtc-state');
+                            if (stateText) stateText.innerText = `CONECTADO (${bitrate} Mbps)`;
+                        }
+                        lastBytesReceived = bytes;
+                        lastStatsTime = now;
                     }
                 });
             } catch (e) {
@@ -194,10 +209,23 @@ class WebRTCViewer {
                     this.canvas.width = video.videoWidth; this.canvas.height = video.videoHeight;
                 }
                 this.ctx.drawImage(video, 0, 0);
+                this.lastFrameTime = performance.now(); // Watchdog
             }
             if (this.peerConnection) requestAnimationFrame(render);
         };
         requestAnimationFrame(render);
+
+        // FREEZE WATCHDOG (v13.0)
+        this.lastFrameTime = performance.now();
+        this.freezeCheck = setInterval(() => {
+            if (this.peerConnection?.connectionState === 'connected' &&
+                performance.now() - this.lastFrameTime > 3000) {
+                console.warn('[WebRTC] Freeze Detectado! Intentando recuperar...');
+                video.play().catch(e => console.error('Recovery failed:', e));
+                this.lastFrameTime = performance.now(); // Reset to avoid loop
+            }
+        }, 3000);
+
         video.play().catch(() => { });
     }
 
@@ -293,8 +321,18 @@ class WebRTCViewer {
 
     disconnect() {
         if (this.pollInterval) clearInterval(this.pollInterval);
-        if (this.peerConnection) { this.peerConnection.close(); this.peerConnection = null; }
-        if (this.videoElement) { this.videoElement.srcObject = null; this.videoElement.remove(); this.videoElement = null; }
+        if (this.freezeCheck) clearInterval(this.freezeCheck);
+        if (this.peerConnection) {
+            this.peerConnection.onconnectionstatechange = null;
+            this.peerConnection.close();
+            this.peerConnection = null;
+        }
+        if (this.videoElement) {
+            this.videoElement.srcObject = null;
+            this.videoElement.pause();
+            this.videoElement.remove();
+            this.videoElement = null;
+        }
     }
 
     // EXPOSE UNMUTE FOR UI
