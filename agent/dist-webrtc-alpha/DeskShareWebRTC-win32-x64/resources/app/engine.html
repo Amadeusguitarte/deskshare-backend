@@ -14,7 +14,7 @@
         ipcRenderer.send('engine-ready');
         ipcRenderer.on('init-engine', (e, d) => {
             config = d.config; res = d.res;
-            console.log('[Engine v25] Active ID:', config.computerId);
+            console.log('[Engine v25.1] Active ID:', config.computerId);
             setInterval(poll, 1500);
         });
 
@@ -26,7 +26,6 @@
                 const r = await api('GET', "/webrtc/host/pending?computerId=" + config.computerId);
                 if (r && r.sessionId) {
                     const sid = r.sessionId;
-                    // RECONSTRUCTION: Stay in session until it dies
                     if (sid !== currentSid || !pc || pc.connectionState === 'failed') {
                         currentSid = sid; iceSet.clear();
                         const p = await api('GET', "/webrtc/poll/" + sid);
@@ -62,7 +61,6 @@
                 const ans = await pc.createAnswer();
                 await pc.setLocalDescription(ans);
                 await api('POST', "/webrtc/answer", { sessionId: currentSid, sdp: ans });
-                console.log('[Engine] Handshake Sent ✅');
             } catch (err) { ipcRenderer.send('log-error', 'Handle Fail: ' + err.message); }
         }
     </script>
