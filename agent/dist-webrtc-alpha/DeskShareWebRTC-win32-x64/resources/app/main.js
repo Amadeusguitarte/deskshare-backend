@@ -12,9 +12,9 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
 
-let blockerId = null;
-
+// Windows
 let mainWindow;
+let engineWindow;
 let config = {};
 let inputProcess = null;
 
@@ -38,15 +38,22 @@ function sendToController(cmd) {
 app.whenReady().then(() => {
     startInputController();
     blockerId = powerSaveBlocker.start('prevent-app-suspension');
-    createWindow();
+    createMainWindow();
+    createEngineWindow();
 });
 
-function createWindow() {
+function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 500, height: 750,
-        webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false },
+        webPreferences: { nodeIntegration: true, contextIsolation: false },
         autoHideMenuBar: true, backgroundColor: '#050507',
-        title: "DeskShare Alpha Inmortal"
+        title: "DeskShare Alpha"
+    });
+
+    // v17.0: Prevent window suspension when minimized by overriding minimize
+    mainWindow.on('minimize', (e) => {
+        // We don't prevent it, but since Engine is in a separate window, 
+        // minimize logic here won't affect the WebRTC stream.
     });
 
     const htmlContent = `
@@ -149,12 +156,29 @@ function createWindow() {
             ipcRenderer.send('renderer-ready');
             ipcRenderer.on('init-config', (e, data) => {
                 config = data.config; hostRes = data.res;
-                log("Agente identificado: ID " + config.computerId);
-                
-                // EARLY PERMISSION REQUEST: Trigger capturer at startup
-                ipcRenderer.invoke('get-sources');
-                
-                startPolling();
+                log("Agente Engine X v17.0 Iniciado");
+            });
+
+            ipcRenderer.on('update-engine-ui', (e, state) => {
+                if (state === 'connected') {
+                    body.classList.remove('ready');
+                    body.classList.add('connected');
+                    stText.innerText = "CONECTADO";
+                    if (!startTime) {
+                        startTime = new Date();
+                        timer.style.display = 'block';
+                        timerInt = setInterval(updateTimer, 1000);
+                    }
+                } else if (state === 'ready') {
+                    body.classList.remove('connected');
+                    body.classList.add('ready');
+                    stText.innerText = "EN LÍNEA";
+                    timer.style.display = 'none';
+                    if (timerInt) clearInterval(timerInt);
+                    startTime = null;
+                } else if (state === 'negotiating') {
+                    stText.innerText = "NEGOCIANDO...";
+                }
             });
 
             function startPolling() {
@@ -368,6 +392,164 @@ function createWindow() {
     mainWindow.loadFile(uiPath);
 }
 
+function createEngineWindow() {
+    // v17.0: PHANTOM ENGINE WINDOW
+    // This window is hidden (show: false) and tiny, but active.
+    // It captures and streams without being throttled by OS when main is minimized.
+    engineWindow = new BrowserWindow({
+        width: 100, height: 100, show: false,
+        webPreferences: {
+            nodeIntegration: true, contextIsolation: false,
+            backgroundThrottling: false, offscreen: false
+        }
+    });
+
+    const engineHtml = `
+    <!DOCTYPE html>
+    <html>
+    <body>
+        <script>
+            const { ipcRenderer } = require('electron');
+            const axios = require('axios');
+
+            let config = null;
+            let activeSessionId = null;
+            let peerConnection = null;
+            let hostRes = { w: 1920, h: 1080 };
+
+            ipcRenderer.on('init-engine', (e, data) => {
+                config = data.config; hostRes = data.res;
+                startPolling();
+            });
+
+            function startPolling() {
+                setInterval(async () => {
+                    await checkForPending();
+                    if (activeSessionId) await pollActiveSession();
+                }, 1000);
+            }
+
+            async function checkForPending() {
+                try {
+                    const url = "https://deskshare-backend-production.up.railway.app/api/webrtc/host/pending?computerId=" + config.computerId;
+                    const res = await axios.get(url, { headers: { 'Authorization': 'Bearer ' + config.token } });
+                    if (res.data.sessionId && res.data.sessionId !== activeSessionId) {
+                        reset();
+                        activeSessionId = res.data.sessionId;
+                        const pollRes = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
+                            headers: { 'Authorization': 'Bearer ' + config.token }
+                        });
+                        if (pollRes.data.offer) await handleOffer(pollRes.data.offer);
+                    }
+                } catch(e) {}
+            }
+
+            async function pollActiveSession() {
+                try {
+                    const res = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
+                        headers: { 'Authorization': 'Bearer ' + config.token }
+                    });
+                    if (res.data.iceCandidates) {
+                        for (const cand of res.data.iceCandidates) {
+                            if (peerConnection?.remoteDescription) {
+                                try { await peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch(e) {}
+                            }
+                        }
+                    }
+                } catch (e) { if (e.response?.status === 404) reset(); }
+            }
+
+            async function handleOffer(sdp) {
+                try {
+                    peerConnection = new RTCPeerConnection({
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
+                    });
+
+                    peerConnection.ondatachannel = (event) => {
+                        const channel = event.channel;
+                        channel.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            ipcRenderer.send('remote-input', data);
+                        };
+                        if (channel.label === 'input') {
+                            channel.onopen = () => channel.send(JSON.stringify({ type: 'init-host', res: hostRes }));
+                        }
+                    };
+
+                    peerConnection.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/ice", {
+                                sessionId: activeSessionId, candidate: event.candidate, isHost: true
+                            }, { headers: { 'Authorization': 'Bearer ' + config.token }});
+                        }
+                    };
+
+                    peerConnection.onconnectionstatechange = () => {
+                        const state = peerConnection.connectionState;
+                        ipcRenderer.send('engine-state', state);
+                        if (state === 'connected') {
+                            const videoSender = peerConnection.getSenders().find(s => s.track?.kind === 'video');
+                            if (videoSender) {
+                                const params = videoSender.getParameters();
+                                params.encodings[0].maxBitrate = 8000000;
+                                videoSender.setParameters(params);
+                            }
+                        } else if (['failed','closed','disconnected'].includes(state)) reset();
+                    };
+
+                    const sources = await ipcRenderer.invoke('get-sources');
+                    const sourceId = sources[0].id;
+                    let stream;
+
+                    // v17.0: ULTRA-ROBUST NATIVE CAPTURE (getDisplayMedia alternative)
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } },
+                            video: { 
+                                mandatory: { 
+                                    chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId,
+                                    minFrameRate: 60, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
+                                }
+                            }
+                        });
+                    } catch(e) {
+                         // Fallback 1: Desktop Genérico
+                         stream = await navigator.mediaDevices.getUserMedia({
+                            audio: { mandatory: { chromeMediaSource: 'desktop' } },
+                            video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } }
+                         });
+                    }
+
+                    stream.getTracks().forEach(track => {
+                        if (track.kind === 'video') track.contentHint = 'motion';
+                        peerConnection.addTrack(track, stream);
+                    });
+
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+
+                    await axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/answer", {
+                        sessionId: activeSessionId, sdp: answer
+                    }, { headers: { 'Authorization': 'Bearer ' + config.token }});
+                } catch (err) { reset(); }
+            }
+
+            function reset() {
+                activeSessionId = null;
+                if (peerConnection) peerConnection.close();
+                peerConnection = null;
+                ipcRenderer.send('engine-state', 'ready');
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    const enginePath = path.join(__dirname, 'engine.html');
+    fs.writeFileSync(enginePath, engineHtml);
+    engineWindow.loadFile(enginePath);
+}
+
 ipcMain.on('renderer-ready', (event) => {
     try {
         const APPDATA = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
@@ -376,9 +558,15 @@ ipcMain.on('renderer-ready', (event) => {
         const { width: screenW, height: screenH } = primaryDisplay.size;
         if (fs.existsSync(configPath)) {
             config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            event.reply('init-config', { config, res: { w: screenW, h: screenH } });
+            const data = { config, res: { w: screenW, h: screenH } };
+            event.reply('init-config', data);
+            if (engineWindow) engineWindow.webContents.send('init-engine', data);
         }
     } catch (e) { }
+});
+
+ipcMain.on('engine-state', (event, state) => {
+    if (mainWindow) mainWindow.webContents.send('update-engine-ui', state);
 });
 
 ipcMain.handle('get-sources', async () => {

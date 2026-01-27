@@ -61,7 +61,9 @@ class WebRTCViewer {
 
     async initPeerConnection() {
         this.peerConnection = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }],
+            // v17.0: Force Low Latency at the stack level
+            lowLatency: true
         });
 
         this.peerConnection.onicecandidate = (event) => {
@@ -210,22 +212,26 @@ class WebRTCViewer {
         video.autoplay = true;
         video.controls = false;
         video.setAttribute('playsinline', '');
-        video.style.display = 'none';
+
+        // v17.0: GPU-DIRECT RENDERING
+        video.style.position = 'absolute';
+        video.style.top = '0'; video.style.left = '0';
+        video.style.width = '100%'; video.style.height = '100%';
+        video.style.objectFit = 'contain';
+        video.style.backgroundColor = 'black';
+        video.style.zIndex = '1';
+        this.canvas.style.display = 'none'; // Hide canvas
 
         // v11.0: Start MUTED to ensure autoplay (No Image Fix)
         video.muted = true;
         document.body.appendChild(video);
 
         video.onloadedmetadata = () => {
-            this.canvas.width = video.videoWidth; this.canvas.height = video.videoHeight;
+            this.hostRes = { w: video.videoWidth, h: video.videoHeight };
         };
 
         const render = () => {
             if (video.readyState >= 2) {
-                if (this.canvas.width !== video.videoWidth || this.canvas.height !== video.videoHeight) {
-                    this.canvas.width = video.videoWidth; this.canvas.height = video.videoHeight;
-                }
-                this.ctx.drawImage(video, 0, 0);
                 this.lastFrameTime = performance.now(); // Watchdog
             }
             if (this.peerConnection) requestAnimationFrame(render);
@@ -265,18 +271,20 @@ class WebRTCViewer {
             const y = ((e.clientY - rect.top) / rect.height) * this.hostRes.h;
             this.sendInput({ type, x, y, button: e.button === 0 ? 'left' : 'right' });
         };
-        this.canvas.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
-        this.canvas.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
-        this.canvas.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
-        this.canvas.addEventListener('click', () => {
+        // Use video for tracking instead of canvas
+        const target = this.videoElement || this.canvas;
+        target.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
+        target.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
+        target.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
+        target.addEventListener('click', () => {
             if (this.videoElement && this.videoElement.muted) {
                 this.unmute();
             }
         });
-        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        target.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // 2. Mouse Wheel (Universal Scroll)
-        this.canvas.addEventListener('wheel', (e) => {
+        target.addEventListener('wheel', (e) => {
             e.preventDefault();
             this.sendInput({ type: 'wheel', deltaY: e.deltaY });
         }, { passive: false });
