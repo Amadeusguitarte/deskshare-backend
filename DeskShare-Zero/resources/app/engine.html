@@ -27,9 +27,30 @@
             config = d.config; res = d.res;
             log(`[SYNC] Active ID: ${config.computerId}`);
             reset();
-            pollInterval = setInterval(poll, 1500);
-            poll();
+
+            // v2.1: REGISTER FIRST (Unblock Viewer)
+            register().then(() => {
+                pollInterval = setInterval(poll, 1500);
+                poll();
+            });
         });
+
+        async function register() {
+            try {
+                log("[INIT] Registering Agent Capabilities...");
+                const r = await api('POST', '/webrtc/register', {
+                    computerId: config.computerId,
+                    mode: 'native' // Identifying as Native Agent
+                });
+                if (r && r.success) {
+                    log("[INIT] Registration Successful. Host is WebRTC Ready.");
+                } else {
+                    log("[WARN] Registration Warning: " + (r ? r.error : 'Unknown'));
+                }
+            } catch (e) {
+                log("[ERROR] Registration Failed: " + e.message);
+            }
+        }
 
         function reset() {
             if (pc) { pc.close(); pc = null; }
