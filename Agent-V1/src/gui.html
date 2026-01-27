@@ -14,43 +14,45 @@
             justify-content: center;
             height: 100vh;
             user-select: none;
+            padding: 50px;
+            /* Room for shadow */
         }
 
-        /* CLEAN GLASS CARD (No animated borders) */
+        /* CLEAN PREMIUM CARD */
         .card {
-            width: 320px;
-            height: 440px;
-            background: #0d0d14;
-            /* Solid dark for reliability */
+            width: 300px;
+            height: 420px;
+            background: rgba(13, 13, 22, 0.95);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
+            border-radius: 35px;
             color: white;
             text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.9);
+            /* SOFT ORGANIC SHADOW */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
             -webkit-app-region: drag;
             position: relative;
-            padding: 20px;
         }
 
-        /* HEADER CONTROLS */
+        /* CONTROLS */
         .controls {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 20px;
+            right: 20px;
             display: flex;
-            gap: 12px;
+            gap: 15px;
             -webkit-app-region: no-drag;
         }
 
         .btn {
             cursor: pointer;
-            color: #555;
+            color: #444;
             transition: color 0.2s;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
         }
 
@@ -58,16 +60,17 @@
             color: white;
         }
 
+        /* ICON & WAVES */
         .icon-container {
-            width: 130px;
-            height: 130px;
+            width: 140px;
+            height: 140px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             position: relative;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 50%;
         }
 
         .icon {
@@ -77,41 +80,20 @@
             stroke-width: 2;
             stroke-linecap: round;
             stroke-linejoin: round;
+            z-index: 2;
         }
 
-        h2 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            color: #888;
-            text-transform: uppercase;
-        }
-
-        #sub {
-            font-size: 13px;
-            color: #555;
-            margin-top: 8px;
-            font-weight: 300;
-        }
-
-        #debug {
-            font-size: 10px;
-            color: #6366f1;
-            margin-top: 20px;
-            opacity: 0.6;
-        }
-
-        /* RIPPLE ANIMATION */
         .ripple {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 40px;
-            border: 2px solid rgba(16, 185, 129, 0.5);
-            animation: ripple-wave 2s infinite;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid #10b981;
             opacity: 0;
-            pointer-events: none;
+            animation: ripple-wave 2.5s infinite linear;
+        }
+
+        .ripple:nth-child(2) {
+            animation-delay: 1.25s;
         }
 
         @keyframes ripple-wave {
@@ -121,25 +103,41 @@
             }
 
             100% {
-                transform: scale(1.4);
+                transform: scale(1.6);
                 opacity: 0;
             }
         }
 
-        /* STATE COLORS */
+        h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #888;
+        }
+
+        #sub {
+            font-size: 12px;
+            color: #555;
+            margin-top: 10px;
+            font-weight: 300;
+        }
+
+        #dbg {
+            font-size: 10px;
+            color: #6366f1;
+            margin-top: 25px;
+            opacity: 0.5;
+            height: 12px;
+        }
+
+        /* STATES */
         .waiting .icon {
-            stroke: #444;
+            stroke: #333;
         }
 
-        .linking .icon {
-            stroke: #fbbf24;
-            filter: drop-shadow(0 0 10px #fbbf24);
-        }
-
-        .linking .ripple {
-            border-color: rgba(251, 191, 36, 0.5);
-            animation-duration: 1s;
-            opacity: 1;
+        .waiting .ripple {
+            display: none;
         }
 
         .online .icon {
@@ -148,8 +146,16 @@
         }
 
         .online .ripple {
-            border-color: rgba(16, 185, 129, 0.5);
-            opacity: 1;
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .linking .icon {
+            stroke: #fbbf24;
+            filter: drop-shadow(0 0 10px #fbbf24);
+        }
+
+        .linking .ripple {
+            border-color: rgba(251, 191, 36, 0.4);
         }
 
         .connected .icon {
@@ -158,18 +164,14 @@
         }
 
         .connected .ripple {
-            border-color: rgba(59, 130, 246, 0.5);
             animation: none;
-            opacity: 0.2;
             transform: scale(1.1);
-        }
-
-        .connected h2 {
-            color: #fff;
+            opacity: 0.3;
+            border-color: #3b82f6;
         }
 
         .connected #msg {
-            color: #3b82f6;
+            color: #fff;
         }
     </style>
 </head>
@@ -183,7 +185,7 @@
 
         <div class="icon-container">
             <div class="ripple"></div>
-            <div class="ripple" style="animation-delay: 0.5s"></div>
+            <div class="ripple"></div>
             <svg class="icon" viewBox="0 0 24 24">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -191,9 +193,9 @@
             </svg>
         </div>
 
-        <h2 id="msg">SISTEMA INICIANDO</h2>
-        <p id="sub">Cargando módulos...</p>
-        <p id="debug"></p>
+        <h2 id="msg">CARGANDO</h2>
+        <p id="sub">Iniciando sistema seguro...</p>
+        <p id="dbg"></p>
     </div>
 
     <script>
@@ -201,7 +203,7 @@
         const app = document.getElementById('app');
         const msg = document.getElementById('msg');
         const sub = document.getElementById('sub');
-        const dbg = document.getElementById('debug');
+        const dbg = document.getElementById('dbg');
 
         window.close = () => ipcRenderer.send('app-quit');
         window.minimize = () => ipcRenderer.send('app-minimize');
@@ -214,15 +216,14 @@
 
             if (state.error) {
                 dbg.innerText = state.error;
-                dbg.style.color = '#ff4444';
                 return;
             }
 
             app.className = 'card ' + mode;
-            if (mode === 'waiting') { msg.innerText = "ESPERANDO"; sub.innerText = "Usa el botón de la Llave"; }
-            if (mode === 'online') { msg.innerText = "EN LÍNEA"; sub.innerText = "Sesión Privada • Activa"; }
-            if (mode === 'linking') { msg.innerText = "ENLAZANDO..."; sub.innerText = `Sincronizando con ${userName}`; }
-            if (mode === 'connected') { msg.innerText = "CONECTADO"; sub.innerText = `Transfiriendo a ${userName}`; }
+            if (mode === 'waiting') { msg.innerText = "ESPERANDO"; sub.innerText = "Usa el enlace de acceso"; }
+            if (mode === 'online') { msg.innerText = "EN LÍNEA"; sub.innerText = "Sesión Privada • Lista"; }
+            if (mode === 'linking') { msg.innerText = "ENLAZANDO"; sub.innerText = `Conectando con ${userName}...`; }
+            if (mode === 'connected') { msg.innerText = "CONECTADO"; sub.innerText = `Acceso cedido a ${userName}`; }
         });
     </script>
 </body>

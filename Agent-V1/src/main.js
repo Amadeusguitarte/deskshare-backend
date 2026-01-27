@@ -64,24 +64,28 @@ function handleLink(argv) {
 
 // 4. WINDOWS
 function createWindows() {
-    const iconPath = path.join(__dirname, '../icon.png'); // Generated PNG icon
+    const iconPath = path.join(__dirname, '../icon.png');
 
-    // GUI (Visible Status)
+    // GUI (Fixed Transparency & Shadow)
     guiWin = new BrowserWindow({
-        width: 400, height: 600, // Slightly larger to avoid shadow clipping
-        frame: false, transparent: true, resizable: false,
-        hasShadow: false, // Fix for square shadow artifact
+        width: 420, height: 620, // Oversized for soft shadows
+        frame: false,
+        transparent: true,
+        resizable: false,
+        hasShadow: false, // Critical: Remove native square shadow
+        alwaysOnTop: true,
+        skipTaskbar: false,
         icon: fs.existsSync(iconPath) ? iconPath : null,
         webPreferences: { nodeIntegration: true, contextIsolation: false }
     });
-    guiWin.loadFile(path.join(__dirname, 'gui.html'));
-    guiWin.setAlwaysOnTop(true, 'floating');
-    guiWin.setBackgroundColor('#00000000'); // True transparency force
 
-    // ENGINE (Hidden Worker)
+    guiWin.loadFile(path.join(__dirname, 'gui.html'));
+    guiWin.setBackgroundColor('#00000000'); // Invisible layer 
+
+    // ENGINE (Background Worker)
     engineWin = new BrowserWindow({
-        width: 100, height: 100, show: false, // Hidden
-        webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false } // Priority
+        width: 100, height: 100, show: false,
+        webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false }
     });
     engineWin.loadFile(path.join(__dirname, 'webrtc.html'));
 }

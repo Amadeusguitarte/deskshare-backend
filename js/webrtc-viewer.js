@@ -196,12 +196,19 @@ class WebRTCViewer {
                 if (!response.ok) return;
                 const data = await response.json();
                 if (data.answer && !this.peerConnection.remoteDescription) {
+                    console.log('[WebRTC] Answer Received ✅');
                     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 }
                 if (data.iceCandidates) {
                     for (const cand of data.iceCandidates) {
-                        if (this.peerConnection.remoteDescription) {
-                            try { await this.peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
+                        // v45: ARCHITECTURAL FILTER (Only process candidates from Host)
+                        if (cand.isHost && this.peerConnection.remoteDescription) {
+                            const cStr = JSON.stringify(cand);
+                            if (!this.processedCands) this.processedCands = new Set();
+                            if (!this.processedCands.has(cStr)) {
+                                this.processedCands.add(cStr);
+                                try { await this.peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
+                            }
                         }
                     }
                 }
