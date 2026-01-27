@@ -234,6 +234,16 @@ function createWindow() {
                             timer.style.display = 'block';
                             timerInt = setInterval(updateTimer, 1000);
                             log("Sesión activa con " + currentUserName);
+
+                            // Force High Bitrate for Fluidity
+                            const senders = peerConnection.getSenders();
+                            const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+                            if (videoSender) {
+                                const params = videoSender.getParameters();
+                                if (!params.encodings) params.encodings = [{}];
+                                params.encodings[0].maxBitrate = 8000000; // 8 Mbps
+                                videoSender.setParameters(params);
+                            }
                         } else if (state === 'failed' || state === 'closed' || state === 'disconnected') {
                             reset();
                         }
@@ -241,7 +251,17 @@ function createWindow() {
 
                     const sources = await ipcRenderer.invoke('get-sources');
                     const stream = await navigator.mediaDevices.getUserMedia({
-                        audio: false, video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sources[0].id, minFrameRate: 30, maxFrameRate: 60 } }
+                        audio: false, 
+                        video: { 
+                            mandatory: { 
+                                chromeMediaSource: 'desktop', 
+                                chromeMediaSourceId: sources[0].id, 
+                                minFrameRate: 60, 
+                                maxFrameRate: 60,
+                                maxWidth: 1920,
+                                maxHeight: 1080
+                            } 
+                        }
                     });
                     stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
@@ -299,14 +319,32 @@ ipcMain.handle('get-sources', async () => {
 ipcMain.on('remote-input', (event, data) => {
     try {
         const scaleFactor = screen.getPrimaryDisplay().scaleFactor;
-        const x = Math.round(data.x * scaleFactor);
-        const y = Math.round(data.y * scaleFactor);
 
-        if (data.type === 'mousemove') { sendToController(`MOVE ${x} ${y}`); }
+        if (data.type === 'mousemove') {
+            const x = Math.round(data.x * scaleFactor);
+            const y = Math.round(data.y * scaleFactor);
+            sendToController(`MOVE ${x} ${y}`);
+        }
         else if (data.type === 'mousedown') {
+            const x = Math.round(data.x * scaleFactor);
+            const y = Math.round(data.y * scaleFactor);
             if (data.x !== -1) sendToController(`MOVE ${x} ${y}`);
             sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
-        } else if (data.type === 'mouseup') { sendToController(`CLICK ${data.button.toUpperCase()} UP`); }
+        }
+        else if (data.type === 'mouseup') {
+            sendToController(`CLICK ${data.button.toUpperCase()} UP`);
+        }
+        else if (data.type === 'wheel') {
+            // Normalize scroll delta. Windows usually expects multiples of 120.
+            const delta = Math.round(data.deltaY * -1); // Browser delta is inverted to Win32 Wheel
+            sendToController(`SCROLL ${delta}`);
+        }
+        else if (data.type === 'keydown' || data.type === 'keyup') {
+            const state = data.type === 'keydown' ? 'DOWN' : 'UP';
+            if (data.vkCode) {
+                sendToController(`KEY ${data.vkCode} ${state}`);
+            }
+        }
     } catch (e) { }
 });
 

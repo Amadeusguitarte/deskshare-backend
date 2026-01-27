@@ -162,11 +162,18 @@ class WebRTCViewer {
 
     renderStream(stream) {
         if (this.videoElement) return;
+        console.log('[WebRTC Viewer] Capturando Audio/Video Tracks:', stream.getTracks().length);
+
         const video = document.createElement('video');
         this.videoElement = video;
         video.srcObject = stream;
-        video.autoplay = true; video.muted = true; video.setAttribute('playsinline', '');
+        video.autoplay = true;
+        video.controls = false;
+        video.setAttribute('playsinline', '');
         video.style.display = 'none';
+
+        // UNMUTE for system sound
+        video.muted = false;
         document.body.appendChild(video);
 
         video.onloadedmetadata = () => {
@@ -232,7 +239,8 @@ class WebRTCViewer {
             'Digit0': 0x30, 'Digit1': 0x31, 'Digit2': 0x32, 'Digit3': 0x33, 'Digit4': 0x34, 'Digit5': 0x35, 'Digit6': 0x36, 'Digit7': 0x37, 'Digit8': 0x38, 'Digit9': 0x39,
             'Enter': 0x0D, 'Escape': 0x1B, 'Space': 0x20, 'Tab': 0x09, 'Backspace': 0x08, 'Delete': 0x2E,
             'ArrowLeft': 0x25, 'ArrowUp': 0x26, 'ArrowRight': 0x27, 'ArrowDown': 0x28,
-            'ControlLeft': 0x11, 'ControlRight': 0x11, 'ShiftLeft': 0x10, 'ShiftRight': 0x10, 'AltLeft': 0x12, 'AltRight': 0x12
+            'ControlLeft': 0x11, 'ControlRight': 0x11, 'ShiftLeft': 0x10, 'ShiftRight': 0x10, 'AltLeft': 0x12, 'AltRight': 0x12,
+            'Period': 0xBE, 'Comma': 0xBC, 'Slash': 0xBF, 'Semicolon': 0xBA, 'Quote': 0xDE
         };
         return mapping[code] || null;
     }

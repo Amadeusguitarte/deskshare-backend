@@ -28,6 +28,15 @@
     - [x] Web: Implementación de API `getStats()` nativa
     - [x] Web: Extracción de RTT real desde el motor del Navegador
     - [x] Web: Latencia 100% verídica (Incontestable)
+- [x] **Golden Backup (v4.0-Final):**
+    - [x] Archivo completo en `BACKUP_GOLD_v4.0`
+    - [x] Backup de Frontend y Código del Agente
+    - [x] Documentación de restauración creada
+- [x] **Full Freedom & Fluidity (v5.0):**
+    - [x] Web: Captura de Teclado, Scroll y Gamepad (Universal)
+    - [x] Agente: Puente PowerShell extendido (Win32 API)
+    - [x] Optimización: WebRTC 60FPS Stable Pipeline
+    - [x] Agente: Launcher v5.0 listo para correr
 - [ ] Corregir renderizado de video (Small Box Bug)
     - [x] Fix Backend Syntax Error (Force Deploy)
     - [x] Fix DB Schema (`webrtcSessionId` missing)
