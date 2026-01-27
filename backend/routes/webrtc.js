@@ -223,14 +223,15 @@ router.get('/poll/answer/:sessionId', async (req, res, next) => {
 // ========================================
 router.post('/ice', async (req, res, next) => {
     try {
-        const { sessionId, candidate, sender } = req.body; // sender: 'agent' or 'client'
+        const { sessionId, candidate, isHost } = req.body;
 
         // Read-Modify-Write pattern for appending candidates
         const session = await prisma.webRTCSession.findUnique({ where: { id: sessionId } });
         if (!session) return res.status(404).json({ error: 'Session not found' });
 
         const candidates = session.candidates || [];
-        candidates.push({ ...candidate, sender });
+        // Store isHost flag with the candidate so clients can filter
+        candidates.push({ ...candidate, isHost });
 
         await prisma.webRTCSession.update({
             where: { id: sessionId },
