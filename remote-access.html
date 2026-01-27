@@ -234,10 +234,15 @@
             </div>
 
         </div>
+
+        <!-- CHAT WIDGET CONTAINER -->
+        <div id="chatWidgetContainer"></div>
     </div>
 
-    <!-- Remote Access Dependencies (NO CHAT) -->
+    <!-- Global Dependencies -->
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <script src="script.js"></script>
+    <script src="js/chat-manager.js"></script>
     <script>
         let booking = null;
         let startTime = null;
@@ -311,6 +316,13 @@
 
                 // ALWAYS switch to WebRTC Mode (Pure WebRTC Experience)
                 switchMode('webrtc');
+
+                // INITIALIZE CHAT
+                const user = JSON.parse(localStorage.getItem('user'));
+                if (user) {
+                    const socketUrl = 'https://deskshare-backend-production.up.railway.app';
+                    window.chatManager = new ChatManager(user, socketUrl);
+                }
 
             } catch (error) {
                 console.error('Critical Session Error:', error);
@@ -473,15 +485,12 @@
                 debugOverlay.style.display = 'none';
             }
 
-            // Remove active from all potential buttons
-            ['btn-native', 'btn-parsec', 'btn-webrtc'].forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) btn.classList.remove('active');
-            });
-
             if (mode === 'webrtc') {
                 if (webrtcView) webrtcView.style.display = 'flex';
                 if (btnWebrtc) btnWebrtc.classList.add('active');
+
+                // AUDIO UNLOCK: When user clicks/interacts to switch to WebRTC (or initializing), unmute
+                if (webrtcViewer) webrtcViewer.unmute();
 
                 // Initialize WebRTC if not already running
                 if (!webrtcViewer && window.currentBooking) {

@@ -277,6 +277,15 @@ class WebRTCViewer {
         if (this.peerConnection) { this.peerConnection.close(); this.peerConnection = null; }
         if (this.videoElement) { this.videoElement.srcObject = null; this.videoElement.remove(); this.videoElement = null; }
     }
+
+    // EXPOSE UNMUTE FOR UI
+    unmute() {
+        if (this.videoElement) {
+            this.videoElement.muted = false;
+            this.videoElement.play().catch(() => { });
+            console.log('[WebRTC Viewer] Audio Unmuted via Interaction');
+        }
+    }
 }
 
 window.WebRTCViewer = WebRTCViewer;
