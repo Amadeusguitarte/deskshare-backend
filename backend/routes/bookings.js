@@ -324,10 +324,12 @@ router.post('/manual-share', auth, async (req, res, next) => {
         // Use a special JSON format that frontend will parse and render as a proper action card
         // v44: SMART TYPE DETECTION
         // If explicit RDP -> guacamole
+        // If WebRTC Capable -> native (Prioritize over Parsec)
         // If explicit Parsec -> parsec
-        // Else -> native (WebRTC)
+        // Else -> native (Default)
         let connType = 'native';
         if (computer.rdpHost) connType = 'guacamole';
+        else if (computer.webrtcCapable) connType = 'native'; // NEW: Prioritize Native
         else if (computer.parsecPeerId) connType = 'parsec';
 
         const accessData = {

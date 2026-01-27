@@ -1213,12 +1213,16 @@ class ChatManager {
     // MANUAL SHARE FLOW (Ad-Hoc)
     // ==========================================
     async openShareModal(userId) {
+        // v47: RE-ENTRANCY GUARD (Prevent "Double Key" Spam)
+        if (this.isSharing) return;
+        this.isSharing = true;
+
         // v38: ZERO-CLICK AUTO SHARE
         // Requirement: "Solo quiero que se mande el link y ya"
         // Strategy: Fetch user's computers -> Pick First -> Send Link.
         try {
             const token = localStorage.getItem('authToken');
-            if (!token) return this.showToast('Error de autenticación', 'error');
+            if (!token) { this.isSharing = false; return this.showToast('Error de autenticación', 'error'); }
 
             const res = await fetch(`${API_BASE_URL}/computers/my`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -1303,6 +1307,8 @@ class ChatManager {
         } catch (e) {
             console.error(e);
             this.showToast('Error al compartir llave: ' + e.message, 'error');
+        } finally {
+            setTimeout(() => { this.isSharing = false; }, 2000);
         }
     }
 
