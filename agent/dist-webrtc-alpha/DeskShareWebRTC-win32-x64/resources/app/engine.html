@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <script>
+        const { ipcRenderer } = require('electron');
+        let config = null, sid = null, pc = null, res = null;
+
+        ipcRenderer.send('engine-ready');
+        ipcRenderer.on('init-engine', (e, d) => {
+            config = d.config;
+            res = d.res;
+            console.log('[Engine] Init with Config:', config.computerId);
+            setInterval(poll, 1500);
+        });
+
+        async function api(method, endpoint, body = null) {
+            return await ipcRenderer.invoke('api-request', { method, endpoint, body });
+        }
+
+        async function poll() {
+            if (!config) return;
+            try {
+                const r = await api('GET', "/webrtc/host/pending?computerId=" + config.computerId);
+                if (r && r.sessionId) {
+                    sid = r.sessionId;
+                    ipcRenderer.send('session-update', sid);
+                    const p = await api('GET', "/webrtc/poll/" + sid);
+                    if (p && p.offer) {
+                        // Logic: Process if not connected or failed
+                        if (!pc || pc.connectionState === 'closed' || pc.connectionState === 'failed' || pc.signalingState === 'stable') {
+                            handle(p.offer);
+                        }
+                    }
+                    if (p && p.iceCandidates && pc && pc.remoteDescription) {
+                        for (const c of p.iceCandidates) {
+                            try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { }
+                        }
+                    }
+                }
+            } catch (e) { }
+        }
+
+        async function handle(sdp) {
+            try {
+                if (pc && pc.connectionState === 'connected') return;
+                if (pc) pc.close();
+
+                pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+
+                pc.onicecandidate = (e) => {
+                    if (e.candidate) api('POST', '/webrtc/ice', { sessionId: sid, candidate: e.candidate, isHost: true });
+                };
+
+                pc.ondatachannel = (ev) => {
+                    ev.channel.onmessage = (e) => ipcRenderer.send('remote-input', JSON.parse(e.data));
+                };
+
+                pc.onconnectionstatechange = () => ipcRenderer.send('engine-state', pc.connectionState);
+
+                const sources = await ipcRenderer.invoke('get-sources');
+                if (!sources || sources.length === 0) throw new Error('No screen sources found');
+
+                // v23: MODERN Constraints (The Cure for Stalls)
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: sources[0].id,
+                            minFrameRate: 30,
+                            maxFrameRate: 60,
+                            maxWidth: res.w || 1920,
+                            maxHeight: res.h || 1080
+                        }
+                    }
+                });
+
+                stream.getTracks().forEach(t => pc.addTrack(t, stream));
+                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+                const ans = await pc.createAnswer();
+                await pc.setLocalDescription(ans);
+                await api('POST', "/webrtc/answer", { sessionId: sid, sdp: ans });
+                console.log('[Engine] Answer Sent ✅');
+            } catch (err) {
+                console.error('[Engine] Handle Fail:', err);
+                ipcRenderer.send('log-error', 'Engine Error: ' + err.message);
+            }
+        }
+    </script>
+</body>
+
+</html>
