@@ -52,7 +52,7 @@ class ChatManager {
             console.error('Socket.io not loaded');
         }
 
-        // CSS Injection for Typing Animation
+        // CSS Injection for Typing & Flash Animations
         const style = document.createElement('style');
         style.textContent = `
             @keyframes typingAnimation {
@@ -60,6 +60,15 @@ class ChatManager {
                 50% { transform: translateY(-4px); opacity: 1; }
             }
             .typing-dot { display: block; }
+            
+            @keyframes flashGlow {
+                0%, 100% { box-shadow: 0 0 5px rgba(124, 77, 255, 0); border-color: var(--glass-border); }
+                50% { box-shadow: 0 0 20px rgba(124, 77, 255, 0.8); border-color: var(--accent-purple); }
+            }
+            .flash-animation {
+                animation: flashGlow 1.5s infinite;
+                border-width: 1px !important;
+            }
         `;
         document.head.appendChild(style);
 
@@ -76,10 +85,24 @@ class ChatManager {
             }
         }
 
-        // Load data in background
+        // v10.0: Check Online Status IMMEDIATELY (Reliability)
+        // This ensures green dots appear even while background fetch is running
+        if (this.socket && this.conversations.length > 0) {
+            const ids = this.conversations.map(c => c.otherUser.id);
+            this.socket.emit('check-status', { userIds: ids });
+        }
+
+        // v10.0: Load data in background WITHOUT AWAITING (Zero Block)
+        // We don't await here so the rest of the app (and status updates) can proceed
         console.time('🚀 [ChatManager] loadConversations');
-        await this.loadConversations();
-        console.timeEnd('🚀 [ChatManager] loadConversations');
+        this.loadConversations().then(() => {
+            console.timeEnd('🚀 [ChatManager] loadConversations');
+            // After load, check status again for any new users found
+            if (this.socket && this.conversations.length > 0) {
+                const ids = this.conversations.map(c => c.otherUser.id);
+                this.socket.emit('check-status', { userIds: ids });
+            }
+        });
 
         // Global Click Listener for Menus
         document.addEventListener('click', (e) => {
@@ -94,12 +117,6 @@ class ChatManager {
                 }
             });
         });
-
-        // Check Online Status (Now that we have users)
-        if (this.socket && this.conversations.length > 0) {
-            const ids = this.conversations.map(c => c.otherUser.id);
-            this.socket.emit('check-status', { userIds: ids });
-        }
     }
 
     // ==========================================
@@ -160,6 +177,12 @@ class ChatManager {
         this.socket.on('connect', () => {
             console.log('Chat Connected');
             this.socket.emit('join-user-room', this.currentUser.id);
+
+            // v10.0: Re-check status on reconnection
+            if (this.conversations.length > 0) {
+                const ids = this.conversations.map(c => c.otherUser.id);
+                this.socket.emit('check-status', { userIds: ids });
+            }
         });
 
         this.socket.on('disconnect', () => {
@@ -276,19 +299,14 @@ class ChatManager {
             // TAB NOTIFICATION (Blink Title)
             this.startTitleBlink(conv.otherUser.name);
 
-            // AUTO-OPEN LOGIC (Improved)
-            // If sender is NOT in minimized list, ensure it's in openConversationIds
-            if (!this.minimizedConversations.has(msg.senderId)) {
-                if (!this.openConversationIds.includes(msg.senderId)) {
-                    this.openConversationIds.push(msg.senderId);
-                }
-            } else {
-                // If minimized, DO NOT remove from minimized, DO NOT expand.
-                // The renderWidgetTabs call below will update the badge.
-                // We make sure it is in openConversationIds so it renders at all (minimized)
-                if (!this.openConversationIds.includes(msg.senderId)) {
-                    this.openConversationIds.push(msg.senderId);
-                }
+            // AUTO-OPEN & EXPAND LOGIC (v10.0 Facebook-style)
+            // If message arrives, we ENSURE it's in openConversationIds
+            if (!this.openConversationIds.includes(msg.senderId)) {
+                this.openConversationIds.unshift(msg.senderId); // Put at front
+            }
+            // Always expand on new message to "Alert" the user
+            if (this.minimizedConversations.has(msg.senderId)) {
+                this.minimizedConversations.delete(msg.senderId);
             }
         }
 
@@ -1042,19 +1060,19 @@ class ChatManager {
                         <img src="${user.avatarUrl || 'assets/default-avatar.svg'}" onerror="this.src='assets/default-avatar.svg'" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                         
                         <!-- STATUS DOT (ABSOLUTE) -->
-                        ${user.isOnline ? `
-                        <div style="
+                        <div class="status-dot" style="
                             position: absolute;
                             bottom: 0;
                             right: 0;
                             width: 10px;
                             height: 10px;
-                            background: #4ade80;
+                            background: ${user.isOnline ? '#4ade80' : 'transparent'};
                             border-radius: 50%;
                             border: 2px solid #2a2a2a; /* Matches header dark bg */
-                            box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+                            box-shadow: ${user.isOnline ? '0 0 5px #4ade80' : 'none'};
+                            display: block;
+                            visibility: ${user.isOnline ? 'visible' : 'hidden'};
                         "></div>
-                        ` : ''}
                     </div>
 
                     <div style="display: flex; flex-direction: column; justify-content: center;">
@@ -1719,6 +1737,7 @@ class ChatManager {
         if (statusDot) {
             statusDot.style.background = isOnline ? '#4ade80' : 'transparent';
             statusDot.style.boxShadow = isOnline ? '0 0 5px #4ade80' : 'none';
+            statusDot.style.visibility = isOnline ? 'visible' : 'hidden';
         }
 
         // Update UI (Widget List Item)
