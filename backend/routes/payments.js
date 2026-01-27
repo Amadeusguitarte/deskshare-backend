@@ -5,11 +5,9 @@
 
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../utils/prisma'); // Singleton
 const auth = require('../middleware/auth');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-const prisma = new PrismaClient();
 
 // ========================================
 // POST /api/payments/create-intent

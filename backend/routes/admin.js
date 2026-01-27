@@ -1,15 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const { requireAdmin } = require('../middleware/adminAuth');
-
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma'); // Singleton
+const auth = require('../middleware/auth');
+const adminAuth = require('../middleware/adminAuth');
 
 // ========================================
 // GET /api/admin/computers
 // Get all computers (approved and pending)
 // ========================================
-router.get('/computers', requireAdmin, async (req, res, next) => {
+router.get('/computers', adminAuth.requireAdmin, async (req, res, next) => {
     try {
         const computers = await prisma.computer.findMany({
             include: {

@@ -5,9 +5,9 @@
 
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../utils/prisma'); // Singleton
 const auth = require('../middleware/auth');
-const uploadChat = require('../middleware/uploadChat'); // Phase A: Import
+const upload = require('../middleware/uploadChat'); // Chat specific upload
 const cloudinary = require('cloudinary').v2;
 
 // Configure Cloudinary explicitly to ensure utils.url has access to secrets for signing

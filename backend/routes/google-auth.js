@@ -2,10 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma'); // Singleton
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/auth/google', async (req, res, next) => {
