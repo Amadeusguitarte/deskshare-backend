@@ -4,7 +4,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const axios = require('axios');
 
-// v17.7: ZERO-FAILURE ENGINE X
+// v17.8: ULTIMATE STABILITY & PREMIUM UI
 let mainWindow = null;
 let engineWindow = null;
 let config = {};
@@ -13,14 +13,14 @@ let activeSessionId = null;
 let blockerId = null;
 
 // ========================================
-// 1. CRASH-IMMUNE IPC HANDLERS
+// 1. HARDENED IPC LAYER
 // ========================================
 function safeSend(win, channel, data) {
     try {
         if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
             win.webContents.send(channel, data);
         }
-    } catch (e) { /* Silently catch destruction race conditions */ }
+    } catch (e) { }
 }
 
 ipcMain.on('renderer-ready', (event) => {
@@ -51,20 +51,26 @@ ipcMain.on('remote-input', (event, data) => {
     try {
         if (!inputProcess || !inputProcess.stdin.writable) return;
 
-        // v17.7: PERCENTAGE-BASED SCALING (Resolution Independent)
+        // v17.8: LOGICAL COORDINATE MAPPING (Primary Screen Only)
         const primary = screen.getPrimaryDisplay();
-        const { width: hostW, height: hostH } = primary.size;
+        const { width: screenW, height: screenH } = primary.size;
 
-        if (data.type === 'mousemove' || data.type === 'mousedown') {
-            const finalX = Math.round(data.px * hostW);
-            const finalY = Math.round(data.py * hostH);
+        // Coordinates from viewer (0.0 to 1.0)
+        let finalX, finalY;
+        if (data.px !== undefined && data.py !== undefined) {
+            finalX = Math.round(data.px * screenW);
+            finalY = Math.round(data.py * screenH);
+        } else {
+            // v17.2 Fallback
+            finalX = data.x;
+            finalY = data.y;
+        }
 
-            if (data.type === 'mousemove') {
-                sendToController(`MOVE ${finalX} ${finalY}`);
-            } else {
-                if (data.px !== undefined) sendToController(`MOVE ${finalX} ${finalY}`);
-                sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
-            }
+        if (data.type === 'mousemove') {
+            sendToController(`MOVE ${finalX} ${finalY}`);
+        } else if (data.type === 'mousedown') {
+            sendToController(`MOVE ${finalX} ${finalY}`);
+            sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
         } else if (data.type === 'mouseup') {
             sendToController(`CLICK ${data.button.toUpperCase()} UP`);
         } else if (data.type === 'wheel') {
@@ -76,18 +82,17 @@ ipcMain.on('remote-input', (event, data) => {
 });
 
 // ========================================
-// 2. CORE LOGIC
+// 2. CORE SYSTEM
 // ========================================
 function startInputController() {
     try {
         const psPath = path.join(__dirname, 'input_controller.ps1');
         inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
 
-        // v17.0: Set high priority for zero-lag
         if (process.platform === 'win32' && inputProcess.pid) {
             spawn('powershell.exe', ['-Command', `(Get-Process -Id ${inputProcess.pid}).PriorityClass = 'High'`]);
         }
-    } catch (e) { console.error('Controller failed:', e); }
+    } catch (e) { }
 }
 
 function sendToController(cmd) {
@@ -105,7 +110,6 @@ async function terminateSession() {
 }
 
 app.whenReady().then(() => {
-    app.commandLine.appendSwitch('disable-renderer-backgrounding');
     startInputController();
     blockerId = powerSaveBlocker.start('prevent-app-suspension');
     createMainWindow();
@@ -116,9 +120,10 @@ function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 500, height: 750, show: false,
         webPreferences: { nodeIntegration: true, contextIsolation: false },
-        autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v17.7"
+        autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v17.8"
     });
 
+    // RESTORING PREMIUM UI ANIMATIONS
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -126,22 +131,47 @@ function createMainWindow() {
         <meta charset="UTF-8">
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
         <style>
-            :root { --bg:#050507; --success:#10b981; --accent:#3b82f6; --text:#fff; }
-            body { background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; margin:0; }
-            .badge { padding:12px 24px; background:#1a1a1a; border-radius:50px; font-weight:700; border:1px solid #333; margin-top:20px; }
-            body.connected .badge { color:var(--accent); border-color:var(--accent); }
-            body.ready .badge { color:var(--success); border-color:var(--success); }
+            :root { --bg: #050507; --card: #121216; --success: #10b981; --accent: #3b82f6; --text: #ffffff; }
+            body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; margin:0; }
+            .container { text-align: center; width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+            .app-title { font-size: 2.2rem; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 4px; }
+            .icon-box { 
+                width: 160px; height: 160px; background: var(--card); border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                border: 2px solid #333; transition: all 0.5s ease; position: relative; 
+            }
+            .pulse { position: absolute; width:100%; height:100%; border-radius:50%; border:2px solid transparent; }
+            .status-badge { 
+                padding: 14px 30px; background: #1a1a1a; border-radius: 50px; font-size: 1rem; font-weight: 700; 
+                color: #555; border: 1px solid #333; transition: all 0.4s ease; text-transform: uppercase; display: flex; align-items: center; gap: 10px; 
+            }
+            .dot { width: 10px; height: 10px; background: #333; border-radius: 50%; }
+            body.ready .icon-box { border-color: var(--success); box-shadow: 0 0 40px rgba(16, 185, 129, 0.2); }
+            body.ready .status-badge { color: var(--success); border-color: var(--success); }
+            body.ready .dot { background: var(--success); box-shadow: 0 0 10px var(--success); }
+            body.ready .pulse { border-color: var(--success); animation: pulse 2s infinite; }
+            body.connected .status-badge { color: var(--accent); border-color: var(--accent); }
+            @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
         </style>
     </head>
     <body class="ready">
-        <h1 style="background:linear-gradient(to right,#fff,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">DESKSHARE</h1>
-        <div class="badge" id="stText">EN LÍNEA (v17.7)</div>
-        <div id="logs" style="font-size:0.8rem;color:#71717a;margin-top:20px;">Sincronizado</div>
+        <div class="container">
+            <div class="app-title">DeskShare</div>
+            <div class="icon-box">
+                <div class="pulse"></div>
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+            </div>
+            <div class="status-badge"><div class="dot"></div><span id="stText">EN LÍNEA v17.8</span></div>
+            <div id="logs" style="font-size:0.8rem;color:#71717a;">Sincronizado</div>
+        </div>
         <script>
             const { ipcRenderer } = require('electron');
             ipcRenderer.send('renderer-ready');
             ipcRenderer.on('update-engine-ui', (e,s) => { 
-                document.getElementById('stText').innerText = s.toUpperCase();
+                document.getElementById('stText').innerText = s === 'connected' ? 'CONECTADO' : 'EN LÍNEA';
                 document.body.className = s === 'connected' ? 'connected' : 'ready';
             });
         </script>
@@ -151,7 +181,7 @@ function createMainWindow() {
     const b64 = Buffer.from(htmlContent).toString('base64');
     mainWindow.loadURL(`data:text/html;base64,${b64}`);
     mainWindow.once('ready-to-show', () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show(); });
-    mainWindow.on('close', () => { terminateSession(); });
+    mainWindow.on('closed', () => { terminateSession(); mainWindow = null; });
 }
 
 function createEngineWindow() {
@@ -192,6 +222,7 @@ function createEngineWindow() {
     </script></body></html>`;
     const b64 = Buffer.from(engineHtml).toString('base64');
     engineWindow.loadURL(`data:text/html;base64,${b64}`);
+    engineWindow.on('closed', () => { engineWindow = null; });
 }
 
 ipcMain.handle('get-sources', async () => { return await desktopCapturer.getSources({ types: ['screen'] }); });
