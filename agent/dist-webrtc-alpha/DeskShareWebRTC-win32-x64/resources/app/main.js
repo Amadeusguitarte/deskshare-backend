@@ -12,17 +12,18 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
 
-// Windows
+// Global State
 let mainWindow;
 let engineWindow;
 let config = {};
 let inputProcess = null;
+let activeSessionId = null; // v17.4: Defined in main process to prevent ReferenceError
+let blockerId = null;      // v17.4: Defined in main process
 
 function startInputController() {
     const psPath = path.join(__dirname, 'input_controller.ps1');
     inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
 
-    // v16.0: Increase process priority for zero-lag input
     if (process.platform === 'win32' && inputProcess.pid) {
         spawn('powershell.exe', ['-Command', `(Get-Process -Id ${inputProcess.pid}).PriorityClass = 'High'`]);
     }
@@ -49,12 +50,6 @@ function createMainWindow() {
         webPreferences: { nodeIntegration: true, contextIsolation: false },
         autoHideMenuBar: true, backgroundColor: '#050507',
         title: "DeskShare Alpha"
-    });
-
-    // v17.0: Prevent window suspension when minimized by overriding minimize
-    mainWindow.on('minimize', (e) => {
-        // We don't prevent it, but since Engine is in a separate window, 
-        // minimize logic here won't affect the WebRTC stream.
     });
 
     const htmlContent = `
@@ -85,14 +80,12 @@ function createMainWindow() {
             }
             .dot { width: 10px; height: 10px; background: #333; border-radius: 50%; }
             
-            /* ONLINE READY STATE */
             body.ready .icon-box { border-color: var(--success); box-shadow: 0 0 50px var(--success-glow); }
             body.ready .icon-box svg { color: var(--success); filter: drop-shadow(0 0 10px var(--success)); }
             body.ready .status-badge { color: var(--success); border-color: var(--success); background: rgba(16, 185, 129, 0.1); }
             body.ready .dot { background: var(--success); box-shadow: 0 0 10px var(--success); }
             body.ready .pulse { border-color: var(--success); animation: pulse 2s infinite; }
             
-            /* CONNECTED STATE */
             body.connected .status-badge { color: var(--accent); border-color: var(--accent); background: rgba(59, 130, 246, 0.1); animation: blink 1s infinite alternate; }
             body.connected .icon-box { border-color: var(--accent); box-shadow: 0 0 50px rgba(59, 130, 246, 0.4); }
             body.connected .icon-box svg { color: var(--accent); }
@@ -147,6 +140,7 @@ function createMainWindow() {
             
             function updateTimer() {
                 const now = new Date();
+                if (!startTime) return;
                 const diff = Math.floor((now - startTime) / 1000);
                 const hrs = String(Math.floor(diff / 3600)).padStart(2, '0');
                 const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
@@ -157,7 +151,7 @@ function createMainWindow() {
             ipcRenderer.send('renderer-ready');
             ipcRenderer.on('init-config', (e, data) => {
                 config = data.config; hostRes = data.res;
-                log("Agente Engine X v17.3 Iniciado");
+                log("Agente Engine X v17.4 Iniciado");
             });
             
             ipcRenderer.on('update-engine-ui', (e, state) => {
@@ -177,213 +171,19 @@ function createMainWindow() {
                     timer.style.display = 'none';
                     if (timerInt) clearInterval(timerInt);
                     startTime = null;
+                    timerInt = null;
                 } else if (state === 'negotiating') {
                     stText.innerText = "NEGOCIANDO...";
                 }
             });
-            
-            function startPolling() {
-                body.classList.add('online');
-                stText.innerText = "EN LÍNEA";
-                setInterval(async () => {
-                    await checkForPending();
-                    if (activeSessionId) await pollActiveSession();
-                }, 1000); 
-            }
-            
-            async function checkForPending() {
-                try {
-                    const url = "https://deskshare-backend-production.up.railway.app/api/webrtc/host/pending?computerId=" + config.computerId;
-                    const res = await axios.get(url, { headers: { 'Authorization': 'Bearer ' + config.token } });
-                    if (res.data.sessionId) {
-                        if (res.data.sessionId !== activeSessionId) {
-                            log("Nueva petición: " + res.data.sessionId);
-                            reset();
-                            activeSessionId = res.data.sessionId;
-                            const pollRes = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
-                                headers: { 'Authorization': 'Bearer ' + config.token }
-                            });
-                            if (pollRes.data.offer) { 
-                                currentUserName = pollRes.data.userName || "Invitado";
-                                await handleOffer(pollRes.data.offer); 
-                            }
-                        }
-                    }
-                } catch(e) {}
-            }
-            
-            async function pollActiveSession() {
-                try {
-                    const res = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
-                        headers: { 'Authorization': 'Bearer ' + config.token }
-                    });
-                    
-                    if (res.data.userName && res.data.userName !== "Invitado") {
-                        if (currentUserName !== res.data.userName) {
-                            currentUserName = res.data.userName;
-                            userLabel.innerText = currentUserName.toUpperCase();
-                            log("Usuario identificado: " + currentUserName);
-                        }
-                    }
-                    
-                    if (res.data.iceCandidates) {
-                        for (const cand of res.data.iceCandidates) {
-                            if (peerConnection && peerConnection.remoteDescription) {
-                                try { await peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch(e) {}
-                            }
-                        }
-                    }
-                } catch (e) {
-                    if (e.response && e.response.status === 404) reset();
-                }
-            }
-            
-            async function handleOffer(sdp) {
-                try {
-                    stText.innerText = "NEGOCIANDO...";
-                    peerConnection = new RTCPeerConnection({
-                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
-                    });
-                    
-                    peerConnection.ondatachannel = (event) => {
-                        const channel = event.channel;
-                        channel.onmessage = (e) => {
-                            const data = JSON.parse(e.data);
-                            if (data.type === 'ping') {
-                                channel.send(JSON.stringify({ type: 'pong', ts: data.ts }));
-                            } else {
-                                ipcRenderer.send('remote-input', data);
-                            }
-                        };
-                        channel.onopen = () => {
-                            if (channel.label === 'input') {
-                                channel.send(JSON.stringify({ type: 'init-host', res: hostRes }));
-                            }
-                        };
-                    };
-                    
-                    peerConnection.onicecandidate = (event) => {
-                        if (event.candidate) {
-                            axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/ice", {
-                                sessionId: activeSessionId, candidate: event.candidate, isHost: true
-                            }, { headers: { 'Authorization': 'Bearer ' + config.token }});
-                        }
-                    };
-                    
-                    peerConnection.onconnectionstatechange = () => {
-                        const state = peerConnection.connectionState;
-                        if (state === 'connected') {
-                            body.classList.remove('ready');
-                            body.classList.add('connected');
-                            stText.innerText = "CONECTADO";
-                            userLabel.innerText = currentUserName.toUpperCase();
-                            startTime = new Date();
-                            timer.style.display = 'block';
-                            timerInt = setInterval(updateTimer, 1000);
-                            log("Sesión activa con " + currentUserName);
-                            
-                            const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                            if (videoSender) {
-                                const params = videoSender.getParameters();
-                                if (!params.encodings) params.encodings = [{ priority: 'high' }];
-                                params.encodings[0].maxBitrate = 3000000; 
-                                params.encodings[0].networkPriority = 'high';
-                                videoSender.setDegradationPreference('maintain-framerate');
-                                videoSender.setParameters(params);
-                                
-                                setTimeout(() => {
-                                    if (peerConnection && peerConnection.connectionState === 'connected') {
-                                        const p = videoSender.getParameters();
-                                        p.encodings[0].maxBitrate = 12000000; 
-                                        videoSender.setParameters(p);
-                                        log("Fluidez Total: 12Mbps / 60FPS");
-                                    }
-                                }, 2000);
-                            }
-                        } else if (state === 'failed' || state === 'closed' || state === 'disconnected') {
-                            reset();
-                        }
-                    };
-                    
-                    const sources = await ipcRenderer.invoke('get-sources');
-                    const sourceId = sources[0].id; 
-                    
-                    let stream;
-                    const constraints = {
-                        video: { 
-                            mandatory: { 
-                                chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, 
-                                minFrameRate: 30, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
-                            } 
-                        }
-                    };
-                    
-                    try {
-                        stream = await navigator.mediaDevices.getUserMedia({
-                            audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } },
-                            ...constraints
-                        });
-                        log("Audio Mode: PURE_LOOPBACK");
-                    } catch (e) {
-                        try {
-                            stream = await navigator.mediaDevices.getUserMedia({
-                                audio: { mandatory: { chromeMediaSource: 'desktop' } },
-                                ...constraints
-                            });
-                            log("Audio Mode: GENERIC_LOOPBACK");
-                        } catch (e2) {
-                            try {
-                                const vStream = await navigator.mediaDevices.getUserMedia(constraints);
-                                const aStream = await navigator.mediaDevices.getUserMedia({ 
-                                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
-                                });
-                                stream = new MediaStream([...vStream.getTracks(), ...aStream.getTracks()]);
-                                log("Audio Mode: SYSTEM_NATIVE");
-                            } catch (e3) {
-                                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                                log("Audio Mode: FAILED (Video Only)");
-                            }
-                        }
-                    }
-                    
-                    stream.getTracks().forEach(track => {
-                        if (track.kind === 'video') track.contentHint = 'motion';
-                        peerConnection.addTrack(track, stream);
-                    });
-                    
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    
-                    await axios.post("https://deskshare-backend-production.up.railway.app/api/webrtc/answer", {
-                        sessionId: activeSessionId, sdp: answer
-                    }, { headers: { 'Authorization': 'Bearer ' + config.token }});
-                } catch (err) { reset(); }
-            }
-            
-            function reset() {
-                activeSessionId = null;
-                if (peerConnection) {
-                    peerConnection.onconnectionstatechange = null;
-                    peerConnection.close();
-                }
-                peerConnection = null;
-                clearInterval(timerInt);
-                timer.style.display = 'none';
-                userLabel.innerText = "";
-                stText.innerText = "EN LÍNEA";
-                body.classList.remove('connected');
-                body.classList.add('ready');
-                log("Esperando nueva conexión...");
-            }
         </script>
     </body>
     </html>
-    \`;
-    
-    // v17.3: Instant Loading via Data URL (No Disk I/O)
+    `;
+
+    // v17.4: Data URL Injection
     const b64 = Buffer.from(htmlContent).toString('base64');
-    mainWindow.loadURL(\`data:text/html;base64,\${b64}\`);
+    mainWindow.loadURL(`data:text/html;base64,${b64}`);
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
@@ -391,7 +191,6 @@ function createMainWindow() {
 }
 
 function createEngineWindow() {
-    // v17.0: PHANTOM ENGINE WINDOW
     engineWindow = new BrowserWindow({
         width: 100, height: 100, show: false,
         webPreferences: {
@@ -400,7 +199,7 @@ function createEngineWindow() {
         }
     });
 
-    const engineHtml = \`
+    const engineHtml = `
     <!DOCTYPE html>
     <html>
     <body>
@@ -432,6 +231,7 @@ function createEngineWindow() {
                     if (res.data.sessionId && res.data.sessionId !== activeSessionId) {
                         reset();
                         activeSessionId = res.data.sessionId;
+                        ipcRenderer.send('session-update', activeSessionId); // v17.4: Report to main process
                         const pollRes = await axios.get("https://deskshare-backend-production.up.railway.app/api/webrtc/poll/" + activeSessionId, {
                             headers: { 'Authorization': 'Bearer ' + config.token }
                         });
@@ -488,7 +288,7 @@ function createEngineWindow() {
                             if (videoSender) {
                                 const params = videoSender.getParameters();
                                 if (params.encodings && params.encodings[0]) {
-                                    params.encodings[0].maxBitrate = 12000000; // 12Mbps ultra
+                                    params.encodings[0].maxBitrate = 12000000;
                                     params.encodings[0].priority = 'high';
                                     params.encodings[0].networkPriority = 'high';
                                     videoSender.setParameters(params);
@@ -502,31 +302,18 @@ function createEngineWindow() {
                     let stream;
 
                     const constraints = {
-                        video: { 
-                            mandatory: { 
-                                chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId,
-                                minFrameRate: 30, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080
-                            }
-                        }
+                        video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, minFrameRate: 30, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080 } }
                     };
 
                     try {
-                        stream = await navigator.mediaDevices.getUserMedia({
-                            audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } },
-                            ...constraints
-                        });
+                        stream = await navigator.mediaDevices.getUserMedia({ audio: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } }, ...constraints });
                     } catch(e) {
                         try {
-                            stream = await navigator.mediaDevices.getUserMedia({
-                                audio: { mandatory: { chromeMediaSource: 'desktop' } },
-                                ...constraints
-                            });
+                            stream = await navigator.mediaDevices.getUserMedia({ audio: { mandatory: { chromeMediaSource: 'desktop' } }, ...constraints });
                         } catch(e2) {
                             try {
                                 const vStream = await navigator.mediaDevices.getUserMedia(constraints);
-                                const aStream = await navigator.mediaDevices.getUserMedia({ 
-                                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
-                                });
+                                const aStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
                                 stream = new MediaStream([...vStream.getTracks(), ...aStream.getTracks()]);
                             } catch(e3) {
                                 stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -551,6 +338,7 @@ function createEngineWindow() {
 
             function reset() {
                 activeSessionId = null;
+                ipcRenderer.send('session-update', null);
                 if (peerConnection) peerConnection.close();
                 peerConnection = null;
                 ipcRenderer.send('engine-state', 'ready');
@@ -558,24 +346,28 @@ function createEngineWindow() {
         </script>
     </body>
     </html>
-    \`;
+    `;
     const b64 = Buffer.from(engineHtml).toString('base64');
-    engineWindow.loadURL(\`data:text/html;base64,\${b64}\`);
+    engineWindow.loadURL(`data:text/html;base64,${b64}`);
 }
 
 ipcMain.on('renderer-ready', (event) => {
     try {
         const APPDATA = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
         const configPath = path.join(APPDATA, 'deskshare-launcher', 'config.json');
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { width: screenW, height: screenH } = primaryDisplay.size;
         if (fs.existsSync(configPath)) {
             config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            const data = { config, res: { w: screenW, h: screenH } };
+            const primaryDisplay = screen.getPrimaryDisplay();
+            const { width, height } = primaryDisplay.size;
+            const data = { config, res: { w: width, h: height } };
             event.reply('init-config', data);
             if (engineWindow) engineWindow.webContents.send('init-engine', data);
         }
     } catch (e) { }
+});
+
+ipcMain.on('session-update', (event, sid) => {
+    activeSessionId = sid;
 });
 
 ipcMain.on('engine-state', (event, state) => {
@@ -593,56 +385,35 @@ ipcMain.handle('get-sources', async () => {
 ipcMain.on('remote-input', (event, data) => {
     try {
         const scaleFactor = screen.getPrimaryDisplay().scaleFactor;
-
         if (data.type === 'mousemove') {
-            const x = Math.round(data.x * scaleFactor);
-            const y = Math.round(data.y * scaleFactor);
-            sendToController(\`MOVE \${x} \${y}\`);
-        }
-        else if (data.type === 'mousedown') {
-            const x = Math.round(data.x * scaleFactor);
-            const y = Math.round(data.y * scaleFactor);
-            if (data.x !== -1) sendToController(\`MOVE \${x} \${y}\`);
-            sendToController(\`CLICK \${data.button.toUpperCase()} DOWN\`);
-        }
-        else if (data.type === 'mouseup') {
-            sendToController(\`CLICK \${data.button.toUpperCase()} UP\`);
-        }
-        else if (data.type === 'wheel') {
-            const delta = Math.round(data.deltaY * -1);
-            sendToController(\`SCROLL \${delta}\`);
-        }
-        else if (data.type === 'keydown' || data.type === 'keyup') {
-            const state = data.type === 'keydown' ? 'DOWN' : 'UP';
-            if (data.vkCode) {
-                sendToController(\`KEY \${data.vkCode} \${state}\`);
-            }
+            sendToController(`MOVE ${Math.round(data.x * scaleFactor)} ${Math.round(data.y * scaleFactor)}`);
+        } else if (data.type === 'mousedown') {
+            if (data.x !== -1) sendToController(`MOVE ${Math.round(data.x * scaleFactor)} ${Math.round(data.y * scaleFactor)}`);
+            sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
+        } else if (data.type === 'mouseup') {
+            sendToController(`CLICK ${data.button.toUpperCase()} UP`);
+        } else if (data.type === 'wheel') {
+            sendToController(`SCROLL ${Math.round(data.deltaY * -1)}`);
+        } else if (data.type === 'keydown' || data.type === 'keyup') {
+            if (data.vkCode) sendToController(`KEY ${data.vkCode} ${data.type === 'keydown' ? 'DOWN' : 'UP'}`);
         }
     } catch (e) { }
 });
 
 app.on('will-quit', async () => {
     if (blockerId) powerSaveBlocker.stop(blockerId);
-
     if (activeSessionId && config.token) {
         try {
-            const url = \`https://deskshare-backend-production.up.railway.app/api/webrtc/session/\${activeSessionId}/terminate\`;
+            const url = `https://deskshare-backend-production.up.railway.app/api/webrtc/session/${activeSessionId}/terminate`;
             axios.post(url, {}, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
         } catch (e) { }
     }
-
-    if (inputProcess) {
-        inputProcess.kill();
-        inputProcess = null;
-    }
+    if (inputProcess) inputProcess.kill();
 });
 
-app.on('window-all-closed', () => {
-    app.quit();
-});
+app.on('window-all-closed', () => { app.quit(); });
 
 function sendHeartbeat() {
-    if (!config.computerId) return;
-    axios.post("https://deskshare-backend-production.up.railway.app/api/tunnels/heartbeat", { computerId: config.computerId }, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
+    if (config.computerId) axios.post("https://deskshare-backend-production.up.railway.app/api/tunnels/heartbeat", { computerId: config.computerId }, { headers: { 'Authorization': 'Bearer ' + config.token } }).catch(() => { });
 }
 setInterval(sendHeartbeat, 60000);
