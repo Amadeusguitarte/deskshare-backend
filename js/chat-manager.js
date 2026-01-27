@@ -1191,18 +1191,33 @@ class ChatManager {
     // MANUAL SHARE FLOW (Ad-Hoc)
     // ==========================================
     async openShareModal(userId) {
-        // v37: DIRECT ID FLOW (No Modal)
-        // User requested to simply enter the ID and send the link.
-        const computerId = prompt("Ingresa el ID de la computadora a compartir:");
-        if (!computerId) return;
+        // v38: ZERO-CLICK AUTO SHARE
+        // Requirement: "Solo quiero que se mande el link y ya"
+        // Strategy: Fetch user's computers -> Pick First -> Send Link.
+        try {
+            const token = localStorage.getItem('authToken');
+            if (!token) return this.showToast('Error de autenticación', 'error');
 
-        // Construct the Direct Link
-        // We use the same format as v36: unique directId parameter
-        const directLink = `https://deskshare.netlify.app/remote-access.html?directId=${computerId}`;
+            const res = await fetch(`${API_BASE_URL}/computers/my`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            const computers = data.computers || [];
 
-        // Generate the "Access Key" card HTML
-        // This mimics the 'shareAccess' result but generated client-side for immediacy
-        const messageHtml = `
+            if (computers.length === 0) {
+                return this.showToast('No tienes computadoras registradas', 'warning');
+            }
+
+            // ASSUMPTION: User uses the first available computer.
+            // Ideally we check for 'online' status, but for now we take the first valid one.
+            const targetComputer = computers[0];
+            const computerId = targetComputer.id;
+
+            // Generate Link
+            const directLink = `https://deskshare.netlify.app/remote-access.html?directId=${computerId}`;
+
+            // Generate Message Card
+            const messageHtml = `
             <div style="background: linear-gradient(135deg, #2c1f30 0%, #1a1a2e 100%); padding: 16px; border-radius: 12px; border: 1px solid var(--accent-purple); max-width: 300px;">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                     <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px;">
@@ -1210,7 +1225,7 @@ class ChatManager {
                     </div>
                     <div>
                         <div style="color: #fbbf24; font-weight: bold; font-size: 0.95rem;">Llave de Acceso</div>
-                        <div style="color: #ccc; font-size: 0.75rem;">Conectar a ID: ${computerId}</div>
+                        <div style="color: #ccc; font-size: 0.75rem;">${targetComputer.name || 'Mi PC'} (ID: ${computerId})</div>
                         <div style="color: #888; font-size: 0.75rem;">Escritorio Remoto Web</div>
                     </div>
                 </div>
@@ -1218,11 +1233,14 @@ class ChatManager {
                    style="display: block; text-align: center; background: rgba(255,255,255,0.1); color: white; text-decoration: none; padding: 10px; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: background 0.2s; border: 1px solid rgba(255,255,255,0.1);">
                    🌐 Conectar (Web)
                 </a>
-            </div>
-        `;
+            </div>`;
 
-        // Send the message via the existing chat infrastructure
-        this.sendMessage(userId, messageHtml, 'markup'); // specific type 'markup' if supported, or just text
+            this.sendMessage(userId, messageHtml, 'markup');
+
+        } catch (e) {
+            console.error(e);
+            this.showToast('Error al obtener datos del equipo', 'error');
+        }
     }
 
     // ==========================================
