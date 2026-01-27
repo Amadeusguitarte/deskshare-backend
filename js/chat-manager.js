@@ -1261,9 +1261,9 @@ class ChatManager {
             // 1. Send Link to Chat
             this.sendMessage(userId, messageHtml, 'markup');
 
-            // v41: ENHANCED PAIRING (Passing User Name)
+            // v45: ARCHITECTURAL SYNC (Pass Host Name)
             const user = JSON.parse(localStorage.getItem('currentUser'));
-            const userName = user ? user.name : 'Usuario';
+            const userName = user ? user.name : 'Host';
 
             // 2. Wake Up Launcher (Background)
             const deepLink = `deskshare://login?token=${token}&computerId=${computerId}&userName=${encodeURIComponent(userName)}`;

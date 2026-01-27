@@ -18,24 +18,24 @@
             /* Room for shadow */
         }
 
-        /* CLEAN PREMIUM CARD */
+        /* CLEAN PREMIUM CARD (No outer shadows to avoid square artifact) */
         .card {
-            width: 300px;
-            height: 420px;
-            background: rgba(13, 13, 22, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 35px;
+            width: 320px;
+            height: 440px;
+            background: #0d0d14;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 40px;
             color: white;
             text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            /* SOFT ORGANIC SHADOW */
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
             -webkit-app-region: drag;
             position: relative;
+            padding: 20px;
+            /* Internal Glow instead of outer shadow */
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
         }
 
         /* CONTROLS */
@@ -60,36 +60,37 @@
             color: white;
         }
 
-        /* ICON & WAVES */
+        /* ICON & RIPPLE */
         .icon-container {
             width: 140px;
             height: 140px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             position: relative;
-            background: rgba(255, 255, 255, 0.02);
             border-radius: 50%;
         }
 
         .icon {
-            width: 70px;
-            height: 70px;
+            width: 80px;
+            height: 80px;
             fill: none;
+            stroke-miterlimit: 10;
             stroke-width: 2;
             stroke-linecap: round;
             stroke-linejoin: round;
-            z-index: 2;
+            z-index: 5;
         }
 
         .ripple {
             position: absolute;
-            inset: 0;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
             border: 2px solid #10b981;
             opacity: 0;
-            animation: ripple-wave 2.5s infinite linear;
+            animation: ripple-wave 2.5s cubic-bezier(0.23, 1, 0.32, 1) infinite;
         }
 
         .ripple:nth-child(2) {
@@ -98,7 +99,7 @@
 
         @keyframes ripple-wave {
             0% {
-                transform: scale(1);
+                transform: scale(0.8);
                 opacity: 0.8;
             }
 
@@ -186,6 +187,7 @@
         <div class="icon-container">
             <div class="ripple"></div>
             <div class="ripple"></div>
+            <div class="ripple"></div>
             <svg class="icon" viewBox="0 0 24 24">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -194,8 +196,8 @@
         </div>
 
         <h2 id="msg">CARGANDO</h2>
-        <p id="sub">Iniciando sistema seguro...</p>
-        <p id="dbg"></p>
+        <p id="sub">Iniciando sistema...</p>
+        <p id="debug"></p>
     </div>
 
     <script>
@@ -203,7 +205,7 @@
         const app = document.getElementById('app');
         const msg = document.getElementById('msg');
         const sub = document.getElementById('sub');
-        const dbg = document.getElementById('dbg');
+        const dbg = document.getElementById('debug');
 
         window.close = () => ipcRenderer.send('app-quit');
         window.minimize = () => ipcRenderer.send('app-minimize');
@@ -216,14 +218,15 @@
 
             if (state.error) {
                 dbg.innerText = state.error;
+                dbg.style.color = '#ff4444';
                 return;
             }
 
             app.className = 'card ' + mode;
-            if (mode === 'waiting') { msg.innerText = "ESPERANDO"; sub.innerText = "Usa el enlace de acceso"; }
-            if (mode === 'online') { msg.innerText = "EN LÍNEA"; sub.innerText = "Sesión Privada • Lista"; }
-            if (mode === 'linking') { msg.innerText = "ENLAZANDO"; sub.innerText = `Conectando con ${userName}...`; }
-            if (mode === 'connected') { msg.innerText = "CONECTADO"; sub.innerText = `Acceso cedido a ${userName}`; }
+            if (mode === 'waiting') { msg.innerText = "ESPERANDO"; sub.innerText = "Usa el enlace de la Llave"; }
+            if (mode === 'online') { msg.innerText = "EN LÍNEA"; sub.innerText = "Sesión Segura • Lista"; }
+            if (mode === 'linking') { msg.innerText = "NEGOCIANDO"; sub.innerText = `Conectando con ${userName}`; }
+            if (mode === 'connected') { msg.innerText = "EN VIVO"; sub.innerText = `Acceso cedido a ${userName}`; }
         });
     </script>
 </body>

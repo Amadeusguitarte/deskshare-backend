@@ -90,10 +90,13 @@
                 const data = await api('GET', '/webrtc/poll/' + sid);
                 if (data && data.iceCandidates) {
                     data.iceCandidates.forEach(cand => {
-                        const id = JSON.stringify(cand);
-                        if (!processedCandidates.has(id)) {
-                            processedCandidates.add(id);
-                            pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => { });
+                        // v45: ARCHITECTURAL FILTER (Only process candidates from Guest Viewer)
+                        if (cand.isHost === false) {
+                            const id = JSON.stringify(cand);
+                            if (!processedCandidates.has(id)) {
+                                processedCandidates.add(id);
+                                pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => { });
+                            }
                         }
                     });
                 }

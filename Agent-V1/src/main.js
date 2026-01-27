@@ -68,19 +68,19 @@ function createWindows() {
 
     // GUI (Fixed Transparency & Shadow)
     guiWin = new BrowserWindow({
-        width: 420, height: 620, // Oversized for soft shadows
+        width: 440, height: 640, // Oversized buffer
         frame: false,
         transparent: true,
         resizable: false,
-        hasShadow: false, // Critical: Remove native square shadow
+        hasShadow: false, // Important to avoid square artifact
         alwaysOnTop: true,
-        skipTaskbar: false,
+        backgroundColor: '#00000000', // HEX Alpha Zero
         icon: fs.existsSync(iconPath) ? iconPath : null,
         webPreferences: { nodeIntegration: true, contextIsolation: false }
     });
 
     guiWin.loadFile(path.join(__dirname, 'gui.html'));
-    guiWin.setBackgroundColor('#00000000'); // Invisible layer 
+    guiWin.setIgnoreMouseEvents(false); // Ensure clickable
 
     // ENGINE (Background Worker)
     engineWin = new BrowserWindow({
@@ -99,16 +99,19 @@ app.whenReady().then(() => {
     ipcMain.on('app-quit', () => app.quit());
     ipcMain.on('app-minimize', () => { if (guiWin) guiWin.minimize(); });
 
-    // REAL ACTIONS (RobotJS)
-    try {
-        const robot = require('robotjs');
-        ipcMain.on('engine-action', (e, data) => {
-            if (data.type === 'mousemove') robot.moveMouse(data.x, data.y);
-            if (data.type === 'mousedown') robot.mouseClick(data.button || 'left', false);
-            if (data.type === 'mouseup') { } // Optional
-            if (data.type === 'keydown') robot.keyTap(data.key);
-        });
-    } catch (e) { console.error('RobotJS Load Fail:', e); }
+    // REAL ACTIONS (Native PowerShell Bridge - Zero Dependency)
+    const { exec } = require('child_process');
+    ipcMain.on('engine-action', (e, data) => {
+        if (data.type === 'mousemove') {
+            const cmd = `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = '${data.x},${data.y}'`;
+            exec(`powershell -Command "${cmd}"`);
+        }
+        if (data.type === 'mousedown') {
+            const btn = data.button === 'right' ? '0x0008 | 0x0010' : '0x0002 | 0x0004'; // Down|Up pairs for simple click
+            const cmd = `Add-Type -TypeDefinition '[DllImport("user32.dll")] public class Mouse { [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int x, int y, uint data, int extra); }'; [Mouse]::mouse_event(${btn}, 0, 0, 0, 0)`;
+            exec(`powershell -Command "${cmd}"`);
+        }
+    });
 });
 
 // 5. IPC BUS
