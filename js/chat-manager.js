@@ -15,6 +15,15 @@ class ChatManager {
         this.stagedFiles = new Map(); // Init here explicitly
         this.isSending = false; // Lock for double-send prevention
 
+        // v9.0 CACHE-FIRST HYDRATION: Restore from local memory instantly
+        try {
+            const cached = localStorage.getItem('deskshare_chat_cache');
+            if (cached) {
+                this.conversations = JSON.parse(cached);
+                console.log('⚡ [ChatManager] Instant Hydration from Cache');
+            }
+        } catch (e) { console.warn('Cache error:', e); }
+
         // UI Elements
         this.widgetContainer = null;
         this.messagesPageContainer = null;
@@ -31,9 +40,13 @@ class ChatManager {
     async init() {
         if (!this.currentUser) return;
 
-        // Initialize Socket
+        // Initialize Socket (v9.0 Authenticated)
         if (typeof io !== 'undefined') {
-            this.socket = io(this.socketUrl);
+            const token = localStorage.getItem('authToken');
+            this.socket = io(this.socketUrl, {
+                auth: { token },
+                transports: ['websocket', 'polling'] // Force stability
+            });
             this.setupSocketEvents();
         } else {
             console.error('Socket.io not loaded');
@@ -360,6 +373,9 @@ class ChatManager {
                 return dateB - dateA;
             });
             this.conversations = uniqueConvs;
+
+            // v9.0 PERSISTENCE: Save to cache for next instant load
+            localStorage.setItem('deskshare_chat_cache', JSON.stringify(this.conversations));
 
             // Sync UI with new data
             if (this.messagesPageContainer) {
