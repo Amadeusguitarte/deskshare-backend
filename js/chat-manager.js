@@ -1191,97 +1191,38 @@ class ChatManager {
     // MANUAL SHARE FLOW (Ad-Hoc)
     // ==========================================
     async openShareModal(userId) {
-        // 1. Fetch My Computers
-        try {
-            const token = localStorage.getItem('authToken');
-            const res = await fetch(`${API_BASE_URL}/computers/my`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            const computers = data.computers || [];
+        // v37: DIRECT ID FLOW (No Modal)
+        // User requested to simply enter the ID and send the link.
+        const computerId = prompt("Ingresa el ID de la computadora a compartir:");
+        if (!computerId) return;
 
-            // Filter to include ALL user's computers (Launcher will enable tunnel)
-            const validComputers = computers;
+        // Construct the Direct Link
+        // We use the same format as v36: unique directId parameter
+        const directLink = `https://deskshare.netlify.app/remote-access.html?directId=${computerId}`;
 
-            if (validComputers.length === 0) {
-                this.showToast('No tienes computadoras publicadas.', 'warning');
-                return;
-            }
-
-            // 2. Render Modal
-            // Check if modal exists, else create
-            let modal = document.getElementById('share-key-modal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'share-key-modal';
-                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s;';
-                document.body.appendChild(modal);
-            }
-
-            const listHtml = validComputers.map(c => {
-                // Determine connection status
-                const hasTunnel = c.tunnelStatus === 'online';
-                const hasParsec = !!c.parsecPeerId;
-                const hasRdp = !!c.rdpHost;
-
-                let statusText = '';
-                let statusColor = '#888';
-
-                if (hasTunnel) {
-                    statusText = '🟢 Túnel activo';
-                    statusColor = '#10b981';
-                } else if (hasParsec) {
-                    statusText = '🚀 Parsec';
-                    statusColor = '#888';
-                } else if (hasRdp) {
-                    statusText = '🌐 Web configurado';
-                    statusColor = '#888';
-                } else {
-                    statusText = '🔧 Requiere Launcher';
-                    statusColor = '#f59e0b';
-                }
-
-                return `
-                <div onclick="chatManagerInstance.launchAndShare(${c.id}, ${userId}, '${c.tunnelStatus || 'offline'}', ${hasParsec})" 
-                    style="padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.2s;"
-                    onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        ${c.images && c.images[0]?.imageUrl
-                        ? `<img src="${c.images[0].imageUrl}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">`
-                        : `<div style="width: 40px; height: 40px; border-radius: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                              </div>`}
-                        <div>
-                            <div style="font-weight: 600; color: white;">${c.name}</div>
-                            <div style="font-size: 0.8rem; color: ${statusColor};">${statusText}</div>
-                        </div>
+        // Generate the "Access Key" card HTML
+        // This mimics the 'shareAccess' result but generated client-side for immediacy
+        const messageHtml = `
+            <div style="background: linear-gradient(135deg, #2c1f30 0%, #1a1a2e 100%); padding: 16px; border-radius: 12px; border: 1px solid var(--accent-purple); max-width: 300px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                     </div>
-                    <span style="color: #fbbf24;">➜</span>
-                </div>
-            `}).join('');
-
-            modal.innerHTML = `
-                <div style="background: #1a1a1a; padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; border: 1px solid var(--glass-border); box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: translateY(20px); transition: transform 0.3s;">
-                    <h3 style="margin-top: 0; color: white;">Compartir Llave de Acceso 🔑</h3>
-                    <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 20px;">Selecciona la computadora que quieres prestar a este usuario:</p>
-                    <div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
-                        ${listHtml}
+                    <div>
+                        <div style="color: #fbbf24; font-weight: bold; font-size: 0.95rem;">Llave de Acceso</div>
+                        <div style="color: #ccc; font-size: 0.75rem;">Conectar a ID: ${computerId}</div>
+                        <div style="color: #888; font-size: 0.75rem;">Escritorio Remoto Web</div>
                     </div>
-                    <button onclick="document.getElementById('share-key-modal').style.opacity='0'; setTimeout(()=>document.getElementById('share-key-modal').remove(), 300);" 
-                        style="width: 100%; margin-top: 20px; padding: 10px; background: transparent; border: 1px solid #444; color: #888; border-radius: 8px; cursor: pointer;">Cancelar</button>
                 </div>
-            `;
+                <a href="${directLink}" target="_blank" 
+                   style="display: block; text-align: center; background: rgba(255,255,255,0.1); color: white; text-decoration: none; padding: 10px; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: background 0.2s; border: 1px solid rgba(255,255,255,0.1);">
+                   🌐 Conectar (Web)
+                </a>
+            </div>
+        `;
 
-            // Open Animation
-            setTimeout(() => {
-                modal.style.opacity = '1';
-                modal.querySelector('div').style.transform = 'translateY(0)';
-            }, 10);
-
-        } catch (e) {
-            console.error(e);
-            this.showToast('Error al cargar tus computadoras', 'error');
-        }
+        // Send the message via the existing chat infrastructure
+        this.sendMessage(userId, messageHtml, 'markup'); // specific type 'markup' if supported, or just text
     }
 
     // ==========================================
