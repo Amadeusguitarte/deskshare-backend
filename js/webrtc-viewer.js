@@ -70,6 +70,14 @@ class WebRTCViewer {
 
         this.peerConnection.ontrack = (event) => {
             console.log('[WebRTC Viewer] Video Track Detectado ✅');
+
+            // STABILITY: Set motion hint on video track
+            if (event.streams && event.streams[0]) {
+                event.streams[0].getTracks().forEach(track => {
+                    if (track.kind === 'video') track.contentHint = 'motion';
+                });
+            }
+
             this.renderStream(event.streams[0]);
         };
 
