@@ -5,7 +5,8 @@ const fs = require('fs');
 const axios = require('axios');
 
 // v80: PRODUCTION SYNC (Percentage Mapping + Axios Gold)
-app.disableHardwareAcceleration();
+// v80: PRODUCTION SYNC (Percentage Mapping + Axios Gold)
+// app.disableHardwareAcceleration(); // RE-ENABLED for WebRTC Performance
 
 let win, inputProcess;
 let config = null;

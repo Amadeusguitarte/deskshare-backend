@@ -305,6 +305,13 @@ class WebRTCViewer {
         if ('playoutDelayHint' in video) {
             video.playoutDelayHint = 0;
         }
+
+        // v50: BLACK SCREEN DEBUGGER
+        setInterval(() => {
+            if (this.videoElement) {
+                console.log(`[Video Status] Res: ${this.videoElement.videoWidth}x${this.videoElement.videoHeight} | State: ${this.videoElement.readyState} | Paused: ${this.videoElement.paused} | Muted: ${this.videoElement.muted}`);
+            }
+        }, 2000);
     }
 
     setupInputCapture() {
