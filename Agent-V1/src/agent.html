@@ -309,8 +309,9 @@
 
                 pc.onicecandidate = (e) => {
                     if (e.candidate) {
-                        // log('Found ICE Cand'); // Verbose
-                        api('POST', '/webrtc/ice', { sessionId: sid, candidate: e.candidate, isHost: true });
+                        // v51: Use toJSON() for robust serialization
+                        const candJson = e.candidate.toJSON ? e.candidate.toJSON() : e.candidate;
+                        api('POST', '/webrtc/ice', { sessionId: sid, candidate: candJson, isHost: true });
                     }
                 };
 

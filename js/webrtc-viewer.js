@@ -195,10 +195,12 @@ class WebRTCViewer {
 
     async sendIceCandidate(candidate) {
         const BACKEND_URL = 'https://deskshare-backend-production.up.railway.app/api';
+        // v51: Use toJSON() for robust serialization
+        const candJson = candidate.toJSON ? candidate.toJSON() : candidate;
         fetch(`${BACKEND_URL}/webrtc/ice`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
-            body: JSON.stringify({ sessionId: this.sessionId, candidate, isHost: false })
+            body: JSON.stringify({ sessionId: this.sessionId, candidate: candJson, isHost: false })
         }).catch(() => { });
     }
 
