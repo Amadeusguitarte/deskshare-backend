@@ -5,56 +5,47 @@ const { spawn } = require('child_process');
 const https = require('https');
 const os = require('os');
 
-// v27: THE RELIABLE BRIDGE (FORENSIC REPAIR)
+// v28: THE GOLD RESTORATION (SURGICAL SYNC)
+// Merging proven GOLD v5.0 logic with v27 Infrastructure
 const LOG_FILE = path.join(os.tmpdir(), 'deskshare_debug.log');
 function log(msg) { try { fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`); } catch (e) { } }
 
-log('=== v27 FORENSIC START ===');
+log('=== v28 GOLD RESTORATION START ===');
 
-// 1. PROTOCOL REGISTRATION
+// 1. PROTOCOL REGISTRATION (Hijack from old launcher)
 if (process.defaultApp) {
     if (process.argv.length >= 2) { app.setAsDefaultProtocolClient('deskshare', process.execPath, [path.resolve(process.argv[1])]); }
 } else { app.setAsDefaultProtocolClient('deskshare'); }
 
-// 2. SINGLETON & SECOND INSTANCE
+// 2. SINGLETON LOCK
 const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) { log('Instance already running. Signaling and quitting.'); app.quit(); process.exit(0); }
+if (!gotTheLock) { log('Lock engaged. Quitting.'); app.quit(); process.exit(0); }
 
 app.on('second-instance', (event, commandLine) => {
     if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
     }
-    // Search for the protocol link in the command line (more robust than pop)
     const url = commandLine.find(arg => arg.startsWith('deskshare:'));
-    if (url) {
-        log(`Deep Link Received: ${url}`);
-        handleDeepLink(url);
-    }
+    if (url) { log(`Deep Link: ${url}`); handleDeepLink(url); }
 });
 
 function handleDeepLink(url) {
     if (!url || typeof url !== 'string') return;
     try {
-        // Robust cleanup: remove any prefix deskshare://, deskshare:/, or deskshare:
         let cleanUrl = url.replace(/^deskshare:(\/\/)?/, '');
         if (cleanUrl.startsWith('/')) cleanUrl = cleanUrl.substring(1);
-
         const params = new URL('http://localhost/' + cleanUrl);
         const token = params.searchParams.get('token');
         const computerId = params.searchParams.get('computerId');
-
         if (token && computerId) {
             config = { token, computerId };
             saveConfig();
-            log(`Config synced via Link: ID ${computerId}`);
-            // Inform renderers
+            log(`Config Synced: ID ${computerId}`);
             if (mainWindow) mainWindow.webContents.send('init-config', { config, res });
             if (engineWindow) engineWindow.webContents.send('init-engine', { config, res });
-        } else {
-            log(`Invalid Link Params: ID=${computerId} Token=${token ? 'YES' : 'NO'}`);
         }
-    } catch (e) { log(`Deep Link Error: ${e.message} (Raw: ${url})`); }
+    } catch (e) { log(`Link Error: ${e.message}`); }
 }
 
 let mainWindow = null, engineWindow = null, inputProcess = null;
@@ -69,7 +60,7 @@ function saveConfig() {
     } catch (e) { log(`Save Fail: ${e.message}`); }
 }
 
-// NETWORK BRIDGE (Refined)
+// NETWORK BRIDGE (Hybrid v5.0 Logic)
 function nodeRequest(method, pathStr, body) {
     return new Promise((resolve) => {
         try {
@@ -80,7 +71,7 @@ function nodeRequest(method, pathStr, body) {
                 hostname: url.hostname, port: 443, path: url.pathname + url.search, method: method,
                 headers: {
                     'Authorization': 'Bearer ' + config.token, 'Content-Type': 'application/json',
-                    'User-Agent': 'DeskShareLauncher/27.0 (Windows)'
+                    'User-Agent': 'DeskShare/GoldRestored'
                 }
             };
             if (bodyData) opts.headers['Content-Length'] = Buffer.byteLength(bodyData);
@@ -89,37 +80,46 @@ function nodeRequest(method, pathStr, body) {
                 rs.on('data', (c) => d += c);
                 rs.on('end', () => {
                     if (rs.statusCode >= 200 && rs.statusCode < 300) { try { resolve(JSON.parse(d)); } catch (e) { resolve({}); } }
-                    else {
-                        log(`API FAIL [${rs.statusCode}] ${pathStr}: ${d.substring(0, 100)}`);
-                        resolve(null);
-                    }
+                    else { log(`API ${rs.statusCode} ${pathStr}`); resolve(null); }
                 });
             });
-            req.on('error', (e) => { log(`NET ERR: ${e.message}`); resolve(null); });
+            req.on('error', () => resolve(null));
             if (bodyData) req.write(bodyData);
             req.end();
-        } catch (e) { log(`REQ CRASH: ${e.message}`); resolve(null); }
+        } catch (e) { resolve(null); }
     });
 }
 
 ipcMain.handle('api-request', async (e, d) => await nodeRequest(d.method, d.endpoint, d.body));
 ipcMain.handle('get-sources', async () => await desktopCapturer.getSources({ types: ['screen'] }));
 
-ipcMain.on('renderer-ready', (e) => { log('Renderer UI Ready'); if (config) e.reply('init-config', { config, res }); });
-ipcMain.on('engine-ready', (e) => { log('Engine Core Ready'); if (config) e.sender.send('init-engine', { config, res }); });
-ipcMain.on('engine-state', (e, s) => { log(`Peer Connection: ${s}`); if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
-ipcMain.on('log-error', (e, m) => { log(`ENGINE ERR: ${m}`); });
+ipcMain.on('renderer-ready', (e) => { if (config) e.reply('init-config', { config, res }); });
+ipcMain.on('engine-ready', (e) => { if (config) e.reply('init-engine', { config, res }); });
+ipcMain.on('engine-state', (e, s) => { if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
 
+// INPUT CONTROLLER (GOLD v5.0 Mapping)
 ipcMain.on('remote-input', (e, data) => {
     if (!inputProcess || !inputProcess.stdin.writable) return;
-    let finalX = data.x, finalY = data.y;
-    if (data.px !== undefined) { finalX = Math.round(data.px * res.w); finalY = Math.round(data.py * res.h); }
+    const scale = screen.getPrimaryDisplay().scaleFactor || 1;
     let cmd = null;
-    if (data.type === 'mousemove') cmd = `MOVE ${finalX} ${finalY}`;
-    else if (data.type === 'mousedown') { try { inputProcess.stdin.write(`MOVE ${finalX} ${finalY}\n`); } catch (v) { } cmd = `CLICK ${data.button.toUpperCase()} DOWN`; }
-    else if (data.type === 'mouseup') cmd = `CLICK ${data.button.toUpperCase()} UP`;
-    else if (data.type === 'wheel') cmd = `SCROLL ${Math.round(data.deltaY * -1)}`;
-    else if (data.type === 'keydown' || data.type === 'keyup') { if (data.vkCode) cmd = `KEY ${data.vkCode} ${data.type === 'keydown' ? 'DOWN' : 'UP'}`; }
+
+    if (data.type === 'mousemove') {
+        const x = Math.round(data.x * scale);
+        const y = Math.round(data.y * scale);
+        cmd = `MOVE ${x} ${y}`;
+    } else if (data.type === 'mousedown') {
+        const x = Math.round(data.x * scale);
+        const y = Math.round(data.y * scale);
+        if (x !== -1) inputProcess.stdin.write(`MOVE ${x} ${y}\n`);
+        cmd = `CLICK ${data.button.toUpperCase()} DOWN`;
+    } else if (data.type === 'mouseup') {
+        cmd = `CLICK ${data.button.toUpperCase()} UP`;
+    } else if (data.type === 'wheel') {
+        cmd = `SCROLL ${Math.round(data.deltaY * -1)}`;
+    } else if (data.type === 'keydown' || data.type === 'keyup') {
+        if (data.vkCode) cmd = `KEY ${data.vkCode} ${data.type === 'keydown' ? 'DOWN' : 'UP'}`;
+    }
+
     if (cmd) try { inputProcess.stdin.write(cmd + "\n"); } catch (v) { }
 });
 
@@ -146,14 +146,12 @@ app.whenReady().then(() => {
     powerSaveBlocker.start('prevent-app-suspension');
     createMainWindow();
     createEngineWindow();
-
-    // Check initial deep link
-    const initialLink = process.argv.find(arg => arg.startsWith('deskshare:'));
-    if (initialLink) handleDeepLink(initialLink);
+    const l = process.argv.find(a => a.startsWith('deskshare:'));
+    if (l) handleDeepLink(l);
 });
 
 function createMainWindow() {
-    mainWindow = new BrowserWindow({ width: 500, height: 750, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v27.0" });
+    mainWindow = new BrowserWindow({ width: 500, height: 750, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare (Restauración Gold v28)" });
     const ui = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
     mainWindow.loadURL(`data:text/html;base64,${Buffer.from(ui).toString('base64')}`);
     mainWindow.once('ready-to-show', () => mainWindow.show());
