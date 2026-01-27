@@ -232,320 +232,321 @@
                                 Parsec App</a></p>
                     </div>
                 </div>
+
             </div>
 
+            <!-- CHAT WIDGET CONTAINER (HIDDEN) -->
+            <div id="chatWidgetContainer" style="display:none !important"></div>
         </div>
 
-        <!-- CHAT WIDGET CONTAINER -->
-    </div>
+        <!-- Global Dependencies -->
+        <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+        <script src="script.js"></script>
+        <script src="js/chat-manager.js"></script>
+        <script>
+            let booking = null;
+            let startTime = null;
+            let timerInterval = null;
+            let pricePerHour = 0;
 
-    <!-- Global Dependencies -->
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <script src="script.js"></script>
-    <script>
-        let booking = null;
-        let startTime = null;
-        let timerInterval = null;
-        let pricePerHour = 0;
+            // Guacamole Vars
+            let guacClient = null;
+            let guacDisplay = null;
+            let mouse = null;
+            let keyboard = null;
 
-        // Guacamole Vars
-        let guacClient = null;
-        let guacDisplay = null;
-        let mouse = null;
-        let keyboard = null;
+            // WebRTC Vars
+            let webrtcViewer = null;
 
-        // WebRTC Vars
-        let webrtcViewer = null;
+            document.addEventListener('DOMContentLoaded', async () => {
+                if (!checkAuth()) return; // script.js function
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (!checkAuth()) return; // script.js function
+                const urlParams = new URLSearchParams(window.location.search);
+                const bookingId = urlParams.get('bookingId');
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const bookingId = urlParams.get('bookingId');
-
-            if (!bookingId) {
-                alert('ID de booking inválido');
-                window.location.href = 'marketplace.html';
-                return;
-            }
-
-            await initializeSession(bookingId);
-        });
-
-        async function initializeSession(bookingId) {
-            try {
-
-                // DEBUG: Direct fetch to bypass cache/script.js issues
-                const token = localStorage.getItem('authToken');
-                const backendUrl = 'https://deskshare-backend-production.up.railway.app/api';
-
-                const response = await fetch(`${backendUrl}/bookings/${bookingId}/start`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    // SHOW FULL ERROR JSON
-                    alert(`DEBUG ERROR:\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`);
-                    // Don't redirect immediately so user can read
+                if (!bookingId) {
+                    alert('ID de booking inválido');
+                    window.location.href = 'marketplace.html';
                     return;
                 }
 
-                // Success flow
-                booking = data.booking;
-                window.currentBooking = booking; // Store for mode switching
+                await initializeSession(bookingId);
+            });
 
-                // DEBUG: Show Connection Strategy
-                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                debugOverlay.innerHTML += `<div style="color:yellow; border-bottom:1px solid #555; padding-bottom:5px; margin-bottom:5px;">Strategy: ${data.connectionStrategy}</div>`;
-                if (data.connectionDebug) {
-                    debugOverlay.innerHTML += `<div style="font-size:0.8rem; color:#888;">${data.connectionDebug}</div>`;
+            async function initializeSession(bookingId) {
+                try {
+
+                    // DEBUG: Direct fetch to bypass cache/script.js issues
+                    const token = localStorage.getItem('authToken');
+                    const backendUrl = 'https://deskshare-backend-production.up.railway.app/api';
+
+                    const response = await fetch(`${backendUrl}/bookings/${bookingId}/start`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        // SHOW FULL ERROR JSON
+                        alert(`DEBUG ERROR:\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`);
+                        // Don't redirect immediately so user can read
+                        return;
+                    }
+
+                    // Success flow
+                    booking = data.booking;
+                    window.currentBooking = booking; // Store for mode switching
+
+                    // DEBUG: Show Connection Strategy
+                    const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                    debugOverlay.innerHTML += `<div style="color:yellow; border-bottom:1px solid #555; padding-bottom:5px; margin-bottom:5px;">Strategy: ${data.connectionStrategy}</div>`;
+                    if (data.connectionDebug) {
+                        debugOverlay.innerHTML += `<div style="font-size:0.8rem; color:#888;">${data.connectionDebug}</div>`;
+                    }
+
+                    // Update UI
+                    document.getElementById('computerName').textContent = booking.computer?.name || 'PC Remota';
+                    pricePerHour = booking.priceAgreed;
+                    startTime = new Date(); // Reset timer to now
+                    startTimer();
+
+                    // ALWAYS switch to WebRTC Mode (Pure WebRTC Experience)
+                    switchMode('webrtc');
+
+                    // INITIALIZE CHAT (Fixing Key in v8.0)
+                    const user = JSON.parse(localStorage.getItem('currentUser'));
+                    if (user && !window.chatManager) {
+                        const socketUrl = 'https://deskshare-backend-production.up.railway.app';
+                        window.chatManager = new ChatManager(user, socketUrl);
+                    }
+
+                } catch (error) {
+                    console.error('Critical Session Error:', error);
+                    // Only alert if we haven't handled it (e.g. not in WebRTC mode)
+                    alert('Critical Error: ' + error.message);
                 }
-
-                // Update UI
-                document.getElementById('computerName').textContent = booking.computer?.name || 'PC Remota';
-                pricePerHour = booking.priceAgreed;
-                startTime = new Date(); // Reset timer to now
-                startTimer();
-
-                // ALWAYS switch to WebRTC Mode (Pure WebRTC Experience)
-                switchMode('webrtc');
-
-                // INITIALIZE CHAT (Fixing Key in v8.0)
-                const user = JSON.parse(localStorage.getItem('currentUser'));
-                if (user && !window.chatManager) {
-                    const socketUrl = 'https://deskshare-backend-production.up.railway.app';
-                    window.chatManager = new ChatManager(user, socketUrl);
-                }
-
-            } catch (error) {
-                console.error('Critical Session Error:', error);
-                // Only alert if we haven't handled it (e.g. not in WebRTC mode)
-                alert('Critical Error: ' + error.message);
             }
-        }
 
-        // ========================================
-        // Guacamole Logic
-        // ========================================
-        function connectGuacamole(token) {
-            const displayContainer = document.getElementById('display');
+            // ========================================
+            // Guacamole Logic
+            // ========================================
+            function connectGuacamole(token) {
+                const displayContainer = document.getElementById('display');
 
-            // Hardcoded Backend for Production (Railway)
-            const tunnelUrl = 'wss://deskshare-backend-production.up.railway.app/guacamole';
+                // Hardcoded Backend for Production (Railway)
+                const tunnelUrl = 'wss://deskshare-backend-production.up.railway.app/guacamole';
 
-            const tunnel = new Guacamole.WebSocketTunnel(`${tunnelUrl}?token=${token}`);
-            guacClient = new Guacamole.Client(tunnel);
+                const tunnel = new Guacamole.WebSocketTunnel(`${tunnelUrl}?token=${token}`);
+                guacClient = new Guacamole.Client(tunnel);
 
-            guacClient.onerror = function (error) {
-                console.error('Guacamole Client Error:', error);
-                const msg = error.message || error.toString();
-                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                debugOverlay.innerHTML += `<div style="color:red">Error: ${msg}</div>`;
-                alert('Guacamole Error: ' + msg);
-            };
-
-            guacClient.onstatechange = function (state) {
-                const states = {
-                    0: 'IDLE',
-                    1: 'CONNECTING',
-                    2: 'WAITING',
-                    3: 'CONNECTED',
-                    4: 'DISCONNECTING',
-                    5: 'DISCONNECTED'
+                guacClient.onerror = function (error) {
+                    console.error('Guacamole Client Error:', error);
+                    const msg = error.message || error.toString();
+                    const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                    debugOverlay.innerHTML += `<div style="color:red">Error: ${msg}</div>`;
+                    alert('Guacamole Error: ' + msg);
                 };
-                const stateStr = states[state] || state;
-                console.log('Guacamole State:', stateStr);
 
-                const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
-                debugOverlay.innerHTML += `<div>State: ${stateStr}</div>`;
+                guacClient.onstatechange = function (state) {
+                    const states = {
+                        0: 'IDLE',
+                        1: 'CONNECTING',
+                        2: 'WAITING',
+                        3: 'CONNECTED',
+                        4: 'DISCONNECTING',
+                        5: 'DISCONNECTED'
+                    };
+                    const stateStr = states[state] || state;
+                    console.log('Guacamole State:', stateStr);
 
-                if (state === 3) {
-                    debugOverlay.style.display = 'none';
-                }
-            };
+                    const debugOverlay = document.getElementById('debug-overlay') || createDebugOverlay();
+                    debugOverlay.innerHTML += `<div>State: ${stateStr}</div>`;
 
-            guacDisplay = guacClient.getDisplay();
-            const element = guacDisplay.getElement();
-            displayContainer.appendChild(element);
+                    if (state === 3) {
+                        debugOverlay.style.display = 'none';
+                    }
+                };
 
-            let syncCount = 0;
-            guacClient.onsync = function () {
-                syncCount++;
-                const displayWidth = guacDisplay.getWidth();
-                const displayHeight = guacDisplay.getHeight();
+                guacDisplay = guacClient.getDisplay();
+                const element = guacDisplay.getElement();
+                displayContainer.appendChild(element);
 
-                if (syncCount === 1 || syncCount % 10 === 0) {
-                    console.log(`[GUAC] onsync #${syncCount} - Display: ${displayWidth}x${displayHeight}`);
-                }
-
-                if (displayWidth > 0 && displayHeight > 0) {
-                    const containerWidth = displayContainer.offsetWidth;
-                    const containerHeight = displayContainer.offsetHeight;
-                    const scaleX = containerWidth / displayWidth;
-                    const scaleY = containerHeight / displayHeight;
-                    const scale = Math.min(scaleX, scaleY, 1);
-                    guacDisplay.scale(scale);
-                }
-            };
-
-            guacClient.connect();
-
-            mouse = new Guacamole.Mouse(element);
-            mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
-                const scale = guacDisplay.getScale();
-                mouseState.x = mouseState.x / scale;
-                mouseState.y = mouseState.y / scale;
-                guacClient.sendMouseState(mouseState);
-            };
-
-            keyboard = new Guacamole.Keyboard(document);
-            keyboard.onkeydown = function (keysym) {
-                guacClient.sendKeyEvent(1, keysym);
-            };
-            keyboard.onkeyup = function (keysym) {
-                guacClient.sendKeyEvent(0, keysym);
-            };
-
-            window.onblur = function () { keyboard.reset(); };
-
-            window.addEventListener('resize', () => {
-                if (guacDisplay && guacDisplay.getWidth() > 0) {
-                    const containerWidth = displayContainer.offsetWidth;
-                    const containerHeight = displayContainer.offsetHeight;
+                let syncCount = 0;
+                guacClient.onsync = function () {
+                    syncCount++;
                     const displayWidth = guacDisplay.getWidth();
                     const displayHeight = guacDisplay.getHeight();
-                    const scaleX = containerWidth / displayWidth;
-                    const scaleY = containerHeight / displayHeight;
-                    const scale = Math.min(scaleX, scaleY, 1);
-                    guacDisplay.scale(scale);
-                }
-            });
 
-            // Real Latency (via HTTP Ping to Backend)
-            setInterval(async () => {
-                const latencyVal = document.getElementById('latency-value');
-                const latencyDot = document.getElementById('latency-dot');
+                    if (syncCount === 1 || syncCount % 10 === 0) {
+                        console.log(`[GUAC] onsync #${syncCount} - Display: ${displayWidth}x${displayHeight}`);
+                    }
+
+                    if (displayWidth > 0 && displayHeight > 0) {
+                        const containerWidth = displayContainer.offsetWidth;
+                        const containerHeight = displayContainer.offsetHeight;
+                        const scaleX = containerWidth / displayWidth;
+                        const scaleY = containerHeight / displayHeight;
+                        const scale = Math.min(scaleX, scaleY, 1);
+                        guacDisplay.scale(scale);
+                    }
+                };
+
+                guacClient.connect();
+
+                mouse = new Guacamole.Mouse(element);
+                mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = function (mouseState) {
+                    const scale = guacDisplay.getScale();
+                    mouseState.x = mouseState.x / scale;
+                    mouseState.y = mouseState.y / scale;
+                    guacClient.sendMouseState(mouseState);
+                };
+
+                keyboard = new Guacamole.Keyboard(document);
+                keyboard.onkeydown = function (keysym) {
+                    guacClient.sendKeyEvent(1, keysym);
+                };
+                keyboard.onkeyup = function (keysym) {
+                    guacClient.sendKeyEvent(0, keysym);
+                };
+
+                window.onblur = function () { keyboard.reset(); };
+
+                window.addEventListener('resize', () => {
+                    if (guacDisplay && guacDisplay.getWidth() > 0) {
+                        const containerWidth = displayContainer.offsetWidth;
+                        const containerHeight = displayContainer.offsetHeight;
+                        const displayWidth = guacDisplay.getWidth();
+                        const displayHeight = guacDisplay.getHeight();
+                        const scaleX = containerWidth / displayWidth;
+                        const scaleY = containerHeight / displayHeight;
+                        const scale = Math.min(scaleX, scaleY, 1);
+                        guacDisplay.scale(scale);
+                    }
+                });
+
+                // Real Latency (via HTTP Ping to Backend)
+                setInterval(async () => {
+                    const latencyVal = document.getElementById('latency-value');
+                    const latencyDot = document.getElementById('latency-dot');
+
+                    try {
+                        const start = Date.now();
+                        await fetch('https://deskshare-backend-production.up.railway.app/api/health', { cache: 'no-store' });
+                        const latency = Date.now() - start;
+
+                        if (latencyVal) latencyVal.textContent = latency + ' ms';
+
+                        if (latencyDot) {
+                            if (latency < 150) latencyDot.style.backgroundColor = '#00ff00';
+                            else if (latency < 400) latencyDot.style.backgroundColor = '#ffff00';
+                            else latencyDot.style.backgroundColor = '#ff0000';
+                        }
+                    } catch (e) {
+                        if (latencyVal) latencyVal.textContent = '-- ms';
+                        if (latencyDot) latencyDot.style.backgroundColor = '#666';
+                    }
+                }, 3000);
+            }
+
+            // ========================================
+            // RustDesk Logic
+            // ========================================
+            function connectRustDesk(rustdeskId, password) {
+                const displayContainer = document.getElementById('display');
+                displayContainer.innerHTML = `<div style="color:white;text-align:center;padding:50px;"><h2>RustDesk P2P</h2><p>Abriendo app...</p></div>`;
+                setTimeout(() => openRustDeskApp(rustdeskId, password), 1500);
+            }
+
+            function openRustDeskApp(rustdeskId, password) {
+                window.location.href = `rustdesk://connection/new/${rustdeskId}?password=${password}`;
+            }
+
+            // ========================================
+            // UI Logic
+            // ========================================
+            function switchMode(mode) {
+                const webrtcView = document.getElementById('webrtc-view');
+                const btnWebrtc = document.getElementById('btn-webrtc');
+                const debugOverlay = document.getElementById('debug-overlay');
+
+                // Hide all potential views (Null-safe)
+                ['guacamole-view', 'parsec-view', 'webrtc-view'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+
+                if (debugOverlay) {
+                    if (mode === 'webrtc') debugOverlay.classList.add('hidden-force');
+                    else debugOverlay.classList.remove('hidden-force');
+                    debugOverlay.style.display = 'none';
+                }
+
+                if (mode === 'webrtc') {
+                    if (webrtcView) webrtcView.style.display = 'flex';
+                    if (btnWebrtc) btnWebrtc.classList.add('active');
+
+                    // AUDIO UNLOCK: When user clicks/interacts to switch to WebRTC (or initializing), unmute
+                    if (webrtcViewer) webrtcViewer.unmute();
+
+                    // Initialize WebRTC if not already running
+                    if (!webrtcViewer && window.currentBooking) {
+                        console.log('Initializing WebRTC Viewer...');
+                        webrtcViewer = new WebRTCViewer('webrtc-canvas', window.currentBooking);
+                        webrtcViewer.connect().catch(err => {
+                            console.error('WebRTC Start Failed:', err);
+                            alert('Error iniciando WebRTC: ' + err.message);
+                        });
+                    }
+                }
+            }
+
+            function startTimer() {
+                timerInterval = setInterval(() => {
+                    const now = new Date();
+                    const elapsed = now - startTime;
+
+                    const date = new Date(elapsed);
+                    const h = String(Math.floor(elapsed / 3600000)).padStart(2, '0');
+                    const m = String(date.getUTCMinutes()).padStart(2, '0');
+                    const s = String(date.getUTCSeconds()).padStart(2, '0');
+
+                    document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
+                }, 1000);
+            }
+
+            async function endSession() {
+                if (!confirm('¿Terminar sesión?')) return;
 
                 try {
-                    const start = Date.now();
-                    await fetch('https://deskshare-backend-production.up.railway.app/api/health', { cache: 'no-store' });
-                    const latency = Date.now() - start;
+                    if (guacClient) guacClient.disconnect();
 
-                    if (latencyVal) latencyVal.textContent = latency + ' ms';
-
-                    if (latencyDot) {
-                        if (latency < 150) latencyDot.style.backgroundColor = '#00ff00';
-                        else if (latency < 400) latencyDot.style.backgroundColor = '#ffff00';
-                        else latencyDot.style.backgroundColor = '#ff0000';
-                    }
+                    await apiRequest(`/bookings/${booking.id}/end`, { method: 'POST' });
+                    window.location.href = 'profile.html';
                 } catch (e) {
-                    if (latencyVal) latencyVal.textContent = '-- ms';
-                    if (latencyDot) latencyDot.style.backgroundColor = '#666';
-                }
-            }, 3000);
-        }
-
-        // ========================================
-        // RustDesk Logic
-        // ========================================
-        function connectRustDesk(rustdeskId, password) {
-            const displayContainer = document.getElementById('display');
-            displayContainer.innerHTML = `<div style="color:white;text-align:center;padding:50px;"><h2>RustDesk P2P</h2><p>Abriendo app...</p></div>`;
-            setTimeout(() => openRustDeskApp(rustdeskId, password), 1500);
-        }
-
-        function openRustDeskApp(rustdeskId, password) {
-            window.location.href = `rustdesk://connection/new/${rustdeskId}?password=${password}`;
-        }
-
-        // ========================================
-        // UI Logic
-        // ========================================
-        function switchMode(mode) {
-            const webrtcView = document.getElementById('webrtc-view');
-            const btnWebrtc = document.getElementById('btn-webrtc');
-            const debugOverlay = document.getElementById('debug-overlay');
-
-            // Hide all potential views (Null-safe)
-            ['guacamole-view', 'parsec-view', 'webrtc-view'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.style.display = 'none';
-            });
-
-            if (debugOverlay) {
-                if (mode === 'webrtc') debugOverlay.classList.add('hidden-force');
-                else debugOverlay.classList.remove('hidden-force');
-                debugOverlay.style.display = 'none';
-            }
-
-            if (mode === 'webrtc') {
-                if (webrtcView) webrtcView.style.display = 'flex';
-                if (btnWebrtc) btnWebrtc.classList.add('active');
-
-                // AUDIO UNLOCK: When user clicks/interacts to switch to WebRTC (or initializing), unmute
-                if (webrtcViewer) webrtcViewer.unmute();
-
-                // Initialize WebRTC if not already running
-                if (!webrtcViewer && window.currentBooking) {
-                    console.log('Initializing WebRTC Viewer...');
-                    webrtcViewer = new WebRTCViewer('webrtc-canvas', window.currentBooking);
-                    webrtcViewer.connect().catch(err => {
-                        console.error('WebRTC Start Failed:', err);
-                        alert('Error iniciando WebRTC: ' + err.message);
-                    });
+                    console.error(e);
+                    window.location.href = 'profile.html';
                 }
             }
-        }
 
-        function startTimer() {
-            timerInterval = setInterval(() => {
-                const now = new Date();
-                const elapsed = now - startTime;
-
-                const date = new Date(elapsed);
-                const h = String(Math.floor(elapsed / 3600000)).padStart(2, '0');
-                const m = String(date.getUTCMinutes()).padStart(2, '0');
-                const s = String(date.getUTCSeconds()).padStart(2, '0');
-
-                document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
-            }, 1000);
-        }
-
-        async function endSession() {
-            if (!confirm('¿Terminar sesión?')) return;
-
-            try {
+            // Cleanup
+            window.onbeforeunload = function () {
                 if (guacClient) guacClient.disconnect();
+            };
 
-                await apiRequest(`/bookings/${booking.id}/end`, { method: 'POST' });
-                window.location.href = 'profile.html';
-            } catch (e) {
-                console.error(e);
-                window.location.href = 'profile.html';
+            // Global Debug Helper
+            function createDebugOverlay() {
+                const div = document.createElement('div');
+                div.id = 'debug-overlay';
+                div.style.cssText = 'position:fixed; top:60px; left:10px; background:rgba(0,0,0,0.8); color:#0f0; padding:10px; border:1px solid #0f0; font-family:monospace; z-index:9999; max-width:300px; pointer-events:none;';
+                document.body.appendChild(div);
+                return div;
             }
-        }
 
-        // Cleanup
-        window.onbeforeunload = function () {
-            if (guacClient) guacClient.disconnect();
-        };
-
-        // Global Debug Helper
-        function createDebugOverlay() {
-            const div = document.createElement('div');
-            div.id = 'debug-overlay';
-            div.style.cssText = 'position:fixed; top:60px; left:10px; background:rgba(0,0,0,0.8); color:#0f0; padding:10px; border:1px solid #0f0; font-family:monospace; z-index:9999; max-width:300px; pointer-events:none;';
-            document.body.appendChild(div);
-            return div;
-        }
-
-    </script>
+        </script>
 </body>
 
 </html>
