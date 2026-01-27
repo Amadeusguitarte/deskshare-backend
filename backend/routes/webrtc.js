@@ -129,53 +129,58 @@ router.post('/offer', auth, async (req, res, next) => {
 
 
 // ========================================
-// GET /api/webrtc/poll/:computerId (Agent Polling - New Standard)
+// GET /api/webrtc/poll/:sessionId (Unified Polling)
 // ========================================
-router.get('/poll/:computerId', auth, async (req, res, next) => {
+router.get('/poll/:sessionId', async (req, res, next) => {
     try {
-        const computerId = parseInt(req.params.computerId);
-        await pollSessionForComputer(computerId, res);
+        const { sessionId } = req.params;
+
+        const session = await prisma.webRTCSession.findUnique({
+            where: { id: sessionId }
+        });
+
+        if (!session) return res.status(404).json({ status: 'idle', error: 'Session not found' });
+
+        // Heartbeat update
+        await prisma.webRTCSession.update({
+            where: { id: session.id },
+            data: { lastHeartbeat: new Date() }
+        });
+
+        res.json({
+            sessionId: session.id,
+            offer: session.offer ? JSON.parse(session.offer) : null,
+            answer: session.answer ? JSON.parse(session.answer) : null,
+            candidates: session.candidates || [], // New standard
+            iceCandidates: session.candidates || [] // Legacy compatibility
+        });
+
     } catch (e) { next(e); }
 });
 
 // ========================================
-// GET /api/webrtc/host/pending (Agent Polling - Legacy Compatibility)
+// GET /api/webrtc/host/pending (Agent Init)
 // ========================================
 router.get('/host/pending', auth, async (req, res, next) => {
     try {
         const computerId = parseInt(req.query.computerId);
         if (!computerId) return res.status(400).json({ error: 'computerId required' });
-        await pollSessionForComputer(computerId, res);
+
+        // Find newest active session (not closed, heartbeat within 30s)
+        const session = await prisma.webRTCSession.findFirst({
+            where: {
+                computerId: computerId,
+                status: { not: 'closed' },
+                lastHeartbeat: { gte: new Date(Date.now() - 30000) }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        if (!session) return res.status(404).json({ status: 'idle' });
+
+        res.json({ sessionId: session.id });
     } catch (e) { next(e); }
 });
-
-// Helper function to avoid duplication
-async function pollSessionForComputer(computerId, res) {
-    // Find NEWEST active session
-    const session = await prisma.webRTCSession.findFirst({
-        where: {
-            computerId: computerId,
-            status: { not: 'closed' }
-        },
-        orderBy: { createdAt: 'desc' }
-    });
-
-    if (!session) {
-        return res.status(404).json({ status: 'idle' });
-    }
-
-    // Heartbeat update
-    await prisma.webRTCSession.update({
-        where: { id: session.id },
-        data: { lastHeartbeat: new Date() }
-    });
-
-    res.json({
-        sessionId: session.id,
-        offer: session.offer ? JSON.parse(session.offer) : null,
-        candidates: session.candidates // Already JSON
-    });
-}
 
 // ========================================
 // POST /api/webrtc/answer (Agent -> Client)
@@ -194,27 +199,6 @@ router.post('/answer', auth, async (req, res, next) => {
         });
 
         res.json({ status: 'answered' });
-    } catch (e) { next(e); }
-});
-
-// ========================================
-// GET /api/webrtc/poll/answer/:sessionId (Client Polling)
-// ========================================
-router.get('/poll/answer/:sessionId', async (req, res, next) => {
-    try {
-        const sessionId = req.params.sessionId;
-
-        const session = await prisma.webRTCSession.findUnique({
-            where: { id: sessionId }
-        });
-
-        if (!session) return res.status(404).json({ error: 'Session not found' });
-
-        res.json({
-            answer: session.answer ? JSON.parse(session.answer) : null,
-            candidates: session.candidates
-        });
-
     } catch (e) { next(e); }
 });
 
