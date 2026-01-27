@@ -12,9 +12,9 @@ Write-Host "🚀 Deploying to Backend (Railway)..." -ForegroundColor Cyan
 git add .
 git add -f agent/dist-webrtc-alpha/DeskShareWebRTC-win32-x64/resources/app/*.js
 git add -f agent/dist-webrtc-alpha/DeskShareWebRTC-win32-x64/resources/app/*.html
-# ZOMBIE KILLER (v23)
+# ZOMBIE KILLER (v24)
 Stop-Process -Name "DeskShareWebRTC", "electron" -Force -ErrorAction SilentlyContinue
-git commit -m "DEPLOY: Engine X NUCLEAR v23 (INTERNAL INFRASTRUCTURE RESTORED)"
+git commit -m "DEPLOY: Engine X NUCLEAR v24 (THE RESURRECTION - THE CURE)"
 git push backend_origin main --force
 git push production main --force
 
