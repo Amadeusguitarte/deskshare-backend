@@ -7,6 +7,7 @@
 
 <body>
     <script>
+        // ZERO-BASE ENGINE v2.0 (Strict Viewer-Initiated Flow)
         const { ipcRenderer } = require('electron');
         let config = null, currentSid = null, pc = null, res = null;
         let iceSet = new Set();
@@ -19,58 +20,60 @@
 
         window.onerror = function (message) { log(`CRITICAL ERROR: ${message}`); };
 
-        log("Engine Started (Zero Base)");
+        log("Engine Started (Zero-Base v2.0)");
         ipcRenderer.send('engine-ready');
 
         ipcRenderer.on('init-engine', (e, d) => {
             config = d.config; res = d.res;
-            log(`[SMART SYNC] Active for ID: ${config.computerId}`);
-
-            // CLEAN START
-            if (pc) { pc.close(); pc = null; }
-            currentSid = null; iceSet.clear();
-
-            if (pollInterval) clearInterval(pollInterval);
+            log(`[SYNC] Active ID: ${config.computerId}`);
+            reset();
             pollInterval = setInterval(poll, 1500);
             poll();
         });
+
+        function reset() {
+            if (pc) { pc.close(); pc = null; }
+            currentSid = null;
+            iceSet.clear();
+        }
 
         async function api(method, endpoint, body = null) {
             return await ipcRenderer.invoke('api-request', { method, endpoint, body });
         }
 
-        // SMART SYNC: Detect "Last Link" Activity
         async function poll() {
             if (!config) return;
             try {
-                // We ask: "Is there a session waiting for me?"
-                // This corresponds to the user clicking the link -> creating session -> we sync with it.
+                // 1. DISCOVERY: Find the Session created by the Viewer (via Link)
                 const r = await api('GET', "/webrtc/host/pending?computerId=" + config.computerId);
 
                 if (r && r.sessionId) {
                     const sid = r.sessionId;
 
-                    // NEW SESSION (SYNC EVENT)
-                    if (sid !== currentSid || !pc || pc.connectionState === 'failed') {
-                        currentSid = sid; iceSet.clear();
-                        log(`[SMART SYNC] Detected Link Activity. Session: ${sid}`);
+                    // NEW SESSION DETECTED
+                    if (sid !== currentSid) {
+                        currentSid = sid;
+                        log(`[SYNC] Linked to Session: ${sid}`);
 
+                        // 2. CHECK FOR OFFER (Viewer must have sent it)
                         const p = await api('GET', "/webrtc/poll/" + sid);
                         if (p && p.offer) {
-                            log('Offer Received. Executing Shake...');
-                            handle(p.offer);
+                            log('[HANDSHAKE] Offer Received. Processing...');
+                            acceptOffer(p.offer);
+                        } else {
+                            log('[WAIT] Session found, but waiting for Viewer Offer...');
                         }
-                    }
-
-                    // ICE HANDLING
-                    if (pc && pc.remoteDescription) {
-                        const p = await api('GET', "/webrtc/poll/" + sid);
-                        if (p && p.iceCandidates) {
-                            for (const c of p.iceCandidates) {
-                                let s = JSON.stringify(c);
-                                if (!iceSet.has(s)) {
-                                    iceSet.add(s);
-                                    pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
+                    } else {
+                        // EXISTING SESSION - Poll for ICE only
+                        if (pc && pc.remoteDescription) {
+                            const p = await api('GET', "/webrtc/poll/" + sid);
+                            if (p && p.iceCandidates) {
+                                for (const c of p.iceCandidates) {
+                                    let s = JSON.stringify(c);
+                                    if (!iceSet.has(s)) {
+                                        iceSet.add(s);
+                                        pc.addIceCandidate(new RTCIceCandidate(c)).catch(e => log("ICE Add Fail: " + e.message));
+                                    }
                                 }
                             }
                         }
@@ -79,27 +82,39 @@
             } catch (e) { log('Poll Error: ' + e.message); }
         }
 
-        async function handle(sdp) {
+        async function acceptOffer(remoteOffer) {
             try {
                 if (pc) pc.close();
-                log("Constructing PeerConnection...");
+                log("[WEBRTC] Creating PeerConnection...");
                 pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] });
-                pc.onicecandidate = (e) => { if (e.candidate) api('POST', '/webrtc/ice', { sessionId: currentSid, candidate: e.candidate, isHost: true }); };
+
+                // ICE HANDLING
+                pc.onicecandidate = (e) => {
+                    if (e.candidate) {
+                        api('POST', '/webrtc/ice', { sessionId: currentSid, candidate: e.candidate, isHost: true });
+                        log('[ICE] Sent Candidate');
+                    }
+                };
+
+                // DATA CHANNELS (Viewer opens them, we answer)
                 pc.ondatachannel = (ev) => {
-                    ev.channel.onmessage = (e) => {
+                    const ch = ev.channel;
+                    log(`[DATA] Channel Opened: ${ch.label}`);
+                    ch.onmessage = (e) => {
                         const data = JSON.parse(e.data);
-                        if (data.type === 'ping') ev.channel.send(JSON.stringify({ type: 'pong', ts: data.ts }));
+                        if (data.type === 'ping') ch.send(JSON.stringify({ type: 'pong', ts: data.ts }));
                         else ipcRenderer.send('remote-input', data);
                     };
                 };
+
                 pc.onconnectionstatechange = () => {
-                    log(`Connection State: ${pc.connectionState}`);
+                    log(`[STATE] ${pc.connectionState.toUpperCase()}`);
                     ipcRenderer.send('engine-state', pc.connectionState);
                 };
 
+                // SCREEN CAPTURE
                 const sources = await ipcRenderer.invoke('get-sources');
-                log("Requesting Screen Access...");
-
+                log("[MEDIA] Capturing Screen...");
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: {
@@ -111,18 +126,20 @@
                     }
                 });
 
-                log("Access Granted. Adding Tracks...");
                 stream.getTracks().forEach(t => pc.addTrack(t, stream));
+                log("[MEDIA] Stream Added.");
 
-                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-                const ans = await pc.createAnswer();
-                await pc.setLocalDescription(ans);
-                await api('POST', "/webrtc/answer", { sessionId: currentSid, sdp: ans });
+                // HANDSHAKE COMPLETION
+                await pc.setRemoteDescription(new RTCSessionDescription(remoteOffer)); // Set Client Offer
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer); // Set Host Answer
 
-                log('Answer Sent. Waiting for Link to finalize...');
+                await api('POST', "/webrtc/answer", { sessionId: currentSid, sdp: answer }); // Send Answer
+                log('[HANDSHAKE] Answer Sent! Connection should start.');
+
             } catch (err) {
-                log('CRITICAL HANDSHAKE ERROR: ' + err.message);
-                ipcRenderer.send('log-error', 'Handle Fail: ' + err.message);
+                log('[ERROR] Handshake Failed: ' + err.message);
+                ipcRenderer.send('log-error', err.message);
             }
         }
     </script>
