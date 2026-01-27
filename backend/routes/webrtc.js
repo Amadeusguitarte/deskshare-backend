@@ -50,11 +50,18 @@ router.post('/session/create', auth, async (req, res, next) => {
 
         if (!targetId) return res.status(400).json({ error: 'Target ID required' });
 
+        // v55: Fetch real name from DB since token might only have ID
+        let personName = req.user.name;
+        if (!personName) {
+            const user = await prisma.user.findUnique({ where: { id: req.user.userId || req.user.id }, select: { name: true } });
+            personName = user?.name;
+        }
+
         const session = await prisma.webRTCSession.create({
             data: {
                 computerId: parseInt(targetId),
                 bookingId: bookingId ? parseInt(bookingId) : null,
-                clientName: req.user.name || 'Usuario DeskShare',
+                clientName: personName || 'Usuario DeskShare',
                 status: 'pending',
                 candidates: []
             }
@@ -79,21 +86,36 @@ router.post('/offer', auth, async (req, res, next) => {
 
         let session;
         if (sessionId) {
+            // v55: Fetch real name from DB
+            let personName = req.user.name;
+            if (!personName) {
+                const user = await prisma.user.findUnique({ where: { id: req.user.userId || req.user.id }, select: { name: true } });
+                personName = user?.name;
+            }
+
             session = await prisma.webRTCSession.update({
                 where: { id: sessionId },
                 data: {
                     offer: JSON.stringify(sdp),
                     status: 'negotiating',
-                    clientName: req.user.name || 'Usuario DeskShare'
+                    clientName: personName || 'Usuario DeskShare'
                 }
             });
         } else {
+            // v55: Fetch real name for direct offer
+            let personName = req.user.name;
+            if (!personName) {
+                const user = await prisma.user.findUnique({ where: { id: req.user.userId || req.user.id }, select: { name: true } });
+                personName = user?.name;
+            }
+
             // Fallback for direct offers without /create
             session = await prisma.webRTCSession.create({
                 data: {
                     computerId: parseInt(targetComputerId),
                     offer: JSON.stringify(sdp),
                     status: 'negotiating',
+                    clientName: personName || 'Usuario DeskShare',
                     candidates: []
                 }
             });
