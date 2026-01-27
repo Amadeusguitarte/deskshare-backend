@@ -180,9 +180,11 @@ router.post('/ice', async (req, res, next) => {
 
         const candidates = session.candidates || [];
 
-        // Ensure candidate has required fields to avoid browser-side constructor error
-        // Some libraries send candidate as an object, others as a string.
+        // v52: Reject malformed or empty candidates
         const candData = typeof candidate === 'string' ? { candidate } : candidate;
+        if (!candData || (!candData.candidate && candData.candidate !== "")) {
+            return res.json({ status: 'ignored_invalid' });
+        }
 
         candidates.push({ ...candData, isHost });
 
