@@ -4,8 +4,12 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 
+app.setName("DeskShare");
 app.name = "DeskShare";
 process.title = "DeskShare";
+if (process.platform === 'win32') {
+    app.setAppUserModelId("com.deskshare.agent");
+}
 
 // v80: PRODUCTION SYNC (Percentage Mapping + Axios Gold)
 // v80: PRODUCTION SYNC (Percentage Mapping + Axios Gold)
