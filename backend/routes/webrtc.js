@@ -138,247 +138,121 @@ router.post('/session/create', auth, async (req, res, next) => {
         const booking = await prisma.booking.findUnique({
             where: { id: parseInt(bookingId) },
             include: { computer: true }
-        });
-
-        if (!booking || booking.renterId !== userId) {
-            return res.status(403).json({ error: 'Not authorized' });
+                computerId: parseInt(targetComputerId),
+            bookingId: bookingId ? parseInt(bookingId) : null,
+            offer: JSON.stringify(sdp),
+            status: 'negotiating',
+            candidates: [] // Init empty array
         }
-
-        if (booking.status !== 'active') {
-            return res.status(400).json({ error: 'Booking not active' });
-        }
-
-        if (!booking.computer.webrtcCapable) {
-            return res.status(400).json({ error: 'Host does not support WebRTC' });
-        }
-
-        // Generate session ID
-        const sessionId = `webrtc-${bookingId}-${Date.now()}`;
-
-        // Store session
-        activeSessions.set(sessionId, {
-            bookingId: booking.id,
-            computerId: booking.computer.id,
-            renterId: userId,
-            hostId: booking.computer.userId,
-            createdAt: Date.now(),
-            offer: null,
-            answer: null,
-            hostIceCandidates: [],
-            viewerIceCandidates: []
         });
 
-        // Update booking
-        await prisma.booking.update({
-            where: { id: booking.id },
-            data: { webrtcSessionId: sessionId }
-        });
-
-        console.log(`[WebRTC] Session created: ${sessionId}`);
-
-        res.json({
-            success: true,
-            sessionId,
-            message: 'WebRTC session created'
-        });
-
-    } catch (error) {
-        next(error);
-    }
+// 2. Update Computer (Optional, for UI status)
+await prisma.computer.update({
+    where: { id: parseInt(targetComputerId) },
+    data: { webrtcSessionId: session.id }
 });
 
+res.json({ status: 'offered', sessionId: session.id });
+    } catch (e) { next(e); }
+});
+
+
 // ========================================
-// POST /api/webrtc/offer
-// Viewer sends SDP offer
+// GET /api/webrtc/poll/:computerId (Agent Polling)
 // ========================================
-router.post('/offer', auth, async (req, res, next) => {
+router.get('/poll/:computerId', auth, async (req, res, next) => {
     try {
-        const { sessionId, sdp } = req.body;
+        const computerId = parseInt(req.params.computerId);
 
-        if (!sessionId || !sdp) {
-            return res.status(400).json({ error: 'sessionId and sdp required' });
-        }
-
-        const session = activeSessions.get(sessionId);
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
-
-        // Verify requester is viewer
-        const userId = req.user.userId || req.user.id;
-        if (session.renterId !== userId) {
-            return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        // Store offer
-        session.offer = sdp;
-        session.offerTimestamp = Date.now();
-
-        console.log(`[WebRTC] Offer received for session ${sessionId}`);
-
-        res.json({
-            success: true,
-            message: 'Offer stored, waiting for answer from host'
+        // Find NEWEST active session
+        const session = await prisma.webRTCSession.findFirst({
+            where: {
+                computerId: computerId,
+                status: { not: 'closed' }
+            },
+            orderBy: { createdAt: 'desc' }
         });
 
-    } catch (error) {
-        next(error);
-    }
+        if (!session) {
+            return res.status(404).json({ status: 'idle' });
+        }
+
+        // Heartbeat update
+        await prisma.webRTCSession.update({
+            where: { id: session.id },
+            data: { lastHeartbeat: new Date() }
+        });
+
+        res.json({
+            sessionId: session.id,
+            offer: session.offer ? JSON.parse(session.offer) : null,
+            candidates: session.candidates // Already JSON
+        });
+    } catch (e) { next(e); }
 });
 
 // ========================================
-// POST /api/webrtc/answer
-// Host sends SDP answer
+// POST /api/webrtc/answer (Agent -> Client)
 // ========================================
 router.post('/answer', auth, async (req, res, next) => {
     try {
         const { sessionId, sdp } = req.body;
+        console.log(`[WebRTC] Received ANSWER for Session ${sessionId}`);
 
-        if (!sessionId || !sdp) {
-            return res.status(400).json({ error: 'sessionId and sdp required' });
-        }
-
-        const session = activeSessions.get(sessionId);
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
-
-        // Verify requester is host
-        const userId = req.user.userId || req.user.id;
-        if (session.hostId !== userId) {
-            return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        // Store answer
-        session.answer = sdp;
-        session.answerTimestamp = Date.now();
-
-        console.log(`[WebRTC] Answer received for session ${sessionId}`);
-
-        res.json({
-            success: true,
-            message: 'Answer stored'
-        });
-
-    } catch (error) {
-        next(error);
-    }
-});
-
-// ========================================
-// POST /api/webrtc/ice
-// Add ICE candidate (host or viewer)
-// ========================================
-router.post('/ice', auth, async (req, res, next) => {
-    try {
-        const { sessionId, candidate, isHost } = req.body;
-
-        if (!sessionId || !candidate) {
-            return res.status(400).json({ error: 'sessionId and candidate required' });
-        }
-
-        const session = activeSessions.get(sessionId);
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
-
-        // Add to appropriate array
-        if (isHost) {
-            session.hostIceCandidates.push(candidate);
-        } else {
-            session.viewerIceCandidates.push(candidate);
-        }
-
-        console.log(`[WebRTC] ICE candidate added (${isHost ? 'host' : 'viewer'}) for session ${sessionId}`);
-
-        res.json({
-            success: true,
-            message: 'ICE candidate stored'
-        });
-
-    } catch (error) {
-        next(error);
-    }
-});
-
-// ========================================
-// GET /api/webrtc/poll/:sessionId
-// Poll for signaling data (offer/answer/ice)
-// ========================================
-router.get('/poll/:sessionId', auth, async (req, res, next) => {
-    try {
-        const { sessionId } = req.params;
-        const { lastPoll } = req.query; // Timestamp of last poll
-
-        const session = activeSessions.get(sessionId);
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
-
-        const userId = req.user.userId || req.user.id;
-        const isHost = session.hostId === userId;
-        const isViewer = session.renterId === userId;
-
-        if (!isHost && !isViewer) {
-            return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        // Return relevant data based on role
-        const response = {
-            sessionId,
-            timestamp: Date.now()
-        };
-
-        if (isHost) {
-            // Host gets viewer's offer and ICE candidates
-            if (session.offer) response.offer = session.offer;
-            response.iceCandidates = session.viewerIceCandidates;
-
-            // Include renter name for the Launcher UI
-            try {
-                const renter = await prisma.user.findUnique({
-                    where: { id: session.renterId },
-                    select: { name: true }
-                });
-                response.userName = renter ? renter.name : 'Invitado';
-            } catch (e) {
-                response.userName = 'Invitado';
+        await prisma.webRTCSession.update({
+            where: { id: sessionId },
+            data: {
+                answer: JSON.stringify(sdp),
+                status: 'connected'
             }
-        } else {
-            // Viewer gets host's answer and ICE candidates
-            if (session.answer) response.answer = session.answer;
-            response.iceCandidates = session.hostIceCandidates;
-        }
+        });
 
-        res.json(response);
-
-    } catch (error) {
-        next(error);
-    }
+        res.json({ status: 'answered' });
+    } catch (e) { next(e); }
 });
 
 // ========================================
-// DELETE /api/webrtc/session/:sessionId
-// Close session
+// GET /api/webrtc/poll/answer/:sessionId (Client Polling)
 // ========================================
-router.delete('/session/:sessionId', auth, async (req, res, next) => {
+router.get('/poll/answer/:sessionId', async (req, res, next) => {
     try {
-        const { sessionId } = req.params;
+        const sessionId = req.params.sessionId;
 
-        const session = activeSessions.get(sessionId);
-        if (session) {
-            activeSessions.delete(sessionId);
-            console.log(`[WebRTC] Session closed: ${sessionId}`);
-        }
-
-        res.json({
-            success: true,
-            message: 'Session closed'
+        const session = await prisma.webRTCSession.findUnique({
+            where: { id: sessionId }
         });
 
-    } catch (error) {
-        next(error);
-    }
+        if (!session) return res.status(404).json({ error: 'Session not found' });
+
+        res.json({
+            answer: session.answer ? JSON.parse(session.answer) : null,
+            candidates: session.candidates
+        });
+
+    } catch (e) { next(e); }
+});
+
+// ========================================
+// POST /api/webrtc/ice (Bidirectional)
+// ========================================
+router.post('/ice', async (req, res, next) => {
+    try {
+        const { sessionId, candidate, sender } = req.body; // sender: 'agent' or 'client'
+
+        // Read-Modify-Write pattern for appending candidates
+        const session = await prisma.webRTCSession.findUnique({ where: { id: sessionId } });
+        if (!session) return res.status(404).json({ error: 'Session not found' });
+
+        const candidates = session.candidates || [];
+        candidates.push({ ...candidate, sender });
+
+        await prisma.webRTCSession.update({
+            where: { id: sessionId },
+            data: { candidates }
+        });
+
+        res.json({ status: 'candidate_added' });
+    } catch (e) { next(e); }
 });
 
 module.exports = router;

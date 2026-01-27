@@ -164,3 +164,23 @@ model Review {
 
   @@map("reviews")
 }
+
+model WebRTCSession {
+  id              String   @id @default(uuid())
+  computerId      Int      @map("computer_id")
+  bookingId       Int?     @map("booking_id")
+  
+  offer           String?  @db.Text
+  answer          String?  @db.Text
+  candidates      Json?    @default("[]") // Store ICE candidates as JSON array
+  status          String   @default("pending") // pending, negotiating, connected, closed
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  lastHeartbeat   DateTime @default(now()) @map("last_heartbeat")
+
+  // Relations
+  computer Computer @relation(fields: [computerId], references: [id], onDelete: Cascade)
+
+  @@map("webrtc_sessions")
+}
