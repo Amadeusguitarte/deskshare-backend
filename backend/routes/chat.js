@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../utils/prisma'); // Singleton
 const auth = require('../middleware/auth');
-const upload = require('../middleware/uploadChat'); // Chat specific upload
+const uploadChat = require('../middleware/uploadChat'); // Chat specific upload
 const cloudinary = require('cloudinary').v2;
 
 // Configure Cloudinary explicitly to ensure utils.url has access to secrets for signing

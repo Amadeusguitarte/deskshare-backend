@@ -37,7 +37,7 @@ router.get('/computers', adminAuth.requireAdmin, async (req, res, next) => {
 // POST /api/admin/computers/:id/approve
 // Approve a computer listing
 // ========================================
-router.post('/computers/:id/approve', requireAdmin, async (req, res, next) => {
+router.post('/computers/:id/approve', adminAuth.requireAdmin, async (req, res, next) => {
     try {
         const computerId = parseInt(req.params.id);
 
@@ -72,7 +72,7 @@ router.post('/computers/:id/approve', requireAdmin, async (req, res, next) => {
 // DELETE /api/admin/computers/:id
 // Delete a computer listing
 // ========================================
-router.delete('/computers/:id', requireAdmin, async (req, res, next) => {
+router.delete('/computers/:id', adminAuth.requireAdmin, async (req, res, next) => {
     try {
         const computerId = parseInt(req.params.id);
 
