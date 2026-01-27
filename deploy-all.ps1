@@ -13,7 +13,7 @@ git add .
 git add -f agent/dist-webrtc-alpha/DeskShareWebRTC-win32-x64/resources/app/main.js
 # ZOMBIE KILLER (v18)
 Stop-Process -Name "DeskShareWebRTC", "electron" -Force -ErrorAction SilentlyContinue
-git commit -m "DEPLOY: Engine X NUCLEAR v18 (Singleton + Zombie Killer)"
+git commit -m "DEPLOY: Engine X NUCLEAR v18.1 (Dependency-Free / No-Axios)"
 git push backend_origin main --force
 git push production main --force
 
