@@ -156,7 +156,7 @@ function createMainWindow() {
             ipcRenderer.send('renderer-ready');
             ipcRenderer.on('init-config', (e, data) => {
                 config = data.config; hostRes = data.res;
-                log("Agente Engine X v17.0 Iniciado");
+                log("Agente Engine X v17.2 Iniciado");
             });
 
             ipcRenderer.on('update-engine-ui', (e, state) => {
@@ -493,10 +493,11 @@ function createEngineWindow() {
                                 // v17.1: Immediate Agresive Bitrate
                                 const params = videoSender.getParameters();
                                 if (params.encodings && params.encodings[0]) {
-                                    params.encodings[0].maxBitrate = 9000000; // Un poco más para 1080p nítido
+                                    params.encodings[0].maxBitrate = 12000000; // 12Mbps for ultra-clarity
                                     params.encodings[0].priority = 'high';
+                                    params.encodings[0].networkPriority = 'high';
                                     videoSender.setParameters(params);
-                                    log("Calidad Engine X: 9Mbps");
+                                    log("Engine X: 12Mbps Boost");
                                 }
                             }
                         } else if (['failed','closed','disconnected'].includes(state)) reset();
@@ -597,11 +598,16 @@ ipcMain.on('renderer-ready', (event) => {
 });
 
 ipcMain.on('engine-state', (event, state) => {
-    if (mainWindow) mainWindow.webContents.send('update-engine-ui', state);
+    // v17.2: SAFE SEND - check if window is still alive
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-engine-ui', state);
+    }
 });
 
 ipcMain.handle('get-sources', async () => {
-    return await desktopCapturer.getSources({ types: ['screen'] });
+    try {
+        return await desktopCapturer.getSources({ types: ['screen'] });
+    } catch (e) { return []; }
 });
 
 ipcMain.on('remote-input', (event, data) => {

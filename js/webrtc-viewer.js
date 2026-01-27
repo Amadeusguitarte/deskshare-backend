@@ -216,9 +216,9 @@ class WebRTCViewer {
         video.style.position = 'absolute';
         video.style.top = '0'; video.style.left = '0';
         video.style.width = '100%'; video.style.height = '100%';
-        video.style.objectFit = 'fill'; // v17.1: use 'fill' to ensure mouse coordinates map 1:1 to element
+        video.style.objectFit = 'contain'; // v17.2: Reverted to 'contain' for correct aspect ratio
         video.style.backgroundColor = 'black';
-        video.style.zIndex = '0'; // v17.1: lower z-index so UI panel (z-index: 10) is above
+        video.style.zIndex = '0';
         this.canvas.style.display = 'none'; // Hide canvas
 
         // v11.0: Start MUTED to ensure autoplay (No Image Fix)
@@ -266,21 +266,44 @@ class WebRTCViewer {
                 lastMove = now;
             }
 
-            // Use the client-side display element
+            // v17.2: PRECISION COORDINATE MAPPING (Handles letterboxing/contain)
             const target = this.videoElement || this.canvas;
             const rect = target.getBoundingClientRect();
 
-            // Calculate relative coordinates (0 to 1)
-            const rx = (e.clientX - rect.left) / rect.width;
-            const ry = (e.clientY - rect.top) / rect.height;
+            const videoWidth = this.hostRes.w || 1920;
+            const videoHeight = this.hostRes.h || 1080;
+            const videoAspect = videoWidth / videoHeight;
+            const containerAspect = rect.width / rect.height;
+
+            let actualWidth, actualHeight, offsetX, offsetY;
+
+            if (containerAspect > videoAspect) {
+                // Pillarbox (black bars on sides)
+                actualHeight = rect.height;
+                actualWidth = actualHeight * videoAspect;
+                offsetX = (rect.width - actualWidth) / 2;
+                offsetY = 0;
+            } else {
+                // Letterbox (black bars on top/bottom)
+                actualWidth = rect.width;
+                actualHeight = actualWidth / videoAspect;
+                offsetX = 0;
+                offsetY = (rect.height - actualHeight) / 2;
+            }
+
+            const mouseX = e.clientX - rect.left - offsetX;
+            const mouseY = e.clientY - rect.top - offsetY;
+
+            const rx = mouseX / actualWidth;
+            const ry = mouseY / actualHeight;
 
             // Map to host resolution
-            const x = rx * this.hostRes.w;
-            const y = ry * this.hostRes.h;
+            const x = Math.round(rx * videoWidth);
+            const y = Math.round(ry * videoHeight);
 
-            // Ensure values are within bounds to avoid "top-left jumps" from negative/out-of-bounds math
-            const safeX = Math.max(0, Math.min(this.hostRes.w, x));
-            const safeY = Math.max(0, Math.min(this.hostRes.h, y));
+            // Boundary checks
+            const safeX = Math.max(0, Math.min(videoWidth, x));
+            const safeY = Math.max(0, Math.min(videoHeight, y));
 
             this.sendInput({ type, x: safeX, y: safeY, button: e.button === 0 ? 'left' : 'right' });
         };
