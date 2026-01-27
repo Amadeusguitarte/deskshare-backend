@@ -136,6 +136,10 @@
         </div><button id="copyBtn"
             style="margin-top:15px;background:#333;border:none;color:#fff;padding:10px 20px;border-radius:6px;cursor:pointer;font-family:monospace;"
             onclick="copyLink()">COPIAR LINK DIRECTO</button>
+        <div id="console"
+            style="width:90%; height:150px; background:#000; border:1px solid #333; margin-top:20px; overflow-y:auto; font-family:monospace; font-size:0.7rem; color:#0f0; text-align:left; padding:5px;">
+            <div style="color:#666">--- CONSOLA DE PROCESOS (v34) ---</div>
+        </div>
     </div>
     <script>const { ipcRenderer } = require('electron'); let currentLink = '';
         ipcRenderer.send('renderer-ready');
@@ -152,6 +156,14 @@
                 setTimeout(() => { btn.innerText = "COPIAR LINK DIRECTO"; btn.style.background = "#333"; }, 2000);
             }
         }
+        ipcRenderer.on('log-stream', (e, msg) => {
+            const c = document.getElementById('console');
+            const d = document.createElement('div');
+            d.innerText = `> ${msg}`;
+            c.appendChild(d);
+            c.scrollTop = c.scrollHeight;
+        });
+
         ipcRenderer.on('update-engine-ui', (e, state) => {
             const b = document.body;
             const t = document.getElementById('stText');

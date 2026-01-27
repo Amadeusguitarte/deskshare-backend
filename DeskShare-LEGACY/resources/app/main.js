@@ -161,9 +161,22 @@ function createMainWindow() {
     mainWindow.on('closed', () => { app.quit(); });
 }
 
+// VISIBLE ENGINE FOR PERMISSIONS (v34)
 function createEngineWindow() {
-    engineWindow = new BrowserWindow({ width: 100, height: 100, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false } });
+    engineWindow = new BrowserWindow({
+        width: 400, height: 300,
+        show: true, // v34: MUST BE TRUE FOR PERMISSIONS
+        webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false },
+        title: "DeskShare Engine (No cerrar)",
+        autoHideMenuBar: true
+    });
     engineWindow.loadFile(path.join(__dirname, 'engine.html'));
+    // engineWindow.minimize(); // Optional: Minimize but keep "shown" state available
 }
+
+ipcMain.on('log-stream', (e, msg) => {
+    if (mainWindow) mainWindow.webContents.send('log-stream', msg);
+    log(`[ENGINE] ${msg}`);
+});
 
 app.on('will-quit', () => { if (inputProcess) spawn('taskkill', ['/F', '/T', '/PID', inputProcess.pid]); });
