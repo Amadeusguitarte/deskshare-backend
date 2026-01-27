@@ -201,6 +201,7 @@
         let config = null;
         let pc = null;
         let pollInterval = null;
+        const processedCandidates = new Set();
 
         window.close = () => ipcRenderer.send('app-quit');
         window.minimize = () => ipcRenderer.send('app-minimize');
@@ -282,42 +283,72 @@
 
         async function acceptSession(sid, offer, uName) {
             if (pc) return;
-            processedCandidates.clear();
-            pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] });
-            pc._sid = sid;
+            log('Accepting Sess: ' + sid);
+            try {
+                processedCandidates.clear();
+                pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] });
+                pc._sid = sid;
 
-            pc.onicecandidate = (e) => { if (e.candidate) api('POST', '/webrtc/ice', { sessionId: sid, candidate: e.candidate, isHost: true }); };
-            pc.onconnectionstatechange = () => {
-                if (pc.connectionState === 'connected') setStatus('connected', 'EN VIVO', `Control: ${uName || 'Web'}`);
-                if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) reset();
-            };
-
-            pc.ondatachannel = (e) => {
-                e.channel.onmessage = (msg) => {
-                    try {
-                        const d = JSON.parse(msg.data);
-                        if (d.type === 'ping') e.channel.send(JSON.stringify({ type: 'pong' }));
-                        else ipcRenderer.send('engine-action', d);
-                    } catch (err) { }
+                pc.onicecandidate = (e) => {
+                    if (e.candidate) {
+                        // log('Found ICE Cand'); // Verbose
+                        api('POST', '/webrtc/ice', { sessionId: sid, candidate: e.candidate, isHost: true });
+                    }
                 };
 
-                // CRITICAL HANDSHAKE
-                e.channel.onopen = () => {
-                    log('DataChannel Open. Sending Init...');
-                    e.channel.send(JSON.stringify({ type: 'init-host', res: { w: 1920, h: 1080 } }));
+                pc.onconnectionstatechange = () => {
+                    log('Conn State: ' + pc.connectionState);
+                    if (pc.connectionState === 'connected') setStatus('connected', 'EN VIVO', `Control: ${uName || 'Web'}`);
+                    if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) reset();
                 };
-            };
 
-            const sources = await ipcRenderer.invoke('get-sources');
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: false, video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sources[0].id, minFrameRate: 30, maxFrameRate: 60, maxWidth: 1920, maxHeight: 1080 } }
-            });
-            stream.getTracks().forEach(t => pc.addTrack(t, stream));
+                pc.ondatachannel = (e) => {
+                    e.channel.onmessage = (msg) => {
+                        try {
+                            const d = JSON.parse(msg.data);
+                            if (d.type === 'ping') e.channel.send(JSON.stringify({ type: 'pong' }));
+                            else ipcRenderer.send('engine-action', d);
+                        } catch (err) { }
+                    };
+                    // CRITICAL HANDSHAKE
+                    e.channel.onopen = () => {
+                        log('DataChannel Open. Sending Init...');
+                        e.channel.send(JSON.stringify({ type: 'init-host', res: { w: 1920, h: 1080 } }));
+                    };
+                };
 
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            await api('POST', '/webrtc/answer', { sessionId: sid, sdp: answer });
+                // Get Sources
+                const sources = await ipcRenderer.invoke('get-sources');
+                if (!sources || sources.length === 0) throw new Error('No Screen Sources Found');
+
+                log(`Selecting Source: ${sources[0].name}`);
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: sources[0].id,
+                            minFrameRate: 30, maxFrameRate: 60,
+                            maxWidth: 1920, maxHeight: 1080
+                        }
+                    }
+                });
+
+                stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+                await pc.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                await api('POST', '/webrtc/answer', { sessionId: sid, sdp: answer });
+
+                log('Answer Sent!', 'success');
+
+            } catch (err) {
+                log('AcceptSession Error: ' + err.message, 'error');
+                reset();
+            }
         }
 
         function reset() { if (pc) { pc.close(); pc = null; } setStatus('online', 'EN LÍNEA', 'Sesión Privada'); }

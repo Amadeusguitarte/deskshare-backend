@@ -93,13 +93,25 @@ router.get('/host/pending', auth, async (req, res, next) => {
         } */
 
         // Check active sessions map
-        let foundSession = null;
+        // v44: FIFO Priority - Return the NEWEST session
+        // Maps preserve insertion order, so we convert to array and reverse to find the latest
+        let bestSessionId = null;
+        let latestTime = 0;
+
         for (const [sid, session] of activeSessions.entries()) {
             if (session.computerId === parseInt(computerId) && !session.answer) {
-                // Found a session for this computer that hasn't been answered yet
-                foundSession = sid;
-                break;
+                // Check if this is newer than what we found
+                if (session.createdAt > latestTime) {
+                    latestTime = session.createdAt;
+                    bestSessionId = sid;
+                }
             }
+        }
+
+        if (bestSessionId) {
+            return res.json({ sessionId: bestSessionId });
+        } else {
+            return res.status(404).json({ message: 'No pending session' });
         }
 
         if (foundSession) {
