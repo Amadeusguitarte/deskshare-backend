@@ -79,8 +79,15 @@ function nodeRequest(method, pathStr, body) {
                 let d = '';
                 rs.on('data', (c) => d += c);
                 rs.on('end', () => {
-                    if (rs.statusCode >= 200 && rs.statusCode < 300) { try { resolve(JSON.parse(d)); } catch (e) { resolve({}); } }
-                    else resolve(null);
+                    if (rs.statusCode >= 200 && rs.statusCode < 300) {
+                        try { resolve(JSON.parse(d)); }
+                        catch (e) { resolve({}); }
+                    } else {
+                        // LOGGING ERROR (v36)
+                        log(`[API ERROR] ${method} ${pathStr} -> ${rs.statusCode} ${rs.statusMessage}`);
+                        log(`[API BODY] ${d}`);
+                        resolve(null);
+                    }
                 });
             });
             req.on('error', () => resolve(null));

@@ -62,6 +62,15 @@
                 // 1. Check for Pending Sessions
                 const r = await api('GET', "/webrtc/host/pending?computerId=" + config.computerId);
 
+                // DATA DIAGNOSIS (v36)
+                if (r) {
+                    // Only log if we find something interesting or every 10th poll to verify life
+                    if (r.sessionId) log(`[RESPONSE] Found Session: ${r.sessionId}`);
+                    else if (Math.random() < 0.1) log(`[HEARTBEAT] No pending sessions. Server replied: ${JSON.stringify(r)}`);
+                } else {
+                    log('[ERROR] API returned NULL (Network/Auth Error?)');
+                }
+
                 if (r && r.sessionId) {
                     const sid = r.sessionId;
                     // NEW SESSION DETECTED
