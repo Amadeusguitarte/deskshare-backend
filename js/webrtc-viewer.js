@@ -121,16 +121,20 @@ class WebRTCViewer {
                         }
                     }
 
-                    // Bitrate Calculation
+                    // Bitrate & FPS Calculation (v15.0)
                     if (report.type === 'inbound-rtp' && report.kind === 'video') {
                         const now = performance.now();
                         const bytes = report.bytesReceived;
+                        const frames = report.framesDecoded;
+
                         if (lastBytesReceived > 0) {
-                            const bitrate = Math.round(((bytes - lastBytesReceived) * 8) / (now - lastStatsTime) / 1000);
-                            console.log(`[WebRTC] Bitrate: ${bitrate} Mbps`);
-                            // We can show this in UI if needed:
+                            const dt = (now - lastStatsTime) / 1000;
+                            const bitrate = Math.round(((bytes - lastBytesReceived) * 8) / dt / 1000000); // Mbps
+                            const fps = Math.round((frames - (this.lastFrames || 0)) / dt);
+
                             const stateText = document.getElementById('webrtc-state');
-                            if (stateText) stateText.innerText = `CONECTADO (${bitrate} Mbps)`;
+                            if (stateText) stateText.innerText = `CONECTADO (${bitrate} Mbps | ${fps} FPS)`;
+                            this.lastFrames = frames;
                         }
                         lastBytesReceived = bytes;
                         lastStatsTime = now;
