@@ -1,0 +1,15 @@
+{
+  "name": "deskshare-agent-v1",
+  "version": "1.0.0",
+  "description": "DeskShare Zero Base Agent",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^34.0.0"
+  }
+}

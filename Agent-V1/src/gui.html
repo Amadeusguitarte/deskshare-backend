@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            margin: 0;
+            background: transparent;
+            font-family: sans-serif;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            user-select: none;
+        }
+
+        .card {
+            width: 280px;
+            height: 400px;
+            background: rgba(16, 16, 24, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: white;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            -webkit-app-region: drag;
+            position: relative;
+        }
+
+        .status-dot {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #333;
+            margin-bottom: 20px;
+            transition: all 0.5s ease;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        p {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* STATES */
+        .waiting .status-dot {
+            background: #333;
+            border: 2px solid #555;
+        }
+
+        .linking .status-dot {
+            background: #fbbf24;
+            box-shadow: 0 0 30px #fbbf24;
+            animation: pulse 1s infinite;
+        }
+
+        .online .status-dot {
+            background: #10b981;
+            box-shadow: 0 0 20px #10b981;
+        }
+
+        .connected .status-dot {
+            background: #3b82f6;
+            box-shadow: 0 0 40px #3b82f6;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            cursor: pointer;
+            color: #555;
+            -webkit-app-region: no-drag;
+            font-size: 14px;
+        }
+
+        .close:hover {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="card waiting">
+        <div class="close" onclick="window.close()">✕</div>
+        <div class="status-dot"></div>
+        <h2 id="msg">ESPERANDO LLAVE</h2>
+        <p id="sub">Usa el botón de Llave en la Web</p>
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        const app = document.getElementById('app');
+        const msg = document.getElementById('msg');
+        const sub = document.getElementById('sub');
+
+        ipcRenderer.send('gui-ready');
+
+        ipcRenderer.on('ui-state', (e, state) => {
+            app.className = 'card ' + state;
+            if (state === 'waiting') { msg.innerText = "ESPERANDO"; sub.innerText = "Sin token"; }
+            if (state === 'linking') { msg.innerText = "ENLAZANDO..."; sub.innerText = "Sincronizando"; }
+            if (state === 'online') { msg.innerText = "EN LÍNEA"; sub.innerText = "Listo para conexión"; }
+            if (state === 'connected') { msg.innerText = "TRANSMITIENDO"; sub.innerText = "Sesión activa"; }
+        });
+    </script>
+</body>
+
+</html>

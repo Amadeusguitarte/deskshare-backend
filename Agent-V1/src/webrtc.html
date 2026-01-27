@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <script>
+        const { ipcRenderer } = require('electron');
+        let pc, config, interval;
+
+        ipcRenderer.on('init-engine', (e, cfg) => {
+            config = cfg;
+            startService();
+        });
+
+        async function api(method, path, body) {
+            return await ipcRenderer.invoke('api', { method, path, body });
+        }
+
+        async function startService() {
+            // 1. REGISTER
+            await api('POST', '/webrtc/register', { computerId: config.computerId, mode: 'v1' });
+
+            // 2. POLL LOOP
+            if (interval) clearInterval(interval);
+            interval = setInterval(poll, 2000);
+            ipcRenderer.send('engine-status', 'online');
+        }
+
+        async function poll() {
+            try {
+                // CHECK FOR PENDING SESSION
+                const r = await api('GET', '/webrtc/host/pending?computerId=' + config.computerId);
+                if (r && r.sessionId) {
+                    // FOUND SESSION -> CHECK FOR OFFER
+                    const p = await api('GET', '/webrtc/poll/' + r.sessionId);
+                    if (p && p.offer && !pc) {
+                        ipcRenderer.send('engine-status', 'linking');
+                        accept(r.sessionId, p.offer);
+                    }
+                }
+            } catch (e) { }
+        }
+
+        async function accept(sid, offer) {
+            if (pc) return; // Already connecting
+
+            pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+
+            pc.onicecandidate = e => {
+                if (e.candidate) api('POST', '/webrtc/ice', { sessionId: sid, candidate: e.candidate, isHost: true });
+            };
+
+            pc.onconnectionstatechange = () => {
+                const s = pc.connectionState;
+                if (s === 'connected') ipcRenderer.send('engine-status', 'connected');
+                if (s === 'disconnected' || s === 'failed') {
+                    pc.close(); pc = null;
+                    ipcRenderer.send('engine-status', 'online');
+                }
+            };
+
+            // MEDIA
+            const sources = await ipcRenderer.invoke('sources');
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sources[0].id, maxWidth: 1920, maxHeight: 1080 } }
+            });
+            stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+            // ANSWER
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await api('POST', '/webrtc/answer', { sessionId: sid, sdp: answer });
+        }
+    </script>
+</body>
+
+</html>
