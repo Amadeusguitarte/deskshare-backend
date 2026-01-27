@@ -79,38 +79,53 @@ router.post('/offer', auth, async (req, res, next) => {
 
 
 // ========================================
-// GET /api/webrtc/poll/:computerId (Agent Polling)
+// GET /api/webrtc/poll/:computerId (Agent Polling - New Standard)
 // ========================================
 router.get('/poll/:computerId', auth, async (req, res, next) => {
     try {
         const computerId = parseInt(req.params.computerId);
-
-        // Find NEWEST active session
-        const session = await prisma.webRTCSession.findFirst({
-            where: {
-                computerId: computerId,
-                status: { not: 'closed' }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
-
-        if (!session) {
-            return res.status(404).json({ status: 'idle' });
-        }
-
-        // Heartbeat update
-        await prisma.webRTCSession.update({
-            where: { id: session.id },
-            data: { lastHeartbeat: new Date() }
-        });
-
-        res.json({
-            sessionId: session.id,
-            offer: session.offer ? JSON.parse(session.offer) : null,
-            candidates: session.candidates // Already JSON
-        });
+        await pollSessionForComputer(computerId, res);
     } catch (e) { next(e); }
 });
+
+// ========================================
+// GET /api/webrtc/host/pending (Agent Polling - Legacy Compatibility)
+// ========================================
+router.get('/host/pending', auth, async (req, res, next) => {
+    try {
+        const computerId = parseInt(req.query.computerId);
+        if (!computerId) return res.status(400).json({ error: 'computerId required' });
+        await pollSessionForComputer(computerId, res);
+    } catch (e) { next(e); }
+});
+
+// Helper function to avoid duplication
+async function pollSessionForComputer(computerId, res) {
+    // Find NEWEST active session
+    const session = await prisma.webRTCSession.findFirst({
+        where: {
+            computerId: computerId,
+            status: { not: 'closed' }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    if (!session) {
+        return res.status(404).json({ status: 'idle' });
+    }
+
+    // Heartbeat update
+    await prisma.webRTCSession.update({
+        where: { id: session.id },
+        data: { lastHeartbeat: new Date() }
+    });
+
+    res.json({
+        sessionId: session.id,
+        offer: session.offer ? JSON.parse(session.offer) : null,
+        candidates: session.candidates // Already JSON
+    });
+}
 
 // ========================================
 // POST /api/webrtc/answer (Agent -> Client)
