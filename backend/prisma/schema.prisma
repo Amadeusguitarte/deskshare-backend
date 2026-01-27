@@ -81,6 +81,7 @@ model Computer {
   images    ComputerImage[]
   bookings  Booking[]
   messages  Message[]
+  webRTCSessions WebRTCSession[] // DB-Backed Sessions
 
   @@map("computers")
 }
