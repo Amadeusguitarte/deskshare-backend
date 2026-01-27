@@ -4,13 +4,17 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const axios = require('axios');
 
-// v17.8: ULTIMATE STABILITY & PREMIUM UI
+// v17.9: HIGH-FIDELITY RESTORATION (The Definite Fix)
 let mainWindow = null;
 let engineWindow = null;
 let config = {};
 let inputProcess = null;
 let activeSessionId = null;
 let blockerId = null;
+
+// Global Resolution (Fixes line 32 crash by moving access out of IPC)
+let hostWidth = 1920;
+let hostHeight = 1080;
 
 // ========================================
 // 1. HARDENED IPC LAYER
@@ -29,9 +33,7 @@ ipcMain.on('renderer-ready', (event) => {
         const configPath = path.join(APPDATA, 'deskshare-launcher', 'config.json');
         if (fs.existsSync(configPath)) {
             config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            const primaryDisplay = screen.getPrimaryDisplay();
-            const { width, height } = primaryDisplay.size;
-            const data = { config, res: { w: width, h: height } };
+            const data = { config, res: { w: hostWidth, h: hostHeight } };
 
             if (event && event.sender && !event.sender.isDestroyed()) {
                 event.reply('init-config', data);
@@ -51,26 +53,17 @@ ipcMain.on('remote-input', (event, data) => {
     try {
         if (!inputProcess || !inputProcess.stdin.writable) return;
 
-        // v17.8: LOGICAL COORDINATE MAPPING (Primary Screen Only)
-        const primary = screen.getPrimaryDisplay();
-        const { width: screenW, height: screenH } = primary.size;
-
-        // Coordinates from viewer (0.0 to 1.0)
-        let finalX, finalY;
+        // v17.9: ABSOLUTE PERCENTAGE MAPPING (Precision Fix)
         if (data.px !== undefined && data.py !== undefined) {
-            finalX = Math.round(data.px * screenW);
-            finalY = Math.round(data.py * screenH);
-        } else {
-            // v17.2 Fallback
-            finalX = data.x;
-            finalY = data.y;
-        }
+            const finalX = Math.round(data.px * hostWidth);
+            const finalY = Math.round(data.py * hostHeight);
 
-        if (data.type === 'mousemove') {
-            sendToController(`MOVE ${finalX} ${finalY}`);
-        } else if (data.type === 'mousedown') {
-            sendToController(`MOVE ${finalX} ${finalY}`);
-            sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
+            if (data.type === 'mousemove') {
+                sendToController(`MOVE ${finalX} ${finalY}`);
+            } else if (data.type === 'mousedown') {
+                sendToController(`MOVE ${finalX} ${finalY}`);
+                sendToController(`CLICK ${data.button.toUpperCase()} DOWN`);
+            }
         } else if (data.type === 'mouseup') {
             sendToController(`CLICK ${data.button.toUpperCase()} UP`);
         } else if (data.type === 'wheel') {
@@ -82,13 +75,12 @@ ipcMain.on('remote-input', (event, data) => {
 });
 
 // ========================================
-// 2. CORE SYSTEM
+// 2. CORE LOGIC
 // ========================================
 function startInputController() {
     try {
         const psPath = path.join(__dirname, 'input_controller.ps1');
         inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
-
         if (process.platform === 'win32' && inputProcess.pid) {
             spawn('powershell.exe', ['-Command', `(Get-Process -Id ${inputProcess.pid}).PriorityClass = 'High'`]);
         }
@@ -110,6 +102,11 @@ async function terminateSession() {
 }
 
 app.whenReady().then(() => {
+    // PRE-FETCH SCREEN RES (STABILITY)
+    const primary = screen.getPrimaryDisplay();
+    hostWidth = primary.size.width;
+    hostHeight = primary.size.height;
+
     startInputController();
     blockerId = powerSaveBlocker.start('prevent-app-suspension');
     createMainWindow();
@@ -120,10 +117,9 @@ function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 500, height: 750, show: false,
         webPreferences: { nodeIntegration: true, contextIsolation: false },
-        autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v17.8"
+        autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v17.9"
     });
 
-    // RESTORING PREMIUM UI ANIMATIONS
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -131,26 +127,36 @@ function createMainWindow() {
         <meta charset="UTF-8">
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
         <style>
-            :root { --bg: #050507; --card: #121216; --success: #10b981; --accent: #3b82f6; --text: #ffffff; }
-            body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; margin:0; }
-            .container { text-align: center; width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 30px; }
-            .app-title { font-size: 2.2rem; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 4px; }
+            :root { --bg: #050507; --card: #121216; --success: #10b981; --accent: #3b82f6; --text: #fff; --text-dim: #71717a; }
+            body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; margin:0; transition: all 0.5s ease; }
+            .container { text-align: center; width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+            .app-title { font-size: 2.2rem; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 2px; }
+            
             .icon-box { 
-                width: 160px; height: 160px; background: var(--card); border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                width: 150px; height: 150px; background: var(--card); border-radius: 50%; display: flex; align-items: center; justify-content: center; 
                 border: 2px solid #333; transition: all 0.5s ease; position: relative; 
             }
             .pulse { position: absolute; width:100%; height:100%; border-radius:50%; border:2px solid transparent; }
+            
             .status-badge { 
-                padding: 14px 30px; background: #1a1a1a; border-radius: 50px; font-size: 1rem; font-weight: 700; 
+                padding: 12px 24px; background: #1a1a1a; border-radius: 50px; font-size: 1.1rem; font-weight: 700; 
                 color: #555; border: 1px solid #333; transition: all 0.4s ease; text-transform: uppercase; display: flex; align-items: center; gap: 10px; 
             }
             .dot { width: 10px; height: 10px; background: #333; border-radius: 50%; }
-            body.ready .icon-box { border-color: var(--success); box-shadow: 0 0 40px rgba(16, 185, 129, 0.2); }
+            
+            body.ready .icon-box { border-color: var(--success); box-shadow: 0 0 50px rgba(16, 185, 129, 0.2); }
             body.ready .status-badge { color: var(--success); border-color: var(--success); }
-            body.ready .dot { background: var(--success); box-shadow: 0 0 10px var(--success); }
+            body.ready .dot { background: var(--success); }
             body.ready .pulse { border-color: var(--success); animation: pulse 2s infinite; }
-            body.connected .status-badge { color: var(--accent); border-color: var(--accent); }
+            
+            body.connected { background: radial-gradient(circle at center, #0a0a1a 0%, #050507 100%); }
+            body.connected .status-badge { color: var(--accent); border-color: var(--accent); background: rgba(59, 130, 246, 0.1); }
+            body.connected .icon-box { border-color: var(--accent); box-shadow: 0 0 50px rgba(59, 130, 246, 0.4); }
+            body.connected .dot { background: var(--accent); }
+            
             @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+            #timer { font-size: 1.5rem; font-weight: bold; color: var(--accent); margin-top: 5px; display:none; }
+            #userLabel { font-size: 0.9rem; color: #aaa; margin-top: 5px; }
         </style>
     </head>
     <body class="ready">
@@ -164,15 +170,40 @@ function createMainWindow() {
                     <line x1="12" y1="17" x2="12" y2="21"></line>
                 </svg>
             </div>
-            <div class="status-badge"><div class="dot"></div><span id="stText">EN LÍNEA v17.8</span></div>
-            <div id="logs" style="font-size:0.8rem;color:#71717a;">Sincronizado</div>
+            <div class="status-badge"><div class="dot"></div><span id="stText">EN LÍNEA</span></div>
+            <div id="timer">00:00:00</div>
+            <div id="userLabel"></div>
         </div>
         <script>
             const { ipcRenderer } = require('electron');
+            let startTime = null;
+            let timerInt = null;
+
+            function updateTimer() {
+                const diff = Math.floor((new Date() - startTime) / 1000);
+                const hrs = String(Math.floor(diff / 3600)).padStart(2, '0');
+                const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                const secs = String(diff % 60).padStart(2, '0');
+                document.getElementById('timer').innerText = hrs + ":" + mins + ":" + secs;
+            }
+
             ipcRenderer.send('renderer-ready');
-            ipcRenderer.on('update-engine-ui', (e,s) => { 
-                document.getElementById('stText').innerText = s === 'connected' ? 'CONECTADO' : 'EN LÍNEA';
-                document.body.className = s === 'connected' ? 'connected' : 'ready';
+            ipcRenderer.on('update-engine-ui', (e, state) => {
+                if (state === 'connected') {
+                    document.body.className = 'connected';
+                    document.getElementById('stText').innerText = "CONECTADO";
+                    if (!startTime) {
+                        startTime = new Date();
+                        document.getElementById('timer').style.display = 'block';
+                        timerInt = setInterval(updateTimer, 1000);
+                    }
+                } else {
+                    document.body.className = 'ready';
+                    document.getElementById('stText').innerText = "EN LÍNEA";
+                    document.getElementById('timer').style.display = 'none';
+                    if (timerInt) clearInterval(timerInt);
+                    startTime = null;
+                }
             });
         </script>
     </body>
@@ -208,11 +239,10 @@ function createEngineWindow() {
             peerConnection = new RTCPeerConnection({ iceServers: [{urls:'stun:stun.l.google.com:19302'}] });
             peerConnection.ondatachannel = (ev) => {
                 ev.channel.onmessage = (e) => ipcRenderer.send('remote-input', JSON.parse(e.data));
-                if (ev.channel.label==='input') ev.channel.onopen = () => ev.channel.send(JSON.stringify({type:'init-host'}));
             };
             peerConnection.onconnectionstatechange = () => ipcRenderer.send('engine-state', peerConnection.connectionState);
             const sources = await ipcRenderer.invoke('get-sources');
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { mandatory: { chromeMediaSource:'desktop', chromeMediaSourceId:sources[0].id, minFrameRate:60 } } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { mandatory: { chromeMediaSource:'desktop', chromeMediaSourceId:sources[0].id, minFrameRate:60, maxWidth: hostWidth, maxHeight: hostHeight } } });
             stream.getTracks().forEach(t => peerConnection.addTrack(t, stream));
             await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
             const answer = await peerConnection.createAnswer();

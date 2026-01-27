@@ -229,6 +229,17 @@ class WebRTCViewer {
             // v17.5: Ensure UI panel stays on top
             const statusPanel = document.getElementById('connection-status');
             if (statusPanel) statusPanel.style.zIndex = '100';
+
+            // v17.9: Full-Screen UI Auto-Hide
+            document.addEventListener('fullscreenchange', () => {
+                if (statusPanel) {
+                    statusPanel.style.display = document.fullscreenElement ? 'none' : 'flex';
+                }
+                // Force video to cover/contain better in fullscreen
+                if (document.fullscreenElement) {
+                    video.style.objectFit = 'contain';
+                }
+            });
         } else {
             document.body.appendChild(video);
         }
@@ -302,11 +313,12 @@ class WebRTCViewer {
             const mouseX = e.clientX - rect.left - offsetX;
             const mouseY = e.clientY - rect.top - offsetY;
 
-            // v17.7: PERCENTAGE-BASED MAPPING (Resolution Independent)
-            const px = mouseX / actualWidth;
-            const py = mouseY / actualHeight;
-
-            this.sendInput({ type, px, py, button: e.button === 0 ? 'left' : 'right' });
+            // v17.9: PERCENTAGE-BASED MAPPING (Ultra-Precise)
+            if (actualWidth > 0 && actualHeight > 0) {
+                const px = Math.max(0, Math.min(1, mouseX / actualWidth));
+                const py = Math.max(0, Math.min(1, mouseY / actualHeight));
+                this.sendInput({ type, px, py, button: e.button === 0 ? 'left' : 'right' });
+            }
         };
         // Use video for tracking instead of canvas
         const target = this.videoElement || this.canvas;
@@ -388,8 +400,12 @@ class WebRTCViewer {
     }
 
     toggleFullscreen() {
-        if (!document.fullscreenElement) { this.canvas.requestFullscreen().catch(() => { }); }
-        else { document.exitFullscreen(); }
+        const container = document.getElementById('webrtc-view') || this.canvas;
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(() => { });
+        } else {
+            document.exitFullscreen();
+        }
     }
 
     disconnect() {
