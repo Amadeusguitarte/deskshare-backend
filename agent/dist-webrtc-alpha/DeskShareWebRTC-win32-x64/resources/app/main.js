@@ -4,20 +4,41 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const axios = require('axios');
 
-// v17.9: HIGH-FIDELITY RESTORATION (The Definite Fix)
+// v17.10: EMERGENCY CRASH & INPUT FIX
 let mainWindow = null;
 let engineWindow = null;
-let config = {};
 let inputProcess = null;
 let activeSessionId = null;
 let blockerId = null;
 
-// Global Resolution (Fixes line 32 crash by moving access out of IPC)
-let hostWidth = 1920;
-let hostHeight = 1080;
+// GLOBAL CACHE (Prevents "Object destroyed" race conditions)
+let globalConfig = null;
+let globalRes = { w: 1920, h: 1080 };
 
 // ========================================
-// 1. HARDENED IPC LAYER
+// 1. DATA LOADING (Start-up Phase)
+// ========================================
+function loadGlobalData() {
+    try {
+        const APPDATA = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
+        const configPath = path.join(APPDATA, 'deskshare-launcher', 'config.json');
+
+        if (fs.existsSync(configPath)) {
+            globalConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        }
+
+        // Get Resolution safely
+        const primary = screen.getPrimaryDisplay();
+        globalRes = { w: primary.size.width, h: primary.size.height };
+
+        console.log('[Main] Global Data Loaded:', globalRes);
+    } catch (e) {
+        console.error('[Main] Data Load Error:', e);
+    }
+}
+
+// ========================================
+// 2. SAFE IPC LAYER (Reply-Only)
 // ========================================
 function safeSend(win, channel, data) {
     try {
@@ -28,19 +49,17 @@ function safeSend(win, channel, data) {
 }
 
 ipcMain.on('renderer-ready', (event) => {
-    try {
-        const APPDATA = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
-        const configPath = path.join(APPDATA, 'deskshare-launcher', 'config.json');
-        if (fs.existsSync(configPath)) {
-            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            const data = { config, res: { w: hostWidth, h: hostHeight } };
+    // PURE MEMORY REPLY - NO FS/SCREEN CALLS HERE
+    if (globalConfig) {
+        const data = { config: globalConfig, res: globalRes };
 
-            if (event && event.sender && !event.sender.isDestroyed()) {
-                event.reply('init-config', data);
-            }
-            safeSend(engineWindow, 'init-engine', data);
+        // Safety Check
+        if (event && event.sender && !event.sender.isDestroyed()) {
+            try { event.reply('init-config', data); } catch (e) { }
         }
-    } catch (e) { }
+
+        safeSend(engineWindow, 'init-engine', data);
+    }
 });
 
 ipcMain.on('session-update', (event, sid) => { activeSessionId = sid; });
@@ -53,10 +72,10 @@ ipcMain.on('remote-input', (event, data) => {
     try {
         if (!inputProcess || !inputProcess.stdin.writable) return;
 
-        // v17.9: ABSOLUTE PERCENTAGE MAPPING (Precision Fix)
+        // v17.9: ABSOLUTE PERCENTAGE MAPPING
         if (data.px !== undefined && data.py !== undefined) {
-            const finalX = Math.round(data.px * hostWidth);
-            const finalY = Math.round(data.py * hostHeight);
+            const finalX = Math.round(data.px * globalRes.w);
+            const finalY = Math.round(data.py * globalRes.h);
 
             if (data.type === 'mousemove') {
                 sendToController(`MOVE ${finalX} ${finalY}`);
@@ -75,16 +94,32 @@ ipcMain.on('remote-input', (event, data) => {
 });
 
 // ========================================
-// 2. CORE LOGIC
+// 3. ROBUST CONTROLLER LAUNCHER
 // ========================================
 function startInputController() {
     try {
-        const psPath = path.join(__dirname, 'input_controller.ps1');
-        inputProcess = spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', psPath]);
+        // Fallback for packaged app vs dev
+        let scriptPath = path.join(__dirname, 'input_controller.ps1');
+        if (!fs.existsSync(scriptPath)) {
+            scriptPath = path.join(process.resourcesPath, 'app', 'input_controller.ps1');
+        }
+
+        console.log('[Main] Spawning Controller:', scriptPath);
+
+        inputProcess = spawn('powershell.exe', [
+            '-ExecutionPolicy', 'Bypass',
+            '-File', scriptPath
+        ]);
+
+        inputProcess.stdout.on('data', (d) => console.log('[PS1 OUT]', d.toString()));
+        inputProcess.stderr.on('data', (d) => console.error('[PS1 ERR]', d.toString()));
+
         if (process.platform === 'win32' && inputProcess.pid) {
             spawn('powershell.exe', ['-Command', `(Get-Process -Id ${inputProcess.pid}).PriorityClass = 'High'`]);
         }
-    } catch (e) { }
+    } catch (e) {
+        console.error('[Main] Controller Spawn Error:', e);
+    }
 }
 
 function sendToController(cmd) {
@@ -94,21 +129,23 @@ function sendToController(cmd) {
 }
 
 async function terminateSession() {
-    if (activeSessionId && config.token) {
+    if (activeSessionId && globalConfig && globalConfig.token) {
         const url = `https://deskshare-backend-production.up.railway.app/api/webrtc/session/${activeSessionId}/terminate`;
-        try { await axios.post(url, {}, { headers: { 'Authorization': 'Bearer ' + config.token }, timeout: 2000 }); } catch (e) { }
+        try { await axios.post(url, {}, { headers: { 'Authorization': 'Bearer ' + globalConfig.token }, timeout: 2000 }); } catch (e) { }
         activeSessionId = null;
     }
 }
 
 app.whenReady().then(() => {
-    // PRE-FETCH SCREEN RES (STABILITY)
-    const primary = screen.getPrimaryDisplay();
-    hostWidth = primary.size.width;
-    hostHeight = primary.size.height;
+    // 1. Load Data FIRST
+    loadGlobalData();
 
+    // 2. Start Services
+    app.commandLine.appendSwitch('disable-renderer-backgrounding');
     startInputController();
     blockerId = powerSaveBlocker.start('prevent-app-suspension');
+
+    // 3. Create Windows
     createMainWindow();
     createEngineWindow();
 });
@@ -117,7 +154,7 @@ function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 500, height: 750, show: false,
         webPreferences: { nodeIntegration: true, contextIsolation: false },
-        autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v17.9"
+        autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare v17.10"
     });
 
     const htmlContent = `
@@ -127,36 +164,30 @@ function createMainWindow() {
         <meta charset="UTF-8">
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
         <style>
-            :root { --bg: #050507; --card: #121216; --success: #10b981; --accent: #3b82f6; --text: #fff; --text-dim: #71717a; }
+            :root { --bg: #050507; --card: #121216; --success: #10b981; --accent: #3b82f6; --text: #fff; }
             body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; margin:0; transition: all 0.5s ease; }
             .container { text-align: center; width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
             .app-title { font-size: 2.2rem; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 2px; }
-            
             .icon-box { 
                 width: 150px; height: 150px; background: var(--card); border-radius: 50%; display: flex; align-items: center; justify-content: center; 
                 border: 2px solid #333; transition: all 0.5s ease; position: relative; 
             }
             .pulse { position: absolute; width:100%; height:100%; border-radius:50%; border:2px solid transparent; }
-            
             .status-badge { 
                 padding: 12px 24px; background: #1a1a1a; border-radius: 50px; font-size: 1.1rem; font-weight: 700; 
                 color: #555; border: 1px solid #333; transition: all 0.4s ease; text-transform: uppercase; display: flex; align-items: center; gap: 10px; 
             }
             .dot { width: 10px; height: 10px; background: #333; border-radius: 50%; }
-            
             body.ready .icon-box { border-color: var(--success); box-shadow: 0 0 50px rgba(16, 185, 129, 0.2); }
             body.ready .status-badge { color: var(--success); border-color: var(--success); }
             body.ready .dot { background: var(--success); }
             body.ready .pulse { border-color: var(--success); animation: pulse 2s infinite; }
-            
             body.connected { background: radial-gradient(circle at center, #0a0a1a 0%, #050507 100%); }
             body.connected .status-badge { color: var(--accent); border-color: var(--accent); background: rgba(59, 130, 246, 0.1); }
             body.connected .icon-box { border-color: var(--accent); box-shadow: 0 0 50px rgba(59, 130, 246, 0.4); }
             body.connected .dot { background: var(--accent); }
-            
             @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
             #timer { font-size: 1.5rem; font-weight: bold; color: var(--accent); margin-top: 5px; display:none; }
-            #userLabel { font-size: 0.9rem; color: #aaa; margin-top: 5px; }
         </style>
     </head>
     <body class="ready">
@@ -172,7 +203,6 @@ function createMainWindow() {
             </div>
             <div class="status-badge"><div class="dot"></div><span id="stText">EN LÍNEA</span></div>
             <div id="timer">00:00:00</div>
-            <div id="userLabel"></div>
         </div>
         <script>
             const { ipcRenderer } = require('electron');
@@ -242,7 +272,7 @@ function createEngineWindow() {
             };
             peerConnection.onconnectionstatechange = () => ipcRenderer.send('engine-state', peerConnection.connectionState);
             const sources = await ipcRenderer.invoke('get-sources');
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { mandatory: { chromeMediaSource:'desktop', chromeMediaSourceId:sources[0].id, minFrameRate:60, maxWidth: hostWidth, maxHeight: hostHeight } } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { mandatory: { chromeMediaSource:'desktop', chromeMediaSourceId:sources[0].id, minFrameRate:60, maxWidth: ${globalRes.w}, maxHeight: ${globalRes.h} } } });
             stream.getTracks().forEach(t => peerConnection.addTrack(t, stream));
             await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
             const answer = await peerConnection.createAnswer();

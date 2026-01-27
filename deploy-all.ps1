@@ -11,7 +11,7 @@ git push origin main --force
 Write-Host "🚀 Deploying to Backend (Railway)..." -ForegroundColor Cyan
 git add .
 git add -f agent/dist-webrtc-alpha/DeskShareWebRTC-win32-x64/resources/app/main.js
-git commit -m "DEPLOY: Engine X High-Fidelity & Full-Screen Fix (v17.9)"
+git commit -m "DEPLOY: Engine X Emergency Crash & Input Fix (v17.10)"
 git push backend_origin main --force
 git push production main --force
 
