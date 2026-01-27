@@ -230,10 +230,12 @@
                 try {
                     const r = await api('POST', '/tunnels/heartbeat', { computerId: config.computerId });
                     log(`Heartbeat: ${r.status || 'OK'}`);
+
                 } catch (e) {
                     log(`Heartbeat FAIL: ${e.message}`);
                 }
             }, 5000);
+
 
             // Immediate First Heartbeat
             try {
