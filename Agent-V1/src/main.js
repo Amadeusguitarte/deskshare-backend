@@ -4,6 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 
+app.name = "DeskShare";
+process.title = "DeskShare";
+
 // v80: PRODUCTION SYNC (Percentage Mapping + Axios Gold)
 // v80: PRODUCTION SYNC (Percentage Mapping + Axios Gold)
 // app.disableHardwareAcceleration(); // RE-ENABLED for WebRTC Performance
@@ -86,7 +89,7 @@ function createWindow() {
         frame: false, transparent: true, resizable: false,
         hasShadow: false, alwaysOnTop: true,
         backgroundColor: '#00000000',
-        icon: path.join(__dirname, 'icon.png'),
+        icon: fs.existsSync(path.join(__dirname, 'icon.png')) ? path.join(__dirname, 'icon.png') : null,
         webPreferences: { nodeIntegration: true, contextIsolation: false, backgroundThrottling: false }
     });
     win.loadFile(path.join(__dirname, 'agent.html'));

@@ -179,13 +179,15 @@
 
 <body>
     <div id="app" class="card waiting">
-        <div
-            style="position: absolute; top: 15px; left: 0; width: 100%; font-size: 10px; letter-spacing: 4px; color: rgba(255,255,255,0.2); font-weight: 600;">
-            DESKSHARE</div>
         <div class="controls">
             <div class="btn" onclick="window.minimize()">−</div>
             <div class="btn" onclick="window.close()">✕</div>
         </div>
+
+        <div
+            style="margin-top: 50px; margin-bottom: 20px; font-size: 34px; letter-spacing: 5px; color: #fff; font-weight: 800; opacity: 1; text-shadow: 0 0 15px rgba(59, 130, 246, 0.6); font-family: 'Outfit', sans-serif;">
+            DESKSHARE</div>
+
         <div class="icon-wrapper">
             <div class="ripple"></div>
             <div class="ripple"></div>
@@ -243,6 +245,12 @@
             log('Starting Alpha Service...');
             log(`Token: ${config.token ? config.token.substring(0, 10) + '...' : 'MISSING'}`);
 
+            const startupTimeout = setTimeout(() => {
+                if (app.classList.contains('waiting')) {
+                    setStatus('waiting', 'ERROR', 'Tiempo de espera agotado');
+                }
+            }, 10000);
+
             // HEARTBEAT LOOP (5s for Debug)
             setInterval(async () => {
                 try {
@@ -257,15 +265,19 @@
 
             // Immediate First Heartbeat & Registration
             try {
-                // v46: REGISTER CAPABILITY (Fixes Parsec UI)
-                await api('POST', '/webrtc/register', { computerId: config.computerId, mode: 'native' });
+                // v46: REGISTER CAPABILITY (Non-blocking)
+                api('POST', '/webrtc/register', { computerId: config.computerId, mode: 'native' }).catch(() => { });
 
-                await api('POST', '/tunnels/heartbeat', { computerId: config.computerId });
+                const h = await api('POST', '/tunnels/heartbeat', { computerId: config.computerId });
+                if (h && h.error) throw new Error(`Status: ${h.status}`);
+
                 setStatus('online', 'EN LÍNEA', 'Esperando conexión...');
+                clearTimeout(startupTimeout);
                 if (pollInterval) clearInterval(pollInterval);
                 pollInterval = setInterval(syncLoop, 2000);
             } catch (e) {
                 log(`Startup Failed: ${e.message}`);
+                setStatus('waiting', 'ERROR', 'Error de conexión / Servidor');
             }
         }
 
