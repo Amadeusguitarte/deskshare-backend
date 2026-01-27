@@ -68,13 +68,21 @@ class WebRTCViewer {
     }
 
     async initPeerConnection() {
-        this.peerConnection = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }]
-            // v17.1: Removed lowLatency hint as it may cause excessive pixelation (browser choice)
-        });
+        const config = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
+            ],
+            bundlePolicy: 'max-bundle'
+        };
+        console.log('[WebRTC] Init PeerConnection', config);
+        this.peerConnection = new RTCPeerConnection(config);
 
         this.peerConnection.onicecandidate = (event) => {
-            if (event.candidate) this.sendIceCandidate(event.candidate);
+            if (event.candidate) {
+                // console.log('[WebRTC] Local Candidate:', event.candidate.candidate);
+                this.sendIceCandidate(event.candidate);
+            }
         };
 
         this.peerConnection.ontrack = (event) => {
@@ -207,7 +215,8 @@ class WebRTCViewer {
                             if (!this.processedCands) this.processedCands = new Set();
                             if (!this.processedCands.has(cStr)) {
                                 this.processedCands.add(cStr);
-                                try { await this.peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
+                                console.log('[WebRTC] Adding Host ICE Candidate:', cand.candidate);
+                                try { await this.peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { console.warn('ICE Error:', e); }
                             }
                         }
                     }
