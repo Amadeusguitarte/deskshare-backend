@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <script>
+        const { ipcRenderer } = require('electron');
+        let config = null, currentSid = null, pc = null, res = null;
+        let iceSet = new Set();
+        let pollInterval = null;
+
+        function log(msg) {
+            console.log(msg);
+            ipcRenderer.send('log-stream', msg);
+        }
+
+        window.onerror = function (message) { log(`CRITICAL ERROR: ${message}`); };
+
+        log("Engine Started (Zero Base)");
+        ipcRenderer.send('engine-ready');
+
+        ipcRenderer.on('init-engine', (e, d) => {
+            config = d.config; res = d.res;
+            log(`[SMART SYNC] Active for ID: ${config.computerId}`);
+
+            // CLEAN START
+            if (pc) { pc.close(); pc = null; }
+            currentSid = null; iceSet.clear();
+
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(poll, 1500);
+            poll();
+        });
+
+        async function api(method, endpoint, body = null) {
+            return await ipcRenderer.invoke('api-request', { method, endpoint, body });
+        }
+
+        // SMART SYNC: Detect "Last Link" Activity
+        async function poll() {
+            if (!config) return;
+            try {
+                // We ask: "Is there a session waiting for me?"
+                // This corresponds to the user clicking the link -> creating session -> we sync with it.
+                const r = await api('GET', "/webrtc/host/pending?computerId=" + config.computerId);
+
+                if (r && r.sessionId) {
+                    const sid = r.sessionId;
+
+                    // NEW SESSION (SYNC EVENT)
+                    if (sid !== currentSid || !pc || pc.connectionState === 'failed') {
+                        currentSid = sid; iceSet.clear();
+                        log(`[SMART SYNC] Detected Link Activity. Session: ${sid}`);
+
+                        const p = await api('GET', "/webrtc/poll/" + sid);
+                        if (p && p.offer) {
+                            log('Offer Received. Executing Shake...');
+                            handle(p.offer);
+                        }
+                    }
+
+                    // ICE HANDLING
+                    if (pc && pc.remoteDescription) {
+                        const p = await api('GET', "/webrtc/poll/" + sid);
+                        if (p && p.iceCandidates) {
+                            for (const c of p.iceCandidates) {
+                                let s = JSON.stringify(c);
+                                if (!iceSet.has(s)) {
+                                    iceSet.add(s);
+                                    pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) { log('Poll Error: ' + e.message); }
+        }
+
+        async function handle(sdp) {
+            try {
+                if (pc) pc.close();
+                log("Constructing PeerConnection...");
+                pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] });
+                pc.onicecandidate = (e) => { if (e.candidate) api('POST', '/webrtc/ice', { sessionId: currentSid, candidate: e.candidate, isHost: true }); };
+                pc.ondatachannel = (ev) => {
+                    ev.channel.onmessage = (e) => {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'ping') ev.channel.send(JSON.stringify({ type: 'pong', ts: data.ts }));
+                        else ipcRenderer.send('remote-input', data);
+                    };
+                };
+                pc.onconnectionstatechange = () => {
+                    log(`Connection State: ${pc.connectionState}`);
+                    ipcRenderer.send('engine-state', pc.connectionState);
+                };
+
+                const sources = await ipcRenderer.invoke('get-sources');
+                log("Requesting Screen Access...");
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: sources[0].id,
+                            minFrameRate: 30, maxWidth: res.w, maxHeight: res.h
+                        }
+                    }
+                });
+
+                log("Access Granted. Adding Tracks...");
+                stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+                const ans = await pc.createAnswer();
+                await pc.setLocalDescription(ans);
+                await api('POST', "/webrtc/answer", { sessionId: currentSid, sdp: ans });
+
+                log('Answer Sent. Waiting for Link to finalize...');
+            } catch (err) {
+                log('CRITICAL HANDSHAKE ERROR: ' + err.message);
+                ipcRenderer.send('log-error', 'Handle Fail: ' + err.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Roboto Mono', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .header {
+            border-bottom: 2px solid #0f0;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title {
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .status {
+            background: #0f0;
+            color: #000;
+            padding: 2px 8px;
+            font-weight: 700;
+        }
+
+        .log-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.9rem;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ts {
+            opacity: 0.5;
+            min-width: 80px;
+        }
+
+        .btn-container {
+            margin-top: 10px;
+            border-top: 2px solid #0f0;
+            padding-top: 10px;
+            text-align: center;
+        }
+
+        button {
+            background: #000;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 700;
+        }
+
+        button:hover {
+            background: #0f0;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="title">DESKSHARE ZERO 🦅</div>
+        <div class="status" id="stText">ONLINE</div>
+    </div>
+
+    <div class="log-container" id="console">
+        <div class="log-entry"><span class="ts">[SYSTEM]</span><span>Agent Initialized. Waiting for Smart Sync...</span>
+        </div>
+    </div>
+
+    <div class="btn-container">
+        <button id="copyBtn" onclick="copyLink()">COPY DIRECT LINK</button>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        let currentLink = '';
+
+        ipcRenderer.send('renderer-ready');
+
+        ipcRenderer.on('init-config', (e, d) => {
+            log(`Config Loaded. ID: ${d.config.computerId}`);
+            document.getElementById('stText').innerText = `ID: ${d.config.computerId}`;
+            currentLink = "https://deskshare.netlify.app/remote-access.html?directId=" + d.config.computerId;
+        });
+
+        function log(msg) {
+            const c = document.getElementById('console');
+            const d = document.createElement('div');
+            d.className = 'log-entry';
+            d.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span><span>${msg}</span>`;
+            c.appendChild(d);
+            c.scrollTop = c.scrollHeight;
+        }
+
+        function copyLink() {
+            if (currentLink) {
+                ipcRenderer.send('copy-to-clipboard', currentLink);
+                log("Link copied to clipboard.");
+            }
+        }
+
+        ipcRenderer.on('log-stream', (e, msg) => log(msg));
+
+        ipcRenderer.on('update-engine-ui', (e, state) => {
+            const el = document.getElementById('stText');
+            if (state === 'connected') { el.innerText = "CONNECTED"; el.style.background = "#fff"; }
+            else if (state === 'connecting') { el.innerText = "NEGOTIATING"; el.style.background = "yellow"; }
+            else { el.innerText = "ONLINE"; el.style.background = "#0f0"; }
+        });
+    </script>
+</body>
+
+</html>
