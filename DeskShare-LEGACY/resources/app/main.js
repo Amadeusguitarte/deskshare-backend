@@ -1,16 +1,15 @@
-const { app, BrowserWindow, ipcMain, desktopCapturer, screen, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, screen, powerSaveBlocker, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const https = require('https');
 const os = require('os');
 
-// v32: LEGACY RESTORATION (TRUE ENGINE)
-// Two windows. Nuclear Reload on Deep Link.
+// v33: LEGACY RELOADED (CLIPBOARD FIX)
 const LOG_FILE = path.join(os.tmpdir(), 'deskshare_legacy.log');
 function log(msg) { try { fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`); } catch (e) { } }
 
-log('=== v32 LEGACY START ===');
+log('=== v33 LEGACY START ===');
 
 // 1. PROTOCOL
 if (process.defaultApp) {
@@ -43,16 +42,9 @@ function handleDeepLink(url) {
             config = { token, computerId };
             saveConfig();
             log(`Synced ID ${computerId} via Link. TRIGGERING NUCLEAR RELOAD.`);
-
-            // UPDATE UI
             if (mainWindow) mainWindow.webContents.send('init-config', { config, res });
-
-            // NUCLEAR RELOAD OF ENGINE (The Fix)
-            if (engineWindow) {
-                engineWindow.reload(); // Force fresh start
-            } else {
-                createEngineWindow();
-            }
+            if (engineWindow) engineWindow.reload();
+            else createEngineWindow();
         }
     } catch (e) { log(`Link Error: ${e.message}`); }
 }
@@ -79,7 +71,7 @@ function nodeRequest(method, pathStr, body) {
                 hostname: url.hostname, port: 443, path: url.pathname + url.search, method: method,
                 headers: {
                     'Authorization': 'Bearer ' + config.token, 'Content-Type': 'application/json',
-                    'User-Agent': 'DeskShare-LEGACY/32.0'
+                    'User-Agent': 'DeskShare-LEGACY/33.0'
                 }
             };
             if (bodyData) opts.headers['Content-Length'] = Buffer.byteLength(bodyData);
@@ -101,9 +93,14 @@ function nodeRequest(method, pathStr, body) {
 ipcMain.handle('api-request', async (e, d) => await nodeRequest(d.method, d.endpoint, d.body));
 ipcMain.handle('get-sources', async () => await desktopCapturer.getSources({ types: ['screen'] }));
 
+// CLIPBOARD FIX
+ipcMain.on('copy-to-clipboard', (e, text) => {
+    clipboard.writeText(text);
+    log('Copied to clipboard: ' + text);
+});
+
 ipcMain.on('renderer-ready', (e) => { if (config) e.reply('init-config', { config, res }); });
 ipcMain.on('engine-ready', (e) => {
-    log('Engine Ready. Sending Config.');
     if (config) e.reply('init-engine', { config, res });
 });
 ipcMain.on('engine-state', (e, s) => { if (mainWindow) mainWindow.webContents.send('update-engine-ui', s); });
@@ -157,7 +154,7 @@ app.whenReady().then(() => {
 });
 
 function createMainWindow() {
-    mainWindow = new BrowserWindow({ width: 450, height: 700, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare LEGACY v32.0" });
+    mainWindow = new BrowserWindow({ width: 450, height: 750, show: false, webPreferences: { nodeIntegration: true, contextIsolation: false }, autoHideMenuBar: true, backgroundColor: '#050507', title: "DeskShare LEGACY v33.0" });
     const ui = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
     mainWindow.loadURL(`data:text/html;base64,${Buffer.from(ui).toString('base64')}`);
     mainWindow.once('ready-to-show', () => mainWindow.show());
