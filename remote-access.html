@@ -103,17 +103,49 @@
                     <strong id="computerName">Cargando...</strong>
                 </div>
             </div>
-            <div style="display: flex; gap: 20px; align-items: center;">
-                <div id="latency-panel"
-                    style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 20px;">
-                    <div id="latency-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #666;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <!-- Integrated Metrics Panel -->
+                <div id="metrics-dashboard"
+                    style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 6px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+
+                    <div style="display: flex; flex-direction: column;">
+                        <span
+                            style="font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; color: #fff;">Streaming</span>
+                        <span id="webrtc-state"
+                            style="font-weight: 700; color: #00f2ff; font-size: 0.85rem;">CONECTANDO...</span>
                     </div>
-                    <div id="latency-value" style="font-weight: 700; color: white; font-size: 0.9rem;">-- ms</div>
+
+                    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.15);"></div>
+
+                    <div style="display: flex; flex-direction: column;">
+                        <span
+                            style="font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; color: #fff;">Latencia</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div id="latency-dot"
+                                style="width: 7px; height: 7px; border-radius: 50%; background: #666;"></div>
+                            <span id="latency-value" style="font-weight: 700; color: white; font-size: 0.85rem;">--
+                                ms</span>
+                        </div>
+                    </div>
                 </div>
-                <div style="text-align: right; color: #ccc;">
-                    <div id="sessionTimer" style="font-weight: 700; color:white;">00:00:00</div>
+
+                <div id="sessionTimer"
+                    style="font-weight: 700; color:white; font-size: 0.95rem; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 8px; font-family: monospace;">
+                    00:00:00</div>
+
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button onclick="if(webrtcViewer) webrtcViewer.toggleFullscreen()"
+                        style="background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                            </path>
+                        </svg>
+                        EXPANDIR
+                    </button>
+                    <button class="btn-end" onclick="endSession()" style="padding: 8px 18px;">Desconectar</button>
                 </div>
-                <button class="btn-end" onclick="endSession()">Desconectar</button>
             </div>
         </div>
 
@@ -122,27 +154,6 @@
         <div class="workspace">
             <div id="webrtc-view">
                 <canvas id="webrtc-canvas"></canvas>
-                <div id="connection-status"
-                    style="position: absolute; top: 20px; left: 20px; color: #00f2ff; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); font-family: 'Outfit', sans-serif; display: flex; align-items: center; gap: 20px; z-index: 100; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);">
-                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                        <span
-                            style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; color: #fff;">Estado
-                            de Red</span>
-                        <span id="webrtc-state"
-                            style="font-weight: 700; font-size: 0.9rem; letter-spacing: 0.5px;">CONECTANDO...</span>
-                    </div>
-                    <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.2);"></div>
-                    <button onclick="if(webrtcViewer) webrtcViewer.toggleFullscreen()"
-                        style="background: var(--accent-purple, #7c3aed); color: white; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
-                            </path>
-                        </svg>
-                        PANTALLA COMPLETA
-                    </button>
-                </div>
             </div>
         </div>
     </div>

@@ -262,15 +262,10 @@ class WebRTCViewer {
         const container = document.getElementById('webrtc-view');
         if (container) {
             container.appendChild(video);
-            // v17.5: Ensure UI panel stays on top
-            const statusPanel = document.getElementById('connection-status');
-            if (statusPanel) statusPanel.style.zIndex = '100';
 
-            // v17.9: Full-Screen UI Auto-Hide
+
+            // v17.9: Full-Screen Optimization
             document.addEventListener('fullscreenchange', () => {
-                if (statusPanel) {
-                    statusPanel.style.display = document.fullscreenElement ? 'none' : 'flex';
-                }
                 // Force video to cover/contain better in fullscreen
                 if (document.fullscreenElement) {
                     video.style.objectFit = 'contain';
