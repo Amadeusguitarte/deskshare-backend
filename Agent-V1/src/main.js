@@ -2,7 +2,6 @@ const { app, BrowserWindow, ipcMain, desktopCapturer, shell, screen } = require(
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const axios = require('axios');
 
 app.setName("DeskShare");
 app.name = "DeskShare";
@@ -136,17 +135,21 @@ app.whenReady().then(() => {
     });
 });
 
-// AXIOS PROXY (Production Standard)
+// AXIOS PROXY (Production Standard - Migrated to Native Fetch for size optimization)
 ipcMain.handle('api', async (e, req) => {
     try {
         if (!config || !config.token) return null;
-        const response = await axios({
+        const response = await fetch(BACKEND_API + req.path, {
             method: req.method,
-            url: BACKEND_API + req.path,
-            data: req.body,
-            headers: { 'Authorization': 'Bearer ' + config.token }
+            headers: {
+                'Authorization': 'Bearer ' + config.token,
+                'Content-Type': 'application/json'
+            },
+            body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
         });
-        return response.data;
+
+        const data = await response.json();
+        return data;
     } catch (err) {
         return { error: true, status: err.response ? err.response.status : 500 };
     }
