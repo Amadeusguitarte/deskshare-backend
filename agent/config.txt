@@ -1,6 +1,0 @@
-;!@Install@!UTF-8!
-Title="DeskShare Launcher Setup"
-BeginPrompt="Install DeskShare Launcher?"
-RunProgram="DeskShare Launcher.exe"
-GUIFlags="8+32"
-;!@InstallEnd@!
