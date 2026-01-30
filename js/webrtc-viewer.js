@@ -260,272 +260,274 @@ class WebRTCViewer {
         // v11.0: Start MUTED to ensure autoplay (No Image Fix)
         video.muted = true;
         const container = document.getElementById('webrtc-view');
-        if (container) {
-            container.appendChild(video);
+        container.appendChild(video);
 
-            // V102: Polished Gaming HUD (Top + Simplified)
-            const hint = document.createElement('div');
-            hint.id = 'gaming-hint';
-            hint.innerText = 'MODO GAMING: CONTROL+CLICK (ESC/SALIR)';
-            hint.style = 'position:absolute; top:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:white; padding:6px 14px; border-radius:30px; font-family:sans-serif; font-size:11px; font-weight:bold; z-index:100; pointer-events:none; border: 1px solid rgba(255,255,255,0.3); letter-spacing: 0.5px;';
-            container.appendChild(hint);
-
-
-            // v17.9: Full-Screen Optimization
-            // v17.9: Full-Screen Optimization
-            document.addEventListener('fullscreenchange', () => {
-                // Force video to cover/contain better in fullscreen
-                if (document.fullscreenElement) {
-                    video.style.objectFit = 'contain';
-                }
-            });
-
-            // V96: REVERT TO DIRECT VIDEO BINDING (Exact V88 Replica)
-            this.attachInputListeners(video);
-        } else {
-            document.body.appendChild(video);
-        }
-
-        video.onloadedmetadata = () => {
-            this.hostRes = { w: video.videoWidth, h: video.videoHeight };
-        };
-
-        const render = () => {
-            if (video.readyState >= 2) {
-                this.lastFrameTime = performance.now(); // Watchdog
-            }
-            if (this.peerConnection) requestAnimationFrame(render);
-        };
-        requestAnimationFrame(render);
-
-        // FREEZE WATCHDOG (v13.0)
-        this.lastFrameTime = performance.now();
-        this.freezeCheck = setInterval(() => {
-            if (this.peerConnection?.connectionState === 'connected' &&
-                performance.now() - this.lastFrameTime > 3000) {
-                console.warn('[WebRTC] Freeze Detectado! Intentando recuperar...');
-                video.play().catch(e => console.error('Recovery failed:', e));
-                this.lastFrameTime = performance.now(); // Reset to avoid loop
-            }
-        }, 3000);
-
-        video.play().catch(() => { });
-
-        // v16.0: Low Latency Playout Hint
-        if ('playoutDelayHint' in video) {
-            video.playoutDelayHint = 0;
-        }
-
-        // v50: BLACK SCREEN DEBUGGER
-        setInterval(() => {
-            if (this.videoElement) {
-                console.log(`[Video Status] Res: ${this.videoElement.videoWidth}x${this.videoElement.videoHeight} | State: ${this.videoElement.readyState} | Paused: ${this.videoElement.paused} | Muted: ${this.videoElement.muted}`);
-            }
-        }, 2000);
-    }
-
-    setupInputCapture() {
-        // V93: MOVED TO attachInputListeners()
-        // Kept empty or used for global keyboard hooks only
-        // V98: Smart ESC (Double Tap Logic)
-        let escCount = 0;
-        let escTimer = null;
-
-        const handleKey = (e) => {
-            if (e.code === 'Escape') {
-                if (e.type === 'keydown') {
-                    escCount++;
-                    if (escCount === 1) {
-                        // First Tap: Send ESC to Host
-                        this.sendInput({ type: 'keydown', vkCode: 0x1B });
-
-                        escTimer = setTimeout(() => {
-                            // Single tap confirmed: release key on host
-                            this.sendInput({ type: 'keyup', vkCode: 0x1B });
-                            escCount = 0;
-                        }, 300);
-                    } else if (escCount === 2) {
-                        // Double Tap: Exit Mode
-                        clearTimeout(escTimer);
-                        document.exitPointerLock();
-                        if (document.fullscreenElement) document.exitFullscreen();
-                        escCount = 0;
-                        return;
-                    }
-                }
-                e.preventDefault();
-                return;
-            }
-
-            // Prevent system shortcuts while focused (F5, Ctrl+R, etc)
-            if (e.ctrlKey || e.metaKey || e.code === 'F5') {
-                // Keep some keys
+        // V103: Setup Header Status Listeners
+        const statusEl = document.getElementById('gaming-status');
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === video) {
+                if (statusEl) statusEl.style.display = 'block';
             } else {
-                e.preventDefault();
-            }
-
-            const vkCode = this.getWin32VK(e.code);
-            if (vkCode) {
-                this.sendInput({ type: e.type, vkCode });
-            }
-        };
-        window.addEventListener('keydown', handleKey);
-        window.addEventListener('keyup', handleKey);
-
-        // 4. HID/Gamepad Scanner (Freedom Mode)
-        this.startGamepadLoop();
-    }
-
-    attachInputListeners(target) {
-        console.log('[WebRTC Viewer] Attaching Input Listeners to:', target.tagName);
-
-        let lastMove = 0;
-        const handleMouse = (e, type) => {
-
-            // V89: 3D GAMING MODE (Relative Deltas)
-            if (type === 'mousemove' && document.pointerLockElement === target) {
-                const now = performance.now();
-                if (now - lastMove < 8) return;
-                lastMove = now;
-                this.sendInput({ type, isRelative: true, dx: e.movementX, dy: e.movementY });
-                return;
-            }
-
-            if (type === 'mousemove') {
-                const now = performance.now();
-                if (now - lastMove < 8) return; // v17.1: Higher frequency for mouse (125Hz)
-                lastMove = now;
-            }
-
-            const rect = target.getBoundingClientRect();
-            // v17.2: PRECISION COORDINATE MAPPING (Standard Desktop Mode)
-            // Fix: Use videoWidth from element if available
-            const videoWidth = this.videoElement ? this.videoElement.videoWidth : (this.hostRes.w || 1920);
-            const videoHeight = this.videoElement ? this.videoElement.videoHeight : (this.hostRes.h || 1080);
-            const videoAspect = videoWidth / videoHeight;
-            const containerAspect = rect.width / rect.height;
-
-            let actualWidth, actualHeight, offsetX, offsetY;
-
-            if (containerAspect > videoAspect) {
-                actualHeight = rect.height;
-                actualWidth = actualHeight * videoAspect;
-                offsetX = (rect.width - actualWidth) / 2;
-                offsetY = 0;
-            } else {
-                actualWidth = rect.width;
-                actualHeight = actualWidth / videoAspect;
-                offsetX = 0;
-                offsetY = (rect.height - actualHeight) / 2;
-            }
-
-            const mouseX = e.clientX - rect.left - offsetX;
-            const mouseY = e.clientY - rect.top - offsetY;
-
-            if (actualWidth > 0 && actualHeight > 0) {
-                const px = Math.max(0, Math.min(1, mouseX / actualWidth));
-                const py = Math.max(0, Math.min(1, mouseY / actualHeight));
-                this.sendInput({ type, px, py, button: e.button === 0 ? 'left' : 'right' });
-            }
-        };
-
-        target.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
-        target.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
-        target.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
-        target.addEventListener('click', (e) => {
-            if (this.videoElement && this.videoElement.muted) {
-                this.unmute();
-            }
-            // V99: CLICK-TO-PLAY (No Ctrl, Simple Gaming Access)
-            if (!document.pointerLockElement) {
-                target.requestPointerLock().catch(() => { });
-                if (navigator.keyboard && navigator.keyboard.lock) {
-                    navigator.keyboard.lock(['Escape']).catch(() => { });
-                }
+                if (statusEl) statusEl.style.display = 'none';
             }
         });
-        target.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        // 2. Mouse Wheel (Universal Scroll)
-        target.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            this.sendInput({ type: 'wheel', deltaY: e.deltaY });
-        }, { passive: false });
+
+        // v17.9: Full-Screen Optimization
+        // v17.9: Full-Screen Optimization
+        document.addEventListener('fullscreenchange', () => {
+            // Force video to cover/contain better in fullscreen
+            if (document.fullscreenElement) {
+                video.style.objectFit = 'contain';
+            }
+        });
+
+        // V96: REVERT TO DIRECT VIDEO BINDING (Exact V88 Replica)
+        this.attachInputListeners(video);
+    } else {
+    document.body.appendChild(video);
+}
+
+video.onloadedmetadata = () => {
+    this.hostRes = { w: video.videoWidth, h: video.videoHeight };
+};
+
+const render = () => {
+    if (video.readyState >= 2) {
+        this.lastFrameTime = performance.now(); // Watchdog
+    }
+    if (this.peerConnection) requestAnimationFrame(render);
+};
+requestAnimationFrame(render);
+
+// FREEZE WATCHDOG (v13.0)
+this.lastFrameTime = performance.now();
+this.freezeCheck = setInterval(() => {
+    if (this.peerConnection?.connectionState === 'connected' &&
+        performance.now() - this.lastFrameTime > 3000) {
+        console.warn('[WebRTC] Freeze Detectado! Intentando recuperar...');
+        video.play().catch(e => console.error('Recovery failed:', e));
+        this.lastFrameTime = performance.now(); // Reset to avoid loop
+    }
+}, 3000);
+
+video.play().catch(() => { });
+
+// v16.0: Low Latency Playout Hint
+if ('playoutDelayHint' in video) {
+    video.playoutDelayHint = 0;
+}
+
+// v50: BLACK SCREEN DEBUGGER
+setInterval(() => {
+    if (this.videoElement) {
+        console.log(`[Video Status] Res: ${this.videoElement.videoWidth}x${this.videoElement.videoHeight} | State: ${this.videoElement.readyState} | Paused: ${this.videoElement.paused} | Muted: ${this.videoElement.muted}`);
+    }
+}, 2000);
     }
 
-    getWin32VK(code) {
-        const mapping = {
-            'KeyA': 0x41, 'KeyB': 0x42, 'KeyC': 0x43, 'KeyD': 0x44, 'KeyE': 0x45, 'KeyF': 0x46, 'KeyG': 0x47, 'KeyH': 0x48, 'KeyI': 0x49, 'KeyJ': 0x4A, 'KeyK': 0x4B, 'KeyL': 0x4C, 'KeyM': 0x4D, 'KeyN': 0x4E, 'KeyO': 0x4F, 'KeyP': 0x50, 'KeyQ': 0x51, 'KeyR': 0x52, 'KeyS': 0x53, 'KeyT': 0x54, 'KeyU': 0x55, 'KeyV': 0x56, 'KeyW': 0x57, 'KeyX': 0x58, 'KeyY': 0x59, 'KeyZ': 0x5A,
-            'Digit0': 0x30, 'Digit1': 0x31, 'Digit2': 0x32, 'Digit3': 0x33, 'Digit4': 0x34, 'Digit5': 0x35, 'Digit6': 0x36, 'Digit7': 0x37, 'Digit8': 0x38, 'Digit9': 0x39,
-            'Enter': 0x0D, 'Escape': 0x1B, 'Space': 0x20, 'Tab': 0x09, 'Backspace': 0x08, 'Delete': 0x2E,
-            'ArrowLeft': 0x25, 'ArrowUp': 0x26, 'ArrowRight': 0x27, 'ArrowDown': 0x28,
-            'ControlLeft': 0x11, 'ControlRight': 0x11, 'ShiftLeft': 0x10, 'ShiftRight': 0x10, 'AltLeft': 0x12, 'AltRight': 0x12,
-            'Period': 0xBE, 'Comma': 0xBC, 'Slash': 0xBF, 'Semicolon': 0xBA, 'Quote': 0xDE
-        };
-        return mapping[code] || null;
-    }
+setupInputCapture() {
+    // V93: MOVED TO attachInputListeners()
+    // Kept empty or used for global keyboard hooks only
+    // V98: Smart ESC (Double Tap Logic)
+    let escCount = 0;
+    let escTimer = null;
 
-    startGamepadLoop() {
-        setInterval(() => {
-            const gamepads = navigator.getGamepads();
-            for (const gp of gamepads) {
-                if (!gp) continue;
-                // Simple mapping: Left stick moves mouse, Button 0 is Click
-                const deadzone = 0.2;
-                if (Math.abs(gp.axes[0]) > deadzone || Math.abs(gp.axes[1]) > deadzone) {
-                    // This is handled by a local cursor or mapped to deltas
-                    // For now, let's notify the agent of raw gamepad data
-                    this.sendInput({ type: 'gamepad', axes: gp.axes, buttons: gp.buttons.map(b => b.pressed) });
+    const handleKey = (e) => {
+        if (e.code === 'Escape') {
+            if (e.type === 'keydown') {
+                escCount++;
+                if (escCount === 1) {
+                    // First Tap: Send ESC to Host
+                    this.sendInput({ type: 'keydown', vkCode: 0x1B });
+
+                    escTimer = setTimeout(() => {
+                        // Single tap confirmed: release key on host
+                        this.sendInput({ type: 'keyup', vkCode: 0x1B });
+                        escCount = 0;
+                    }, 300);
+                } else if (escCount === 2) {
+                    // Double Tap: Exit Mode
+                    clearTimeout(escTimer);
+                    document.exitPointerLock();
+                    if (document.fullscreenElement) document.exitFullscreen();
+                    escCount = 0;
+                    return;
                 }
             }
-        }, 50);
-    }
-
-    sendInput(data) {
-        // v16.0: Route motion to unreliable channel for zero lag
-        const channel = (data.type === 'mousemove') ? this.motionChannel : this.dataChannel;
-
-        if (channel && channel.readyState === 'open') {
-            channel.send(JSON.stringify(data));
-        } else if (this.dataChannel && this.dataChannel.readyState === 'open') {
-            // Fallback to reliable
-            this.dataChannel.send(JSON.stringify(data));
+            e.preventDefault();
+            return;
         }
-    }
 
-    toggleFullscreen() {
-        const container = document.getElementById('webrtc-view') || this.canvas;
-        if (!document.fullscreenElement) {
-            container.requestFullscreen().catch(() => { });
+        // Prevent system shortcuts while focused (F5, Ctrl+R, etc)
+        if (e.ctrlKey || e.metaKey || e.code === 'F5') {
+            // Keep some keys
         } else {
-            document.exitFullscreen();
+            e.preventDefault();
         }
-    }
 
-    disconnect() {
-        if (this.pollInterval) clearInterval(this.pollInterval);
-        if (this.freezeCheck) clearInterval(this.freezeCheck);
-        if (this.peerConnection) {
-            this.peerConnection.onconnectionstatechange = null;
-            this.peerConnection.close();
-            this.peerConnection = null;
+        const vkCode = this.getWin32VK(e.code);
+        if (vkCode) {
+            this.sendInput({ type: e.type, vkCode });
         }
-        if (this.videoElement) {
-            this.videoElement.srcObject = null;
-            this.videoElement.pause();
-            this.videoElement.remove();
-            this.videoElement = null;
-        }
-    }
+    };
+    window.addEventListener('keydown', handleKey);
+    window.addEventListener('keyup', handleKey);
 
-    // EXPOSE UNMUTE FOR UI
-    unmute() {
-        if (this.videoElement) {
-            this.videoElement.muted = false;
-            this.videoElement.play().catch(() => { });
-            console.log('[WebRTC Viewer] Audio Unmuted via Interaction');
+    // 4. HID/Gamepad Scanner (Freedom Mode)
+    this.startGamepadLoop();
+}
+
+attachInputListeners(target) {
+    console.log('[WebRTC Viewer] Attaching Input Listeners to:', target.tagName);
+
+    let lastMove = 0;
+    const handleMouse = (e, type) => {
+
+        // V89: 3D GAMING MODE (Relative Deltas)
+        if (type === 'mousemove' && document.pointerLockElement === target) {
+            const now = performance.now();
+            if (now - lastMove < 8) return;
+            lastMove = now;
+            this.sendInput({ type, isRelative: true, dx: e.movementX, dy: e.movementY });
+            return;
         }
+
+        if (type === 'mousemove') {
+            const now = performance.now();
+            if (now - lastMove < 8) return; // v17.1: Higher frequency for mouse (125Hz)
+            lastMove = now;
+        }
+
+        const rect = target.getBoundingClientRect();
+        // v17.2: PRECISION COORDINATE MAPPING (Standard Desktop Mode)
+        // Fix: Use videoWidth from element if available
+        const videoWidth = this.videoElement ? this.videoElement.videoWidth : (this.hostRes.w || 1920);
+        const videoHeight = this.videoElement ? this.videoElement.videoHeight : (this.hostRes.h || 1080);
+        const videoAspect = videoWidth / videoHeight;
+        const containerAspect = rect.width / rect.height;
+
+        let actualWidth, actualHeight, offsetX, offsetY;
+
+        if (containerAspect > videoAspect) {
+            actualHeight = rect.height;
+            actualWidth = actualHeight * videoAspect;
+            offsetX = (rect.width - actualWidth) / 2;
+            offsetY = 0;
+        } else {
+            actualWidth = rect.width;
+            actualHeight = actualWidth / videoAspect;
+            offsetX = 0;
+            offsetY = (rect.height - actualHeight) / 2;
+        }
+
+        const mouseX = e.clientX - rect.left - offsetX;
+        const mouseY = e.clientY - rect.top - offsetY;
+
+        if (actualWidth > 0 && actualHeight > 0) {
+            const px = Math.max(0, Math.min(1, mouseX / actualWidth));
+            const py = Math.max(0, Math.min(1, mouseY / actualHeight));
+            this.sendInput({ type, px, py, button: e.button === 0 ? 'left' : 'right' });
+        }
+    };
+
+    target.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
+    target.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
+    target.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
+    target.addEventListener('click', (e) => {
+        if (this.videoElement && this.videoElement.muted) {
+            this.unmute();
+        }
+        // V103: RESTORE CTRL + CLICK Requirement
+        if (e.ctrlKey && !document.pointerLockElement) {
+            target.requestPointerLock().catch(() => { });
+            if (navigator.keyboard && navigator.keyboard.lock) {
+                navigator.keyboard.lock(['Escape']).catch(() => { });
+            }
+        }
+    });
+    target.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // 2. Mouse Wheel (Universal Scroll)
+    target.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        this.sendInput({ type: 'wheel', deltaY: e.deltaY });
+    }, { passive: false });
+}
+
+getWin32VK(code) {
+    const mapping = {
+        'KeyA': 0x41, 'KeyB': 0x42, 'KeyC': 0x43, 'KeyD': 0x44, 'KeyE': 0x45, 'KeyF': 0x46, 'KeyG': 0x47, 'KeyH': 0x48, 'KeyI': 0x49, 'KeyJ': 0x4A, 'KeyK': 0x4B, 'KeyL': 0x4C, 'KeyM': 0x4D, 'KeyN': 0x4E, 'KeyO': 0x4F, 'KeyP': 0x50, 'KeyQ': 0x51, 'KeyR': 0x52, 'KeyS': 0x53, 'KeyT': 0x54, 'KeyU': 0x55, 'KeyV': 0x56, 'KeyW': 0x57, 'KeyX': 0x58, 'KeyY': 0x59, 'KeyZ': 0x5A,
+        'Digit0': 0x30, 'Digit1': 0x31, 'Digit2': 0x32, 'Digit3': 0x33, 'Digit4': 0x34, 'Digit5': 0x35, 'Digit6': 0x36, 'Digit7': 0x37, 'Digit8': 0x38, 'Digit9': 0x39,
+        'Enter': 0x0D, 'Escape': 0x1B, 'Space': 0x20, 'Tab': 0x09, 'Backspace': 0x08, 'Delete': 0x2E,
+        'ArrowLeft': 0x25, 'ArrowUp': 0x26, 'ArrowRight': 0x27, 'ArrowDown': 0x28,
+        'ControlLeft': 0x11, 'ControlRight': 0x11, 'ShiftLeft': 0x10, 'ShiftRight': 0x10, 'AltLeft': 0x12, 'AltRight': 0x12,
+        'Period': 0xBE, 'Comma': 0xBC, 'Slash': 0xBF, 'Semicolon': 0xBA, 'Quote': 0xDE
+    };
+    return mapping[code] || null;
+}
+
+startGamepadLoop() {
+    setInterval(() => {
+        const gamepads = navigator.getGamepads();
+        for (const gp of gamepads) {
+            if (!gp) continue;
+            // Simple mapping: Left stick moves mouse, Button 0 is Click
+            const deadzone = 0.2;
+            if (Math.abs(gp.axes[0]) > deadzone || Math.abs(gp.axes[1]) > deadzone) {
+                // This is handled by a local cursor or mapped to deltas
+                // For now, let's notify the agent of raw gamepad data
+                this.sendInput({ type: 'gamepad', axes: gp.axes, buttons: gp.buttons.map(b => b.pressed) });
+            }
+        }
+    }, 50);
+}
+
+sendInput(data) {
+    // v16.0: Route motion to unreliable channel for zero lag
+    const channel = (data.type === 'mousemove') ? this.motionChannel : this.dataChannel;
+
+    if (channel && channel.readyState === 'open') {
+        channel.send(JSON.stringify(data));
+    } else if (this.dataChannel && this.dataChannel.readyState === 'open') {
+        // Fallback to reliable
+        this.dataChannel.send(JSON.stringify(data));
     }
+}
+
+toggleFullscreen() {
+    const container = document.getElementById('webrtc-view') || this.canvas;
+    if (!document.fullscreenElement) {
+        container.requestFullscreen().catch(() => { });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+disconnect() {
+    if (this.pollInterval) clearInterval(this.pollInterval);
+    if (this.freezeCheck) clearInterval(this.freezeCheck);
+    if (this.peerConnection) {
+        this.peerConnection.onconnectionstatechange = null;
+        this.peerConnection.close();
+        this.peerConnection = null;
+    }
+    if (this.videoElement) {
+        this.videoElement.srcObject = null;
+        this.videoElement.pause();
+        this.videoElement.remove();
+        this.videoElement = null;
+    }
+}
+
+// EXPOSE UNMUTE FOR UI
+unmute() {
+    if (this.videoElement) {
+        this.videoElement.muted = false;
+        this.videoElement.play().catch(() => { });
+        console.log('[WebRTC Viewer] Audio Unmuted via Interaction');
+    }
+}
 }
 
 window.WebRTCViewer = WebRTCViewer;
