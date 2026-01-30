@@ -534,19 +534,84 @@ class WebRTCViewer {
     }
 
     startGamepadLoop() {
-        setInterval(() => {
+        // V118: Enhanced Xbox Controller support
+        let lastGamepadState = null;
+
+        const gamepadLoop = () => {
             const gamepads = navigator.getGamepads();
             for (const gp of gamepads) {
                 if (!gp) continue;
-                // Simple mapping: Left stick moves mouse, Button 0 is Click
-                const deadzone = 0.2;
-                if (Math.abs(gp.axes[0]) > deadzone || Math.abs(gp.axes[1]) > deadzone) {
-                    // This is handled by a local cursor or mapped to deltas
-                    // For now, let's notify the agent of raw gamepad data
-                    this.sendInput({ type: 'gamepad', axes: gp.axes, buttons: gp.buttons.map(b => b.pressed) });
+
+                // Xbox Controller layout:
+                // Axes: [LeftStickX, LeftStickY, RightStickX, RightStickY]
+                // Buttons:
+                // 0=A, 1=B, 2=X, 3=Y
+                // 4=LB, 5=RB, 6=LT, 7=RT
+                // 8=Back, 9=Start, 10=LeftStick, 11=RightStick
+                // 12=DPadUp, 13=DPadDown, 14=DPadLeft, 15=DPadRight
+                // 16=Xbox/Guide button
+
+                const deadzone = 0.15;
+                const applyDeadzone = (val) => Math.abs(val) < deadzone ? 0 : val;
+
+                const state = {
+                    type: 'gamepad',
+                    index: gp.index,
+                    connected: gp.connected,
+                    id: gp.id,
+                    // Sticks (normalized -1 to 1)
+                    leftStickX: applyDeadzone(gp.axes[0] || 0),
+                    leftStickY: applyDeadzone(gp.axes[1] || 0),
+                    rightStickX: applyDeadzone(gp.axes[2] || 0),
+                    rightStickY: applyDeadzone(gp.axes[3] || 0),
+                    // Face buttons (boolean)
+                    btnA: gp.buttons[0]?.pressed || false,
+                    btnB: gp.buttons[1]?.pressed || false,
+                    btnX: gp.buttons[2]?.pressed || false,
+                    btnY: gp.buttons[3]?.pressed || false,
+                    // Bumpers and triggers
+                    btnLB: gp.buttons[4]?.pressed || false,
+                    btnRB: gp.buttons[5]?.pressed || false,
+                    triggerLT: gp.buttons[6]?.value || 0, // 0.0 to 1.0
+                    triggerRT: gp.buttons[7]?.value || 0, // 0.0 to 1.0
+                    // Menu buttons
+                    btnBack: gp.buttons[8]?.pressed || false,
+                    btnStart: gp.buttons[9]?.pressed || false,
+                    btnLeftStick: gp.buttons[10]?.pressed || false,
+                    btnRightStick: gp.buttons[11]?.pressed || false,
+                    // D-Pad
+                    dpadUp: gp.buttons[12]?.pressed || false,
+                    dpadDown: gp.buttons[13]?.pressed || false,
+                    dpadLeft: gp.buttons[14]?.pressed || false,
+                    dpadRight: gp.buttons[15]?.pressed || false,
+                    // Xbox button
+                    btnGuide: gp.buttons[16]?.pressed || false
+                };
+
+                // Only send if state changed or there's active input
+                const stateStr = JSON.stringify(state);
+                const hasInput = state.leftStickX !== 0 || state.leftStickY !== 0 ||
+                    state.rightStickX !== 0 || state.rightStickY !== 0 ||
+                    state.triggerLT > 0 || state.triggerRT > 0 ||
+                    state.btnA || state.btnB || state.btnX || state.btnY ||
+                    state.btnLB || state.btnRB || state.btnBack || state.btnStart ||
+                    state.dpadUp || state.dpadDown || state.dpadLeft || state.dpadRight;
+
+                if (hasInput || (lastGamepadState && stateStr !== lastGamepadState)) {
+                    this.sendInput(state);
+                    lastGamepadState = stateStr;
+                } else if (!hasInput && lastGamepadState) {
+                    // Send one final "released" state
+                    this.sendInput(state);
+                    lastGamepadState = null;
                 }
             }
-        }, 50);
+            requestAnimationFrame(gamepadLoop);
+        };
+
+        // Start the loop
+        requestAnimationFrame(gamepadLoop);
+        console.log('[WebRTC] V118: Xbox Controller gamepad loop started');
     }
 
     sendInput(data) {
