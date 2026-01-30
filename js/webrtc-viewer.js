@@ -115,8 +115,26 @@ class WebRTCViewer {
             }
         };
 
+        // V114: Enhanced connection state handler with auto-retry
         this.peerConnection.onconnectionstatechange = () => {
-            this.updateState(this.peerConnection.connectionState.toUpperCase());
+            const state = this.peerConnection.connectionState;
+            this.updateState(state.toUpperCase());
+            console.log('[WebRTC State]', state);
+
+            // V114: Auto-retry on failed or disconnected state
+            if (state === 'failed' || state === 'disconnected') {
+                console.log('[WebRTC] Connection failed/disconnected. Auto-retrying in 3s...');
+                this.updateState('RECONECTANDO...');
+                setTimeout(() => {
+                    if (this.peerConnection &&
+                        (this.peerConnection.connectionState === 'failed' ||
+                            this.peerConnection.connectionState === 'disconnected')) {
+                        console.log('[WebRTC] Attempting auto-reconnect...');
+                        this.disconnect();
+                        this.connect();
+                    }
+                }, 3000);
+            }
         };
 
         // v16.0: Twin-Channel Strategy
@@ -268,8 +286,9 @@ class WebRTCViewer {
         video.style.zIndex = '0';
         this.canvas.style.display = 'none'; // Hide canvas
 
-        // v11.0: Start MUTED to ensure autoplay (No Image Fix)
-        video.muted = true;
+        // V114: Start UNMUTED - Audio plays immediately (button shows ON)
+        video.muted = false;
+        video.volume = 1.0;
         const container = document.getElementById('webrtc-view');
         container.appendChild(video);
 

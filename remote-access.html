@@ -142,8 +142,8 @@
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <button id="audioToggleBtn"
                         onclick="if(webrtcViewer) { const isOn = webrtcViewer.toggleAudio(); this.innerText = isOn ? '🔊 SONIDO ON' : '🔇 SONIDO OFF'; this.style.background = isOn ? '#10b981' : '#ff4444'; console.log('Audio Toggle:', isOn); }"
-                        style="background: #ff4444; color: white; border: 1px solid rgba(255,255,255,0.1); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                        🔇 SONIDO OFF
+                        style="background: #10b981; color: white; border: 1px solid rgba(255,255,255,0.1); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                        🔊 SONIDO ON
                     </button>
                     <button onclick="if(webrtcViewer) webrtcViewer.toggleFullscreen()"
                         style="background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
