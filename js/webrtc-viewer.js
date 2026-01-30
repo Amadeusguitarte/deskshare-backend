@@ -391,20 +391,19 @@ class WebRTCViewer {
         // Gaming mode exit is now only via Ctrl+Click
 
         const handleKey = (e) => {
-            // V116: ESC is now passed through like any other key
-            // No special handling - use Ctrl+Click to exit gaming mode
-            if (e.code === 'Escape') {
-                const vkCode = 0x1B;
-                this.sendInput({ type: e.type, vkCode });
+            // V117: Always prevent default for gaming keys to avoid local actions
+            const blockedKeys = ['Escape', 'MetaLeft', 'MetaRight', 'Tab', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
+            if (blockedKeys.includes(e.code) || document.pointerLockElement) {
                 e.preventDefault();
-                return;
             }
 
-            // Prevent system shortcuts while focused (F5, Ctrl+R, etc)
-            if (e.ctrlKey || e.metaKey || e.code === 'F5') {
-                // Keep some keys
-            } else {
+            // V117: Special handling for Windows key - must block + send
+            if (e.code === 'MetaLeft' || e.code === 'MetaRight') {
+                const vkCode = e.code === 'MetaLeft' ? 0x5B : 0x5C;
+                this.sendInput({ type: e.type, vkCode });
                 e.preventDefault();
+                e.stopPropagation();
+                return;
             }
 
             const vkCode = this.getWin32VK(e.code);
@@ -489,7 +488,8 @@ class WebRTCViewer {
                     // Not in gaming mode - ENTER
                     target.requestPointerLock().catch(() => { });
                     if (navigator.keyboard && navigator.keyboard.lock) {
-                        navigator.keyboard.lock(['Escape']).catch(() => { });
+                        // V117: Lock more system keys for gaming
+                        navigator.keyboard.lock(['Escape', 'Tab', 'MetaLeft', 'MetaRight', 'F11']).catch(() => { });
                     }
                     console.log('[WebRTC] V116: Gaming mode ENTERED via Ctrl+Click');
                 }
@@ -511,6 +511,14 @@ class WebRTCViewer {
             'Enter': 0x0D, 'Escape': 0x1B, 'Space': 0x20, 'Tab': 0x09, 'Backspace': 0x08, 'Delete': 0x2E,
             'ArrowLeft': 0x25, 'ArrowUp': 0x26, 'ArrowRight': 0x27, 'ArrowDown': 0x28,
             'ControlLeft': 0x11, 'ControlRight': 0x11, 'ShiftLeft': 0x10, 'ShiftRight': 0x10, 'AltLeft': 0x12, 'AltRight': 0x12,
+            // V117: Windows key (Meta) and more keys
+            'MetaLeft': 0x5B, 'MetaRight': 0x5C, // Windows keys
+            'CapsLock': 0x14, 'NumLock': 0x90, 'ScrollLock': 0x91,
+            'F1': 0x70, 'F2': 0x71, 'F3': 0x72, 'F4': 0x73, 'F5': 0x74, 'F6': 0x75, 'F7': 0x76, 'F8': 0x77, 'F9': 0x78, 'F10': 0x79, 'F11': 0x7A, 'F12': 0x7B,
+            'Insert': 0x2D, 'Home': 0x24, 'End': 0x23, 'PageUp': 0x21, 'PageDown': 0x22,
+            'Numpad0': 0x60, 'Numpad1': 0x61, 'Numpad2': 0x62, 'Numpad3': 0x63, 'Numpad4': 0x64, 'Numpad5': 0x65, 'Numpad6': 0x66, 'Numpad7': 0x67, 'Numpad8': 0x68, 'Numpad9': 0x69,
+            'NumpadMultiply': 0x6A, 'NumpadAdd': 0x6B, 'NumpadSubtract': 0x6D, 'NumpadDecimal': 0x6E, 'NumpadDivide': 0x6F, 'NumpadEnter': 0x0D,
+            'Minus': 0xBD, 'Equal': 0xBB, 'BracketLeft': 0xDB, 'BracketRight': 0xDD, 'Backslash': 0xDC, 'Backquote': 0xC0,
             'Period': 0xBE, 'Comma': 0xBC, 'Slash': 0xBF, 'Semicolon': 0xBA, 'Quote': 0xDE
         };
         return mapping[code] || null;
