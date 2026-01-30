@@ -391,6 +391,15 @@ class WebRTCViewer {
         // Gaming mode exit is now only via Ctrl+Click
 
         const handleKey = (e) => {
+            // V117: Skip key repeat events to avoid flooding the host
+            // Only first keydown and final keyup should be sent
+            if (e.repeat) return;
+
+            // V117: Debug logging for modifier keys
+            if (e.code.includes('Shift') || e.code.includes('Control') || e.code.includes('Alt') || e.code.includes('Meta')) {
+                console.log(`[KEY MODIFIER] ${e.type}: ${e.code}`);
+            }
+
             // V117: Always prevent default for gaming keys to avoid local actions
             const blockedKeys = ['Escape', 'MetaLeft', 'MetaRight', 'Tab', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
             if (blockedKeys.includes(e.code) || document.pointerLockElement) {
