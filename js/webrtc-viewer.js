@@ -115,25 +115,35 @@ class WebRTCViewer {
             }
         };
 
-        // V114: Enhanced connection state handler with auto-retry
+        // V116: Enhanced connection state handler with robust auto-retry
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+
         this.peerConnection.onconnectionstatechange = () => {
             const state = this.peerConnection.connectionState;
             this.updateState(state.toUpperCase());
             console.log('[WebRTC State]', state);
 
-            // V114: Auto-retry on failed or disconnected state
+            if (state === 'connected') {
+                retryCount = 0;
+            }
+
             if (state === 'failed' || state === 'disconnected') {
-                console.log('[WebRTC] Connection failed/disconnected. Auto-retrying in 3s...');
-                this.updateState('RECONECTANDO...');
-                setTimeout(() => {
-                    if (this.peerConnection &&
-                        (this.peerConnection.connectionState === 'failed' ||
-                            this.peerConnection.connectionState === 'disconnected')) {
-                        console.log('[WebRTC] Attempting auto-reconnect...');
-                        this.disconnect();
-                        this.connect();
-                    }
-                }, 3000);
+                if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    console.log(`[WebRTC] Retry ${retryCount}/${MAX_RETRIES} in 2s...`);
+                    this.updateState(`RECONECTANDO (${retryCount}/${MAX_RETRIES})...`);
+                    setTimeout(() => {
+                        if (this.peerConnection &&
+                            (this.peerConnection.connectionState === 'failed' ||
+                                this.peerConnection.connectionState === 'disconnected')) {
+                            this.disconnect();
+                            this.connect();
+                        }
+                    }, 2000);
+                } else {
+                    this.updateState('ERROR - RECARGAR');
+                }
             }
         };
 
@@ -311,7 +321,7 @@ class WebRTCViewer {
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === video) {
                 if (statusEl) {
-                    statusEl.innerText = '🔥 MODO GAMING ACTIVO (ESC X2 SALIR)';
+                    statusEl.innerText = '🔥 MODO GAMING ACTIVO (CTRL+CLICK SALIR)';
                     statusEl.style.color = '#0f0'; // Green when active
                 }
             } else {
@@ -377,32 +387,15 @@ class WebRTCViewer {
     setupInputCapture() {
         // V93: MOVED TO attachInputListeners()
         // Kept empty or used for global keyboard hooks only
-        // V98: Smart ESC (Double Tap Logic)
-        let escCount = 0;
-        let escTimer = null;
+        // V116: ESC works like normal key (no double-tap exit)
+        // Gaming mode exit is now only via Ctrl+Click
 
         const handleKey = (e) => {
+            // V116: ESC is now passed through like any other key
+            // No special handling - use Ctrl+Click to exit gaming mode
             if (e.code === 'Escape') {
-                if (e.type === 'keydown') {
-                    escCount++;
-                    if (escCount === 1) {
-                        // First Tap: Send ESC to Host
-                        this.sendInput({ type: 'keydown', vkCode: 0x1B });
-
-                        escTimer = setTimeout(() => {
-                            // Single tap confirmed: release key on host
-                            this.sendInput({ type: 'keyup', vkCode: 0x1B });
-                            escCount = 0;
-                        }, 300);
-                    } else if (escCount === 2) {
-                        // Double Tap: Exit Mode
-                        clearTimeout(escTimer);
-                        document.exitPointerLock();
-                        if (document.fullscreenElement) document.exitFullscreen();
-                        escCount = 0;
-                        return;
-                    }
-                }
+                const vkCode = 0x1B;
+                this.sendInput({ type: e.type, vkCode });
                 e.preventDefault();
                 return;
             }
@@ -486,11 +479,19 @@ class WebRTCViewer {
             if (this.videoElement && this.videoElement.muted) {
                 this.unmute();
             }
-            // V103: RESTORE CTRL + CLICK Requirement
-            if (e.ctrlKey && !document.pointerLockElement) {
-                target.requestPointerLock().catch(() => { });
-                if (navigator.keyboard && navigator.keyboard.lock) {
-                    navigator.keyboard.lock(['Escape']).catch(() => { });
+            // V116: CTRL + CLICK TOGGLE for Gaming Mode (enter AND exit)
+            if (e.ctrlKey) {
+                if (document.pointerLockElement) {
+                    // Currently in gaming mode - EXIT
+                    document.exitPointerLock();
+                    console.log('[WebRTC] V116: Gaming mode EXITED via Ctrl+Click');
+                } else {
+                    // Not in gaming mode - ENTER
+                    target.requestPointerLock().catch(() => { });
+                    if (navigator.keyboard && navigator.keyboard.lock) {
+                        navigator.keyboard.lock(['Escape']).catch(() => { });
+                    }
+                    console.log('[WebRTC] V116: Gaming mode ENTERED via Ctrl+Click');
                 }
             }
         });
