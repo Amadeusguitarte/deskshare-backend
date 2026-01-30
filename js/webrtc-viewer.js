@@ -263,11 +263,11 @@ class WebRTCViewer {
         if (container) {
             container.appendChild(video);
 
-            // V91: Gaming Mode HUD (Updated)
+            // V102: Polished Gaming HUD (Top + Simplified)
             const hint = document.createElement('div');
             hint.id = 'gaming-hint';
-            hint.innerText = '🎮 MODO GAMING: CTRL + CLICK P/ CAPTURAR (ESC P/ SALIR)';
-            hint.style = 'position:absolute; bottom:15%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:white; padding:8px 15px; border-radius:30px; font-family:sans-serif; font-size:12px; font-weight:bold; z-index:100; pointer-events:none; border: 1px solid white;';
+            hint.innerText = 'MODO GAMING: CONTROL+CLICK (ESC/SALIR)';
+            hint.style = 'position:absolute; top:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:white; padding:6px 14px; border-radius:30px; font-family:sans-serif; font-size:11px; font-weight:bold; z-index:100; pointer-events:none; border: 1px solid rgba(255,255,255,0.3); letter-spacing: 0.5px;';
             container.appendChild(hint);
 
 
