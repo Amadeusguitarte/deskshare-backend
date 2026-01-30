@@ -94,14 +94,9 @@ class WebRTCViewer {
         this.peerConnection.ontrack = (event) => {
             console.log('[WebRTC Viewer] Track Detectado:', event.track.kind, '✅');
 
-            // V110: Visual Audio Track Indicator
+            // V113: Audio track detection (no visual indicator now)
             if (event.track.kind === 'audio') {
                 console.log('[WebRTC Viewer] 🔊 AUDIO TRACK RECEIVED! ID:', event.track.id);
-                // Show visual feedback that audio is available
-                const btn = document.getElementById('audioToggleBtn');
-                if (btn) {
-                    btn.style.border = '3px solid #0f0'; // Green border = audio track received
-                }
             }
 
             // v49: Keep UI panel visible for Stats & Controls
