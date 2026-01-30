@@ -78,6 +78,12 @@ class WebRTCViewer {
         console.log('[WebRTC] Init PeerConnection', config);
         this.peerConnection = new RTCPeerConnection(config);
 
+        // V112: Add transceivers to request audio + video reception
+        // Without this, the SDP offer won't include audio m-line
+        this.peerConnection.addTransceiver('video', { direction: 'recvonly' });
+        this.peerConnection.addTransceiver('audio', { direction: 'recvonly' });
+        console.log('[WebRTC] V112: Added video+audio transceivers for reception');
+
         this.peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
                 // console.log('[WebRTC] Local Candidate:', event.candidate.candidate);
