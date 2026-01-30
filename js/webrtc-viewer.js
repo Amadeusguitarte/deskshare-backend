@@ -263,7 +263,15 @@ class WebRTCViewer {
         if (container) {
             container.appendChild(video);
 
+            // V91: Gaming Mode HUD (Updated)
+            const hint = document.createElement('div');
+            hint.id = 'gaming-hint';
+            hint.innerText = '🎮 MODO GAMING: CTRL + CLICK P/ CAPTURAR (ESC P/ SALIR)';
+            hint.style = 'position:absolute; bottom:15%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:white; padding:8px 15px; border-radius:30px; font-family:sans-serif; font-size:12px; font-weight:bold; z-index:100; pointer-events:none; border: 1px solid white;';
+            container.appendChild(hint);
 
+
+            // v17.9: Full-Screen Optimization
             // v17.9: Full-Screen Optimization
             document.addEventListener('fullscreenchange', () => {
                 // Force video to cover/contain better in fullscreen
@@ -271,6 +279,9 @@ class WebRTCViewer {
                     video.style.objectFit = 'contain';
                 }
             });
+
+            // V96: REVERT TO DIRECT VIDEO BINDING (Exact V88 Replica)
+            this.attachInputListeners(video);
         } else {
             document.body.appendChild(video);
         }
@@ -314,73 +325,41 @@ class WebRTCViewer {
     }
 
     setupInputCapture() {
-        // 1. Mouse Movement & Clicks
-        let lastMove = 0;
-        const handleMouse = (e, type) => {
-            if (type === 'mousemove') {
-                const now = performance.now();
-                if (now - lastMove < 8) return; // v17.1: Higher frequency for mouse (125Hz)
-                lastMove = now;
-            }
+        // V93: MOVED TO attachInputListeners()
+        // Kept empty or used for global keyboard hooks only
+        // V98: Smart ESC (Double Tap Logic)
+        let escCount = 0;
+        let escTimer = null;
 
-            // v17.2: PRECISION COORDINATE MAPPING (Handles letterboxing/contain)
-            const target = this.videoElement || this.canvas;
-            const rect = target.getBoundingClientRect();
-
-            const videoWidth = this.hostRes.w || 1920;
-            const videoHeight = this.hostRes.h || 1080;
-            const videoAspect = videoWidth / videoHeight;
-            const containerAspect = rect.width / rect.height;
-
-            let actualWidth, actualHeight, offsetX, offsetY;
-
-            if (containerAspect > videoAspect) {
-                // Pillarbox (black bars on sides)
-                actualHeight = rect.height;
-                actualWidth = actualHeight * videoAspect;
-                offsetX = (rect.width - actualWidth) / 2;
-                offsetY = 0;
-            } else {
-                // Letterbox (black bars on top/bottom)
-                actualWidth = rect.width;
-                actualHeight = actualWidth / videoAspect;
-                offsetX = 0;
-                offsetY = (rect.height - actualHeight) / 2;
-            }
-
-            const mouseX = e.clientX - rect.left - offsetX;
-            const mouseY = e.clientY - rect.top - offsetY;
-
-            // v17.9: PERCENTAGE-BASED MAPPING (Ultra-Precise)
-            if (actualWidth > 0 && actualHeight > 0) {
-                const px = Math.max(0, Math.min(1, mouseX / actualWidth));
-                const py = Math.max(0, Math.min(1, mouseY / actualHeight));
-                this.sendInput({ type, px, py, button: e.button === 0 ? 'left' : 'right' });
-            }
-        };
-        // Use video for tracking instead of canvas
-        const target = this.videoElement || this.canvas;
-        target.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
-        target.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
-        target.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
-        target.addEventListener('click', () => {
-            if (this.videoElement && this.videoElement.muted) {
-                this.unmute();
-            }
-        });
-        target.addEventListener('contextmenu', (e) => e.preventDefault());
-
-        // 2. Mouse Wheel (Universal Scroll)
-        target.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            this.sendInput({ type: 'wheel', deltaY: e.deltaY });
-        }, { passive: false });
-
-        // 3. Universal Keyboard Interceptor
         const handleKey = (e) => {
+            if (e.code === 'Escape') {
+                if (e.type === 'keydown') {
+                    escCount++;
+                    if (escCount === 1) {
+                        // First Tap: Send ESC to Host
+                        this.sendInput({ type: 'keydown', vkCode: 0x1B });
+
+                        escTimer = setTimeout(() => {
+                            // Single tap confirmed: release key on host
+                            this.sendInput({ type: 'keyup', vkCode: 0x1B });
+                            escCount = 0;
+                        }, 300);
+                    } else if (escCount === 2) {
+                        // Double Tap: Exit Mode
+                        clearTimeout(escTimer);
+                        document.exitPointerLock();
+                        if (document.fullscreenElement) document.exitFullscreen();
+                        escCount = 0;
+                        return;
+                    }
+                }
+                e.preventDefault();
+                return;
+            }
+
             // Prevent system shortcuts while focused (F5, Ctrl+R, etc)
             if (e.ctrlKey || e.metaKey || e.code === 'F5') {
-                // Keep some keys for escape
+                // Keep some keys
             } else {
                 e.preventDefault();
             }
@@ -395,6 +374,83 @@ class WebRTCViewer {
 
         // 4. HID/Gamepad Scanner (Freedom Mode)
         this.startGamepadLoop();
+    }
+
+    attachInputListeners(target) {
+        console.log('[WebRTC Viewer] Attaching Input Listeners to:', target.tagName);
+
+        let lastMove = 0;
+        const handleMouse = (e, type) => {
+
+            // V89: 3D GAMING MODE (Relative Deltas)
+            if (type === 'mousemove' && document.pointerLockElement === target) {
+                const now = performance.now();
+                if (now - lastMove < 8) return;
+                lastMove = now;
+                this.sendInput({ type, isRelative: true, dx: e.movementX, dy: e.movementY });
+                return;
+            }
+
+            if (type === 'mousemove') {
+                const now = performance.now();
+                if (now - lastMove < 8) return; // v17.1: Higher frequency for mouse (125Hz)
+                lastMove = now;
+            }
+
+            const rect = target.getBoundingClientRect();
+            // v17.2: PRECISION COORDINATE MAPPING (Standard Desktop Mode)
+            // Fix: Use videoWidth from element if available
+            const videoWidth = this.videoElement ? this.videoElement.videoWidth : (this.hostRes.w || 1920);
+            const videoHeight = this.videoElement ? this.videoElement.videoHeight : (this.hostRes.h || 1080);
+            const videoAspect = videoWidth / videoHeight;
+            const containerAspect = rect.width / rect.height;
+
+            let actualWidth, actualHeight, offsetX, offsetY;
+
+            if (containerAspect > videoAspect) {
+                actualHeight = rect.height;
+                actualWidth = actualHeight * videoAspect;
+                offsetX = (rect.width - actualWidth) / 2;
+                offsetY = 0;
+            } else {
+                actualWidth = rect.width;
+                actualHeight = actualWidth / videoAspect;
+                offsetX = 0;
+                offsetY = (rect.height - actualHeight) / 2;
+            }
+
+            const mouseX = e.clientX - rect.left - offsetX;
+            const mouseY = e.clientY - rect.top - offsetY;
+
+            if (actualWidth > 0 && actualHeight > 0) {
+                const px = Math.max(0, Math.min(1, mouseX / actualWidth));
+                const py = Math.max(0, Math.min(1, mouseY / actualHeight));
+                this.sendInput({ type, px, py, button: e.button === 0 ? 'left' : 'right' });
+            }
+        };
+
+        target.addEventListener('mousemove', (e) => handleMouse(e, 'mousemove'));
+        target.addEventListener('mousedown', (e) => handleMouse(e, 'mousedown'));
+        target.addEventListener('mouseup', (e) => handleMouse(e, 'mouseup'));
+        target.addEventListener('click', (e) => {
+            if (this.videoElement && this.videoElement.muted) {
+                this.unmute();
+            }
+            // V99: CLICK-TO-PLAY (No Ctrl, Simple Gaming Access)
+            if (!document.pointerLockElement) {
+                target.requestPointerLock().catch(() => { });
+                if (navigator.keyboard && navigator.keyboard.lock) {
+                    navigator.keyboard.lock(['Escape']).catch(() => { });
+                }
+            }
+        });
+        target.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // 2. Mouse Wheel (Universal Scroll)
+        target.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            this.sendInput({ type: 'wheel', deltaY: e.deltaY });
+        }, { passive: false });
     }
 
     getWin32VK(code) {
