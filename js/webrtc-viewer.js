@@ -88,6 +88,11 @@ class WebRTCViewer {
         this.peerConnection.ontrack = (event) => {
             console.log('[WebRTC Viewer] Track Detectado:', event.track.kind, '✅');
 
+            // V109: Log audio tracks specifically
+            if (event.track.kind === 'audio') {
+                console.log('[WebRTC Viewer] 🔊 AUDIO TRACK RECEIVED! ID:', event.track.id);
+            }
+
             // v49: Keep UI panel visible for Stats & Controls
             this.updateState('EN VIVO');
 
@@ -524,13 +529,32 @@ class WebRTCViewer {
         }
     }
 
-    // EXPOSE UNMUTE FOR UI
+    // V109: IMPROVED UNMUTE WITH LOGGING
     unmute() {
         if (this.videoElement) {
+            console.log('[WebRTC Viewer] Attempting unmute... Current muted:', this.videoElement.muted);
             this.videoElement.muted = false;
-            this.videoElement.play().catch(() => { });
-            console.log('[WebRTC Viewer] Audio Unmuted via Interaction');
+            this.videoElement.volume = 1.0; // V109: Force full volume
+            this.videoElement.play().catch((e) => {
+                console.error('[WebRTC Viewer] Play failed:', e);
+            });
+            console.log('[WebRTC Viewer] Audio Unmuted! New muted state:', this.videoElement.muted, 'Volume:', this.videoElement.volume);
+        } else {
+            console.warn('[WebRTC Viewer] unmute() called but no video element!');
         }
+    }
+
+    // V109: Toggle audio for button
+    toggleAudio() {
+        if (this.videoElement) {
+            this.videoElement.muted = !this.videoElement.muted;
+            if (!this.videoElement.muted) {
+                this.videoElement.volume = 1.0;
+                this.videoElement.play().catch(() => { });
+            }
+            return !this.videoElement.muted; // Returns true if now playing audio
+        }
+        return false;
     }
 }
 
