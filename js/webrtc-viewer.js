@@ -286,9 +286,23 @@ class WebRTCViewer {
         video.style.zIndex = '0';
         this.canvas.style.display = 'none'; // Hide canvas
 
-        // V114: Start UNMUTED - Audio plays immediately (button shows ON)
-        video.muted = false;
+        // V115: Start MUTED for autoplay compliance, then unmute on first interaction
+        video.muted = true;
         video.volume = 1.0;
+
+        // V115: Auto-unmute on first user interaction (click anywhere)
+        const autoUnmute = () => {
+            if (this.videoElement && this.videoElement.muted) {
+                this.videoElement.muted = false;
+                this.videoElement.play().catch(() => { });
+                console.log('[WebRTC] V115: Auto-unmuted on user interaction');
+            }
+            document.removeEventListener('click', autoUnmute);
+            document.removeEventListener('keydown', autoUnmute);
+        };
+        document.addEventListener('click', autoUnmute, { once: true });
+        document.addEventListener('keydown', autoUnmute, { once: true });
+
         const container = document.getElementById('webrtc-view');
         container.appendChild(video);
 
