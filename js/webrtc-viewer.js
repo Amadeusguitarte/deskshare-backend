@@ -262,13 +262,19 @@ class WebRTCViewer {
         const container = document.getElementById('webrtc-view');
         container.appendChild(video);
 
-        // V103: Setup Header Status Listeners
+        // V106: Persistent Header Status Logic
         const statusEl = document.getElementById('gaming-status');
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === video) {
-                if (statusEl) statusEl.style.display = 'block';
+                if (statusEl) {
+                    statusEl.innerText = '🔥 MODO GAMING ACTIVO (ESC X2 SALIR)';
+                    statusEl.style.color = '#0f0'; // Green when active
+                }
             } else {
-                if (statusEl) statusEl.style.display = 'none';
+                if (statusEl) {
+                    statusEl.innerText = '🎮 PARA JUGAR: CTRL + CLICK';
+                    statusEl.style.color = '#fbbf24'; // Yellow waiting
+                }
             }
         });
 
