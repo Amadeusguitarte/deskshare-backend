@@ -539,6 +539,11 @@ class WebRTCViewer {
             for (const gp of gamepads) {
                 if (!gp || !gp.connected) continue;
 
+                if (!window._gpDetected) {
+                    console.log("🎮 Gamepad detected:", gp.id);
+                    window._gpDetected = true;
+                }
+
                 // V118: Send full gamepad state for high-fidelity Xbox simulation
                 // Capture all axes and button values (including pressure)
                 const state = {
