@@ -395,46 +395,22 @@ class WebRTCViewer {
         // Gaming mode exit is now only via Ctrl+Click
 
         const handleKey = (e) => {
-            // V119: Track key state to avoid duplicate DOWN events for held keys
-            if (!this._keyState) this._keyState = {};
+            // V120: Simple and direct - just send every keydown/keyup
+            // The host handles key state properly
 
-            const key = e.code;
-            const isDown = e.type === 'keydown';
-
-            // Skip duplicate DOWN events (key already held)
-            if (isDown && this._keyState[key]) return;
-            // Skip UP event if key wasn't tracked as down
-            if (!isDown && !this._keyState[key]) return;
-
-            // Update state
-            this._keyState[key] = isDown;
-
-            // V117: Debug logging for modifier keys
-            if (e.code.includes('Shift') || e.code.includes('Control') || e.code.includes('Alt') || e.code.includes('Meta')) {
-                console.log(`[KEY MODIFIER] ${e.type}: ${e.code} (state: ${isDown ? 'held' : 'released'})`);
-            }
-
-            // V117: Always prevent default for gaming keys to avoid local actions
+            // Prevent default for gaming/system keys
             const blockedKeys = ['Escape', 'MetaLeft', 'MetaRight', 'Tab', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
             if (blockedKeys.includes(e.code) || document.pointerLockElement) {
                 e.preventDefault();
             }
 
-            // V117: Special handling for Windows key - must block + send
-            if (e.code === 'MetaLeft' || e.code === 'MetaRight') {
-                const vkCode = e.code === 'MetaLeft' ? 0x5B : 0x5C;
-                this.sendInput({ type: e.type, vkCode });
-                e.preventDefault();
-                e.stopPropagation();
-                return;
-            }
-
+            // Get VK code and send
             const vkCode = this.getWin32VK(e.code);
             if (vkCode) {
                 this.sendInput({ type: e.type, vkCode });
             }
         };
-        console.log('[V118-FIX] Keyboard listeners registered (SINGLE INSTANCE)');
+        console.log('[V120] Simple keyboard handler registered');
         window.addEventListener('keydown', handleKey);
         window.addEventListener('keyup', handleKey);
 
