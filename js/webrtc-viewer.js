@@ -395,8 +395,11 @@ class WebRTCViewer {
         // Gaming mode exit is now only via Ctrl+Click
 
         const handleKey = (e) => {
-            // V120: Simple and direct - just send every keydown/keyup
-            // The host handles key state properly
+            // V121: Hybrid approach for key repeat
+            // - Modifier keys (Shift/Ctrl/Alt): Skip repeat - just need held state
+            // - Regular keys (letters, backspace): Allow repeat for typing/deleting
+            const isModifier = e.code.includes('Shift') || e.code.includes('Control') || e.code.includes('Alt') || e.code.includes('Meta');
+            if (e.repeat && isModifier) return; // Skip modifier repeats
 
             // Prevent default for gaming/system keys
             const blockedKeys = ['Escape', 'MetaLeft', 'MetaRight', 'Tab', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
@@ -410,7 +413,7 @@ class WebRTCViewer {
                 this.sendInput({ type: e.type, vkCode });
             }
         };
-        console.log('[V120] Simple keyboard handler registered');
+        console.log('[V121] Hybrid keyboard handler (modifiers no-repeat, keys repeat)');
         window.addEventListener('keydown', handleKey);
         window.addEventListener('keyup', handleKey);
 
