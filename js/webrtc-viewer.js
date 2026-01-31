@@ -385,15 +385,18 @@ class WebRTCViewer {
     }
 
     setupInputCapture() {
+        // V118: Prevent duplicate listener registration on reconnect
+        if (this._inputCaptureInitialized) return;
+        this._inputCaptureInitialized = true;
+
         // V93: MOVED TO attachInputListeners()
         // Kept empty or used for global keyboard hooks only
         // V116: ESC works like normal key (no double-tap exit)
         // Gaming mode exit is now only via Ctrl+Click
 
         const handleKey = (e) => {
-            // V117: Skip key repeat events to avoid flooding the host
-            // Only first keydown and final keyup should be sent
-            if (e.repeat) return;
+            // V118: Allow key repeat events for hold-to-delete functionality
+            // Only skip if you want to flood-protect, but for desktop use we need repeats
 
             // V117: Debug logging for modifier keys
             if (e.code.includes('Shift') || e.code.includes('Control') || e.code.includes('Alt') || e.code.includes('Meta')) {
@@ -420,6 +423,7 @@ class WebRTCViewer {
                 this.sendInput({ type: e.type, vkCode });
             }
         };
+        console.log('[V118-FIX] Keyboard listeners registered (SINGLE INSTANCE)');
         window.addEventListener('keydown', handleKey);
         window.addEventListener('keyup', handleKey);
 
