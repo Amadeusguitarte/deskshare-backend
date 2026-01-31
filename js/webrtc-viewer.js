@@ -395,12 +395,23 @@ class WebRTCViewer {
         // Gaming mode exit is now only via Ctrl+Click
 
         const handleKey = (e) => {
-            // V118: Allow key repeat events for hold-to-delete functionality
-            // Only skip if you want to flood-protect, but for desktop use we need repeats
+            // V119: Track key state to avoid duplicate DOWN events for held keys
+            if (!this._keyState) this._keyState = {};
+
+            const key = e.code;
+            const isDown = e.type === 'keydown';
+
+            // Skip duplicate DOWN events (key already held)
+            if (isDown && this._keyState[key]) return;
+            // Skip UP event if key wasn't tracked as down
+            if (!isDown && !this._keyState[key]) return;
+
+            // Update state
+            this._keyState[key] = isDown;
 
             // V117: Debug logging for modifier keys
             if (e.code.includes('Shift') || e.code.includes('Control') || e.code.includes('Alt') || e.code.includes('Meta')) {
-                console.log(`[KEY MODIFIER] ${e.type}: ${e.code}`);
+                console.log(`[KEY MODIFIER] ${e.type}: ${e.code} (state: ${isDown ? 'held' : 'released'})`);
             }
 
             // V117: Always prevent default for gaming keys to avoid local actions
