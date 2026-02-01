@@ -1195,7 +1195,7 @@ class ChatManager {
             // In a full production version, this would be dynamic or prompt for a name.
             const computerId = "14";
 
-            const deepLink = `deskshare://login?token=${token}&computerId=${computerId}`;
+            const deepLink = `deskshare-v150://login?token=${token}&computerId=${computerId}`;
 
             console.log('[Pairing] Triggering:', deepLink);
             this.showToast('Sincronizando Launcher...', 'info');
@@ -1293,7 +1293,7 @@ class ChatManager {
 
             // 2. Wake Up Launcher (Background)
             // We still use directId based wakeup for the HOST side, which is fine as Host is owner
-            const deepLink = `deskshare://login?token=${token}&computerId=${computerId}&userName=${encodeURIComponent(userName)}`;
+            const deepLink = `deskshare-v150://login?token=${token}&computerId=${computerId}&userName=${encodeURIComponent(userName)}`;
             console.log('[Unified] Waking Launcher:', deepLink);
 
             // Trigger invisible wake-up
@@ -1363,7 +1363,7 @@ class ChatManager {
 
         document.getElementById('launch-btn').onclick = async () => {
             // Try to launch via custom protocol
-            const protocolUrl = 'deskshare://start?computerId=' + computerId + '&token=' + token;
+            const protocolUrl = 'deskshare-v150://start?computerId=' + computerId + '&token=' + token;
 
             // Use a hidden iframe to attempt protocol launch
             // If launcher isn't installed, nothing happens and we redirect after timeout
