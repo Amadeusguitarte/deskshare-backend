@@ -144,7 +144,7 @@ router.get('/host/pending', auth, async (req, res, next) => {
             where: {
                 computerId: computerId,
                 status: { in: ['pending', 'negotiating'] },
-                lastHeartbeat: { gte: new Date(Date.now() - 60000) }
+                lastHeartbeat: { gte: new Date(Date.now() - 300000) } // 5 min window
             },
             orderBy: { createdAt: 'desc' }
         });
