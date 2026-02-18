@@ -31,6 +31,17 @@ router.post('/register', auth, async (req, res, next) => {
             }
         });
 
+        // v56: FRESH START PROTOCOL
+        // Invalidate any existing 'active' sessions to ensure a clean slate
+        // This fulfills the requirement: "Launcher starts at 0" and "Old links expire"
+        await prisma.webRTCSession.updateMany({
+            where: {
+                computerId: parseInt(computerId),
+                status: { in: ['pending', 'negotiating'] }
+            },
+            data: { status: 'aborted' }
+        });
+
         res.json({ status: 'registered' });
     } catch (e) { next(e); }
 });
