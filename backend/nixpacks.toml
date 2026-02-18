@@ -3,7 +3,7 @@
 
 [phases.setup]
 # we need nodejs for the app, and standard tools to run guacd
-nixPkgs = ["nodejs_18", "guacamole-server", "freerdp", "libvncserver", "busybox", "cloudflared"]
+nixPkgs = ["nodejs", "guacamole-server", "busybox", "cloudflared"]
 
 [phases.install]
 cmds = ["npm ci"]
