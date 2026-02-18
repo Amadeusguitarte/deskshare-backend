@@ -155,6 +155,20 @@ router.get('/host/pending', auth, async (req, res, next) => {
 });
 
 // ========================================
+// [TEMP DEBUG] GET /api/webrtc/debug-sessions
+// ========================================
+router.get('/debug-sessions', async (req, res) => {
+    const computerId = parseInt(req.query.computerId) || 14;
+    const sessions = await prisma.webRTCSession.findMany({
+        where: { computerId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, status: true, clientName: true, createdAt: true, lastHeartbeat: true, bookingId: true }
+    });
+    res.json({ computerId, count: sessions.length, sessions, now: new Date().toISOString() });
+});
+
+// ========================================
 // GET /api/webrtc/poll/:sessionId (Unified Polling)
 // ========================================
 router.get('/poll/:sessionId', async (req, res, next) => {
