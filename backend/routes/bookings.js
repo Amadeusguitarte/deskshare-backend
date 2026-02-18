@@ -321,6 +321,22 @@ router.post('/manual-share', auth, async (req, res, next) => {
             }
         });
 
+        // v56: SIGNAL SESSION (Immediate Feedback)
+        // Create a 'pending' WebRTC session so the Launcher knows access was sent
+        let renterName = 'Usuario DeskShare';
+        const renter = await prisma.user.findUnique({ where: { id: parseInt(renterId) }, select: { name: true } });
+        if (renter?.name) renterName = renter.name;
+
+        await prisma.webRTCSession.create({
+            data: {
+                computerId: parseInt(computerId),
+                bookingId: booking.id,
+                clientName: renterName,
+                status: 'pending', // Special status for "Access Sent"
+                candidates: []
+            }
+        });
+
         // 3. Inject Chat Message with Access Info
         // Use a special JSON format that frontend will parse and render as a proper action card
         // v44: SMART TYPE DETECTION

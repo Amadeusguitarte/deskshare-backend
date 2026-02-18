@@ -140,17 +140,26 @@ router.get('/host/pending', auth, async (req, res, next) => {
         if (!computerId) return res.status(400).json({ error: 'computerId required' });
 
         // Find newest session that is actively negotiating (has offer)
+        // Find newest session that is either PENDING (access sent) or NEGOTIATING (connecting)
         const session = await prisma.webRTCSession.findFirst({
             where: {
                 computerId: computerId,
-                status: 'negotiating', // WAIT FOR VIEWER TO SEND OFFER
+                OR: [
+                    { status: 'negotiating' },
+                    { status: 'pending' }
+                ],
                 lastHeartbeat: { gte: new Date(Date.now() - 60000) }
             },
             orderBy: { createdAt: 'desc' }
         });
 
         if (!session) return res.status(404).json({ status: 'idle' });
-        res.json({ sessionId: session.id });
+
+        res.json({
+            sessionId: session.id,
+            status: session.status,
+            clientName: session.clientName || 'Usuario'
+        });
     } catch (e) { next(e); }
 });
 
