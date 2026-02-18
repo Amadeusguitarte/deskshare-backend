@@ -359,7 +359,32 @@ router.post('/manual-share', auth, async (req, res, next) => {
 
         console.log(`Manual Share Success: Booking ${booking.id} created for Renter ${renterId} by Host ${requestUserId}`);
 
-        console.log(`Manual Share Success: Booking ${booking.id} created for Renter ${renterId} by Host ${requestUserId}`);
+        // === REAL-TIME LAUNCHER SIGNAL ===
+        // Create a "pending" WebRTC session so the launcher immediately knows
+        // an access key was sent (before client even clicks "Conectar")
+        let renterName = 'Usuario';
+        try {
+            const renterUser = await prisma.user.findUnique({ where: { id: parseInt(renterId) }, select: { name: true } });
+            if (renterUser?.name) renterName = renterUser.name;
+        } catch (e) { /* fallback to 'Usuario' */ }
+
+        const signalSession = await prisma.webRTCSession.create({
+            data: {
+                computerId: parseInt(computerId),
+                bookingId: booking.id,
+                clientName: renterName,
+                status: 'pending',   // Not 'negotiating' — launcher treats this as "access sent"
+                candidates: []
+            }
+        });
+
+        // Point computer to this session so /host/pending finds it
+        await prisma.computer.update({
+            where: { id: parseInt(computerId) },
+            data: { webrtcSessionId: signalSession.id }
+        });
+
+        console.log(`[RT-SIGNAL] Created pending session ${signalSession.id} for ${renterName}`);
 
         // 4. Emit Socket Event for Real-time Delivery
         const io = req.app.get('io');
