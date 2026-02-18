@@ -359,29 +359,7 @@ router.post('/manual-share', auth, async (req, res, next) => {
 
         console.log(`Manual Share Success: Booking ${booking.id} created for Renter ${renterId} by Host ${requestUserId}`);
 
-        // === REAL-TIME LAUNCHER SIGNAL ===
-        try {
-            let renterName = 'Usuario';
-            const renterUser = await prisma.user.findUnique({ where: { id: parseInt(renterId) }, select: { name: true } });
-            if (renterUser?.name) renterName = renterUser.name;
-
-            const signalSession = await prisma.webRTCSession.create({
-                data: {
-                    computerId: parseInt(computerId),
-                    clientName: renterName,
-                    status: 'pending'
-                }
-            });
-
-            await prisma.computer.update({
-                where: { id: parseInt(computerId) },
-                data: { webrtcSessionId: signalSession.id }
-            });
-
-            console.log(`[RT-SIGNAL] OK: session ${signalSession.id} for ${renterName} on computer ${computerId}`);
-        } catch (sigErr) {
-            console.error('[RT-SIGNAL] FAILED:', sigErr.message, sigErr.stack);
-        }
+        console.log(`Manual Share Success: Booking ${booking.id} created for Renter ${renterId} by Host ${requestUserId}`);
 
         // 4. Emit Socket Event for Real-time Delivery
         const io = req.app.get('io');
