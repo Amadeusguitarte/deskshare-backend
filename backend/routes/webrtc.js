@@ -150,7 +150,7 @@ router.get('/host/pending', auth, async (req, res, next) => {
         });
 
         if (!session) return res.status(404).json({ status: 'idle' });
-        res.json({ sessionId: session.id });
+        res.json({ sessionId: session.id, clientName: session.clientName });
     } catch (e) { next(e); }
 });
 
